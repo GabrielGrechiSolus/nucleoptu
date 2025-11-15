@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nucleo PTU
 
-## Getting Started
+Gestão de Contas Médicas e Snacks.
 
-First, run the development server:
+## Visão Geral
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+O Nucleo PTU é uma aplicação web construída com Next.js, React, e TypeScript, projetada para otimizar a gestão de contas médicas e o controle de snacks. A aplicação utiliza Firebase para autenticação e armazenamento de dados em tempo real, e Tailwind CSS para uma interface de usuário moderna e responsiva.
+
+## Tecnologias Utilizadas
+
+- **Next.js 16**: Framework React para renderização do lado do servidor e geração de sites estáticos.
+- **React 19**: Biblioteca para construção de interfaces de usuário.
+- **TypeScript**: Superset de JavaScript que adiciona tipagem estática.
+- **Tailwind CSS**: Framework de CSS utilitário para design rápido e customizável.
+- **Firebase**: Plataforma para autenticação de usuários e banco de dados em tempo real.
+- **Jest**: Framework de teste para JavaScript.
+- **ESLint**: Ferramenta de linting para identificar e corrigir problemas no código.
+
+## Estrutura do Projeto
+
+A estrutura do projeto segue as convenções do Next.js App Router:
+
+```
+c:/RepositorioGit/nucleoptu/
+├── app/                  # Diretório principal da aplicação
+│   ├── components/       # Componentes reutilizáveis
+│   ├── home/             # Componentes da página inicial
+│   ├── login/            # Página de login
+│   ├── notice-board/     # Quadro de avisos
+│   ├── register/         # Página de registro
+│   ├── layout.tsx        # Layout principal da aplicação
+│   └── page.tsx          # Página inicial
+├── public/               # Arquivos estáticos
+├── firebase.ts           # Configuração do Firebase
+├── next.config.ts        # Configuração do Next.js
+├── package.json          # Dependências e scripts do projeto
+└── tsconfig.json         # Configuração do TypeScript
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Scripts Disponíveis
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+No diretório do projeto, você pode executar:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### `npm run dev`
 
-## Learn More
+Executa a aplicação em modo de desenvolvimento.<br>
+Abra [http://localhost:3000](http://localhost:3000) para visualizá-la no navegador.
 
-To learn more about Next.js, take a look at the following resources:
+A página será recarregada se você fizer edições.<br>
+Você também verá quaisquer erros de lint no console.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### `npm run build`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Constrói a aplicação para produção na pasta `.next`.
 
-## Deploy on Vercel
+### `npm run start`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Inicia um servidor de produção.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### `npm run lint`
+
+Executa o linter em todos os arquivos do projeto.
+
+### `npm run test`
+
+Inicia o executor de testes no modo de observação interativo.
+
+## Como Começar
+
+1. **Clone o repositório:**
+   ```bash
+   git clone https://github.com/seu-usuario/nucleoptu.git
+   ```
+2. **Instale as dependências:**
+   ```bash
+   npm install
+   ```
+3. **Configure o Firebase:**
+   - Crie um projeto no [Firebase Console](https://console.firebase.google.com/).
+   - Adicione um aplicativo da web ao seu projeto.
+   - Copie as credenciais do Firebase e cole-as no arquivo `firebase.ts`.
+4. **Inicie o servidor de desenvolvimento:**
+   ```bash
+   npm run dev
+   ```
