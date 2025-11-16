@@ -11,9 +11,9 @@ export default function ProfilePage() {
 
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
-  const [photo, setPhoto] = useState(''); // Base64 ou URL
+  const [photo, setPhoto] = useState('');
   const [preview, setPreview] = useState('/profile.jpg');
-  const [ledColor, setLedColor] = useState('#00ff00'); // Cor LED aleatória
+  const [ledColor, setLedColor] = useState('#00ff00');
   const [noticeType, setNoticeType] = useState<'todos' | 'analise' | 'desenvolvimento' | 'lideranca' | 'sustentacao'>('todos');
 
   useEffect(() => {
@@ -85,13 +85,10 @@ export default function ProfilePage() {
   const saveProfile = async () => {
     if (!user) return;
     try {
-      // Atualiza Firebase Auth
       await updateProfile(auth.currentUser!, {
         displayName: name,
         photoURL: photo || preview,
       });
-
-      // Atualiza Firestore
       await setDoc(
         doc(db, 'profiles', user.uid),
         {
@@ -105,7 +102,6 @@ export default function ProfilePage() {
         },
         { merge: true }
       );
-
       alert('Perfil atualizado com sucesso!');
     } catch (error) {
       console.error(error);
@@ -118,17 +114,10 @@ export default function ProfilePage() {
       setPhoto('');
       const avatar = generateAvatar(name || '');
       setPreview(avatar);
-
       await updateProfile(auth.currentUser!, { photoURL: avatar });
-
       if (user) {
-        await setDoc(
-          doc(db, 'profiles', user.uid),
-          { avatar },
-          { merge: true }
-        );
+        await setDoc(doc(db, 'profiles', user.uid), { avatar }, { merge: true });
       }
-
       alert('Foto removida!');
     } catch (error) {
       console.error(error);
@@ -137,72 +126,60 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="text-zinc-50">
-      <h1 className="text-3xl font-bold mb-6">Meu Perfil</h1>
-
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 max-w-xl space-y-6">
-        {/* Foto com LED */}
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-6">
-            <div className="w-24 h-24 rounded-full p-1" style={{ backgroundColor: ledColor }}>
-              <img
-                src={preview}
-                alt="Foto de perfil"
-                className="w-full h-full rounded-full object-cover border border-zinc-700 shadow"
-              />
-            </div>
-            <div className="flex flex-col gap-2 w-full">
-              {/* Upload de arquivo */}
-              <label className="bg-zinc-700 hover:bg-zinc-600 px-4 py-2 rounded-lg cursor-pointer text-sm">
-                Alterar foto
-                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
-              </label>
-
-              {/* Input de link */}
-              <input
-                type="text"
-                placeholder="Coloque o link da imagem"
-                className="w-full p-2 rounded bg-zinc-800 text-sm mt-1"
-                value={photo}
-                onChange={(e) => {
-                  setPhoto(e.target.value);
-                  setPreview(e.target.value);
-                }}
-              />
-
-              <button onClick={removePhoto} className="text-red-400 hover:text-red-300 text-xs mt-1">
-                Remover foto
-              </button>
-            </div>
-          </div>
+    <div className="flex flex-col md:flex-row w-full h-full gap-6 min-w-0">
+      {/* Foto e controles */}
+      <div className="flex flex-col items-center gap-4 md:w-1/3 flex-shrink-0 min-w-0">
+        <div className="w-32 h-32 rounded-full p-1" style={{ backgroundColor: ledColor }}>
+          <img
+            src={preview}
+            alt="Foto de perfil"
+            className="w-full h-full rounded-full object-cover border border-zinc-700 shadow"
+          />
         </div>
+        <label className="bg-zinc-700 hover:bg-zinc-600 px-4 py-2 rounded-lg cursor-pointer text-sm">
+          Alterar foto
+          <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+        </label>
+        <input
+          type="text"
+          placeholder="Coloque o link da imagem"
+          className="w-full p-2 rounded bg-zinc-800 text-sm mt-1 min-w-0"
+          value={photo}
+          onChange={(e) => {
+            setPhoto(e.target.value);
+            setPreview(e.target.value);
+          }}
+        />
+        <button onClick={removePhoto} className="text-red-400 hover:text-red-300 text-xs mt-1">
+          Remover foto
+        </button>
+      </div>
 
-        {/* Nome */}
+      {/* Formulário com scroll interno */}
+      <div className="flex-1 flex flex-col gap-4 overflow-auto min-w-0 h-full">
         <div>
           <label className="text-sm text-zinc-400">Nome</label>
           <input
             type="text"
-            className="w-full mt-1 p-3 bg-zinc-800 border border-zinc-700 rounded-lg outline-none focus:border-sky-500 transition"
+            className="w-full mt-1 p-3 bg-zinc-800 border border-zinc-700 rounded-lg outline-none focus:border-sky-500 transition min-w-0"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
         </div>
 
-        {/* Bio */}
         <div>
           <label className="text-sm text-zinc-400">Bio</label>
           <textarea
-            className="w-full mt-1 p-3 bg-zinc-800 border border-zinc-700 rounded-lg outline-none focus:border-sky-500 transition"
+            className="w-full mt-1 p-3 bg-zinc-800 border border-zinc-700 rounded-lg outline-none focus:border-sky-500 transition min-w-0"
             value={bio}
             onChange={(e) => setBio(e.target.value)}
           />
         </div>
 
-        {/* Tipo de Aviso */}
         <div>
           <label className="text-sm text-zinc-400">Tipo de aviso padrão</label>
           <select
-            className="w-full mt-1 p-3 bg-zinc-800 border border-zinc-700 rounded-lg outline-none focus:border-sky-500 transition"
+            className="w-full mt-1 p-3 bg-zinc-800 border border-zinc-700 rounded-lg outline-none focus:border-sky-500 transition min-w-0"
             value={noticeType}
             onChange={(e) => setNoticeType(e.target.value as typeof noticeType)}
           >
@@ -214,18 +191,16 @@ export default function ProfilePage() {
           </select>
         </div>
 
-        {/* Email */}
         <div>
           <label className="text-sm text-zinc-400">Email</label>
           <input
             type="text"
             value={user?.email || ''}
             disabled
-            className="w-full mt-1 p-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-500"
+            className="w-full mt-1 p-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-500 min-w-0"
           />
         </div>
 
-        {/* Salvar */}
         <button
           onClick={saveProfile}
           className="w-full py-3 bg-sky-600 hover:bg-sky-500 rounded-lg font-semibold transition"
