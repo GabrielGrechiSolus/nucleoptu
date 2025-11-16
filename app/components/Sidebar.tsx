@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../AuthContext';
 import { auth, db } from '../../firebase';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { doc, getDoc } from 'firebase/firestore';
 
 // Ícones
@@ -22,6 +22,7 @@ import { ProfileIcon } from '../home/ProfileIcon';
 const Sidebar = () => {
   const { user } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
 
   const [profileAvatar, setProfileAvatar] = useState('/profile.jpg');
   const [ledColor, setLedColor] = useState('#00ff00');
@@ -91,6 +92,16 @@ const Sidebar = () => {
     { href: '/profile', label: 'Perfil', icon: <ProfileIcon /> },
     { href: '/home/settings', label: 'Configurações', icon: <SettingsIcon /> },
   ];
+
+  // Função de logout com redirecionamento
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      router.push('/');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
+  };
 
   return (
     <>
@@ -180,7 +191,7 @@ const Sidebar = () => {
 
         {/* Logout */}
         <button
-          onClick={() => auth.signOut()}
+          onClick={handleLogout}
           className="mt-auto w-full flex items-center gap-3 px-4 py-2 rounded-lg text-red-400 hover:bg-red-500/20 transition-colors"
         >
           <span className="w-6 h-6"><LogoutIcon /></span>
@@ -204,7 +215,7 @@ const Sidebar = () => {
         ))}
 
         <button
-          onClick={() => auth.signOut()}
+          onClick={handleLogout}
           className="flex flex-col items-center p-2 rounded-md text-zinc-400"
         >
           <span className="w-7 h-7">
