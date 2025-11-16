@@ -13,9 +13,9 @@ import {
   orderBy,
   limit,
   startAfter,
-  QueryConstraint,
+  arrayUnion,
 } from "firebase/firestore";
-import { db } from "../../firebase";
+import { db, auth } from "../../firebase";
 
 import {
   Search,
@@ -25,44 +25,59 @@ import {
   Calendar,
   CheckCircle,
   FileText,
-  Globe,
-  FileCode,
   File,
+  FileCode,
+  Globe,
+  BarChart2,
+  User,
 } from "lucide-react";
 
 import { Dialog } from "@headlessui/react";
 
-// Tipagem de aviso
 interface Notice {
   id: string;
   title: string;
   description?: string;
   link?: string;
-  read: boolean;
+  type?: "texto" | "pdf" | "word" | "excel" | "site";
   createdAt: number;
-  readAt?: number;
+  creatorEmail: string;
+  readBy?: string[];
+  importance?: "low" | "medium" | "high";
 }
 
 const NoticesPage = () => {
+  const user = auth.currentUser;
+
   const [notices, setNotices] = useState<Notice[]>([]);
   const [search, setSearch] = useState("");
   const [filterDate, setFilterDate] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "unread" | "read">("all");
+  const [importanceFilter, setImportanceFilter] = useState<"all" | "low" | "medium" | "high">("all");
 
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteId, setDeleteId] = useState("");
 
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newLink, setNewLink] = useState("");
+  const [newType, setNewType] = useState<Notice["type"]>("texto");
+  const [newImportance, setNewImportance] = useState<Notice["importance"]>("medium");
 
   const [editId, setEditId] = useState("");
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editLink, setEditLink] = useState("");
+  const [editType, setEditType] = useState<Notice["type"]>("texto");
+  const [editImportance, setEditImportance] = useState<Notice["importance"]>("medium");
 
   const [lastVisible, setLastVisible] = useState<any>(null);
   const [isLastPage, setIsLastPage] = useState(false);
+
+  const [readModalOpen, setReadModalOpen] = useState(false);
+  const [readList, setReadList] = useState<string[]>([]);
 
   const PAGE_SIZE = 10;
 
@@ -71,22 +86,30 @@ const NoticesPage = () => {
     return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR");
   };
 
-  const getIconByLink = (url?: string) => {
-    if (!url) return null;
-    const lower = url.toLowerCase();
-    if (lower.endsWith(".pdf")) return <FileText className="w-4 h-4" />;
-    if (lower.endsWith(".doc") || lower.endsWith(".docx")) return <File className="w-4 h-4" />;
-    if (lower.endsWith(".txt")) return <FileCode className="w-4 h-4" />;
-    if (lower.startsWith("http")) return <Globe className="w-4 h-4" />;
-    return <File className="w-4 h-4" />;
+  const typeConfig: Record<
+    NonNullable<Notice["type"]>,
+    { icon: React.ReactNode; color: string }
+  > = {
+    texto: { icon: <FileCode className="w-4 h-4" />, color: "bg-gray-600" },
+    pdf: { icon: <FileText className="w-4 h-4" />, color: "bg-red-600" },
+    word: { icon: <File className="w-4 h-4" />, color: "bg-blue-600" },
+    excel: { icon: <BarChart2 className="w-4 h-4" />, color: "bg-green-600" },
+    site: { icon: <Globe className="w-4 h-4" />, color: "bg-sky-500" },
   };
+
+  const importanceColor: Record<NonNullable<Notice["importance"]>, string> = {
+    low: "bg-green-500",
+    medium: "bg-yellow-500",
+    high: "bg-red-500",
+  };
+
 
   const loadPage = useCallback(
     async (mode: "first" | "next" = "first") => {
-      const constraints: QueryConstraint[] = [orderBy("createdAt", "desc")];
-      if (mode === "next" && lastVisible) {
-        constraints.push(startAfter(lastVisible));
-      }
+      if (!user) return;
+
+      const constraints: any[] = [orderBy("createdAt", "desc")];
+      if (mode === "next" && lastVisible) constraints.push(startAfter(lastVisible));
 
       const q = query(collection(db, "notices"), limit(PAGE_SIZE), ...constraints);
       const snap = await getDocs(q);
@@ -97,21 +120,22 @@ const NoticesPage = () => {
         return;
       }
 
-      const loaded: Notice[] = snap.docs.map((d) => {
-        const data = d.data();
-        return {
-          id: d.id,
-          title: data.title,
-          description: data.description || "",
-          link: data.link || "",
-          read: data.read || false,
-          createdAt: data.createdAt || Date.now(),
-          readAt: data.readAt,
-        };
-      });
+      const loaded: Notice[] = snap.docs.map((d) => ({
+        id: d.id,
+        title: d.data().title,
+        description: d.data().description || "",
+        link: d.data().link || "",
+        type: d.data().type || "texto",
+        importance: d.data().importance || "medium",
+        createdAt: d.data().createdAt || Date.now(),
+        creatorEmail: d.data().creatorEmail,
+        readBy: d.data().readBy || [],
+      }));
 
-      // Ordena: não lidos primeiro
-      const sorted = [...loaded.filter((n) => !n.read), ...loaded.filter((n) => n.read)];
+      const sorted = [
+        ...loaded.filter((n) => !(n.readBy?.includes(user.uid))),
+        ...loaded.filter((n) => n.readBy?.includes(user.uid)),
+      ];
 
       if (mode === "first") setNotices(sorted);
       else setNotices((prev) => [...prev, ...sorted]);
@@ -119,7 +143,7 @@ const NoticesPage = () => {
       setLastVisible(snap.docs[snap.docs.length - 1]);
       setIsLastPage(snap.docs.length < PAGE_SIZE);
     },
-    [lastVisible]
+    [lastVisible, user]
   );
 
   useEffect(() => {
@@ -127,19 +151,24 @@ const NoticesPage = () => {
   }, [loadPage]);
 
   const handleAdd = async () => {
-    if (!newTitle.trim()) return;
+    if (!newTitle.trim() || !user) return;
 
     await addDoc(collection(db, "notices"), {
       title: newTitle,
       description: newDescription,
       link: newLink,
-      read: false,
+      type: newType,
+      importance: newImportance,
       createdAt: Date.now(),
+      creatorEmail: user.email || "Desconhecido",
+      readBy: [],
     });
 
     setNewTitle("");
     setNewDescription("");
     setNewLink("");
+    setNewType("texto");
+    setNewImportance("medium");
     setIsAdding(false);
     void loadPage("first");
   };
@@ -149,40 +178,60 @@ const NoticesPage = () => {
       title: editTitle,
       description: editDescription,
       link: editLink,
+      type: editType,
+      importance: editImportance,
     });
 
     setIsEditing(false);
     void loadPage("first");
   };
 
-  const handleDelete = async (id: string) => {
-    await deleteDoc(doc(db, "notices", id));
+  const confirmDelete = (id: string) => {
+    setDeleteId(id);
+    setIsDeleting(true);
+  };
+
+  const handleDelete = async () => {
+    await deleteDoc(doc(db, "notices", deleteId));
+    setIsDeleting(false);
+    setDeleteId("");
     void loadPage("first");
   };
 
-  const handleMarkAsRead = async (id: string) => {
-    await updateDoc(doc(db, "notices", id), {
-      read: true,
-      readAt: Date.now(),
+  const handleMarkAsRead = async (notice: Notice) => {
+    if (!user) return;
+    const noticeRef = doc(db, "notices", notice.id);
+    await updateDoc(noticeRef, {
+      readBy: arrayUnion(user.email || "Desconhecido"),
     });
-
     void loadPage("first");
+  };
+
+  const handleOpenReadModal = (readBy: string[] | undefined) => {
+    setReadList(readBy || []);
+    setReadModalOpen(true);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert("Copiado para a área de transferência!");
   };
 
   const filtered = notices.filter((n) => {
     const s = search.toLowerCase();
     const matchesSearch = n.title.toLowerCase().includes(s) || n.description?.toLowerCase().includes(s);
-
     const matchesDate = filterDate ? new Date(n.createdAt).toISOString().split("T")[0] === filterDate : true;
-
+    const readStatus = n.readBy?.includes(user?.email || "");
     const matchesStatus =
-      statusFilter === "all" ? true : statusFilter === "unread" ? !n.read : n.read;
+      statusFilter === "all" ? true : statusFilter === "unread" ? !readStatus : readStatus;
+    const matchesImportance =
+      importanceFilter === "all" ? true : n.importance === importanceFilter;
 
-    return matchesSearch && matchesDate && matchesStatus;
+    return matchesSearch && matchesDate && matchesStatus && matchesImportance;
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4">
       {/* FILTROS */}
       <div className="w-full space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -196,7 +245,6 @@ const NoticesPage = () => {
               className="bg-transparent outline-none w-full text-sm"
             />
           </div>
-
           <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2">
             <Calendar className="w-4 h-4 text-zinc-400" />
             <input
@@ -208,115 +256,196 @@ const NoticesPage = () => {
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setStatusFilter("all")}
-              className={`px-4 py-2 rounded-xl text-sm ${
-                statusFilter === "all" ? "bg-sky-600 text-white" : "bg-zinc-900 border border-zinc-800 text-zinc-300"
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setStatusFilter("all")}
+            className={`px-4 py-2 rounded-xl text-sm ${statusFilter === "all" ? "bg-sky-600 text-white" : "bg-zinc-900 border border-zinc-800 text-zinc-300"
               }`}
-            >
-              Todos
-            </button>
-
-            <button
-              onClick={() => setStatusFilter("unread")}
-              className={`px-4 py-2 rounded-xl text-sm ${
-                statusFilter === "unread" ? "bg-yellow-600 text-white" : "bg-zinc-900 border border-zinc-800 text-zinc-300"
+          >
+            Todos
+          </button>
+          <button
+            onClick={() => setStatusFilter("unread")}
+            className={`px-4 py-2 rounded-xl text-sm ${statusFilter === "unread" ? "bg-yellow-600 text-white" : "bg-zinc-900 border border-zinc-800 text-zinc-300"
               }`}
-            >
-              Não lidos
-            </button>
-
-            <button
-              onClick={() => setStatusFilter("read")}
-              className={`px-4 py-2 rounded-xl text-sm ${
-                statusFilter === "read" ? "bg-green-600 text-white" : "bg-zinc-900 border border-zinc-800 text-zinc-300"
+          >
+            Não lidos
+          </button>
+          <button
+            onClick={() => setStatusFilter("read")}
+            className={`px-4 py-2 rounded-xl text-sm ${statusFilter === "read" ? "bg-green-600 text-white" : "bg-zinc-900 border border-zinc-800 text-zinc-300"
               }`}
-            >
-              Lidos
-            </button>
-          </div>
+          >
+            Lidos
+          </button>
 
           <button
-            onClick={() => setIsAdding(true)}
-            className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 transition px-4 py-2 rounded-xl text-sm font-medium"
+            onClick={() => setImportanceFilter("all")}
+            className={`px-4 py-2 rounded-xl text-sm ${importanceFilter === "all" ? "bg-sky-600 text-white" : "bg-zinc-900 border border-zinc-800 text-zinc-300"
+              }`}
           >
-            <Plus className="w-4 h-4" />
-            Novo Aviso
+            Todas Importâncias
+          </button>
+          <button
+            onClick={() => setImportanceFilter("low")}
+            className={`px-4 py-2 rounded-xl text-sm ${importanceFilter === "low" ? "bg-green-600 text-white" : "bg-zinc-900 border border-zinc-800 text-zinc-300"
+              }`}
+          >
+            Baixa
+          </button>
+          <button
+            onClick={() => setImportanceFilter("medium")}
+            className={`px-4 py-2 rounded-xl text-sm ${importanceFilter === "medium" ? "bg-yellow-600 text-white" : "bg-zinc-900 border border-zinc-800 text-zinc-300"
+              }`}
+          >
+            Média
+          </button>
+          <button
+            onClick={() => setImportanceFilter("high")}
+            className={`px-4 py-2 rounded-xl text-sm ${importanceFilter === "high" ? "bg-red-600 text-white" : "bg-zinc-900 border border-zinc-800 text-zinc-300"
+              }`}
+          >
+            Alta
           </button>
         </div>
+
+        <button
+          onClick={() => setIsAdding(true)}
+          className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 transition px-4 py-2 rounded-xl text-sm font-medium mt-2"
+        >
+          <Plus className="w-4 h-4" />
+          Novo Aviso
+        </button>
       </div>
 
       {/* LISTA DE AVISOS */}
-      <div className="grid gap-4">
+      <div className="grid gap-4 mt-4">
         {filtered.map((item) => (
           <div
             key={item.id}
-            className={`border border-zinc-800 rounded-xl p-4 transition ${
-              item.read ? "opacity-50 bg-zinc-900/40" : "bg-zinc-900"
-            }`}
+            className={`border border-zinc-800 rounded-xl p-4 transition ${item.readBy?.includes(user?.email || "") ? "opacity-50 bg-zinc-900/40" : "bg-zinc-900"
+              }`}
           >
+            {/* Conteúdo do aviso */}
             <div className="flex justify-between items-start">
               <div className="space-y-1">
-                <h2 className="text-lg font-semibold">{item.title}</h2>
-                <p className="text-sm text-zinc-300">{item.description}</p>
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  {/* Ícone do tipo */}
+                  <span
+                    className={`${typeConfig[item.type || "texto"].color} w-5 h-5 flex items-center justify-center rounded`}
+                  >
+                    {typeConfig[item.type || "texto"].icon}
+                  </span>
+
+                  {/* Título */}
+                  <span
+                    className="cursor-pointer select-text"
+                    onClick={() => copyToClipboard(item.title)}
+                  >
+                    {item.title}
+                  </span>
+
+                  {/* Ponto de importância */}
+                  <span
+                    className={`${importanceColor[item.importance || "medium"]} w-3 h-3 rounded-full`}
+                    title={`Importância: ${item.importance || "medium"}`}
+                  />
+                </h2>
+
+                {/* Descrição */}
+                <p
+                  className="text-sm text-zinc-300 cursor-pointer select-text"
+                  onClick={() => copyToClipboard(item.description || "")}
+                >
+                  {item.description}
+                </p>
+
+                {/* Link, criador e data */}
+                <div className="flex flex-wrap gap-2 mt-1 items-center">
+                  {item.link && (
+                    <button
+                      className="flex items-center gap-1 text-sky-400 underline text-xs"
+                      onClick={() => copyToClipboard(item.link || "")}
+                    >
+                      {typeConfig[item.type || "site"].icon} Copiar link
+                    </button>
+                  )}
+                  <span className="text-zinc-500 text-xs cursor-pointer select-text">
+                    Criado por: {item.creatorEmail}
+                  </span>
+                  <span className="text-zinc-500 text-xs">{formatDate(item.createdAt)}</span>
+                </div>
               </div>
 
+              {/* Botões de ação */}
               <div className="flex gap-2">
-                {!item.read && (
-                  <button onClick={() => handleMarkAsRead(item.id)} className="text-green-400 hover:text-green-300">
+                {!item.readBy?.includes(user?.email || "") && (
+                  <button
+                    onClick={() => handleMarkAsRead(item)}
+                    className="text-green-400 hover:text-green-300"
+                    title="Marcar como lido"
+                  >
                     <CheckCircle className="w-5 h-5" />
                   </button>
                 )}
-                <button
-                  onClick={() => {
-                    setEditId(item.id);
-                    setEditTitle(item.title);
-                    setEditDescription(item.description || "");
-                    setEditLink(item.link || "");
-                    setIsEditing(true);
-                  }}
-                  className="text-sky-400 hover:text-sky-300"
-                >
-                  <Edit3 className="w-5 h-5" />
-                </button>
-                <button onClick={() => handleDelete(item.id)} className="text-red-400 hover:text-red-300">
-                  <Trash2 className="w-5 h-5" />
-                </button>
+
+                {item.creatorEmail === user?.email && (
+                  <>
+                    <button
+                      onClick={() => {
+                        setEditId(item.id);
+                        setEditTitle(item.title);
+                        setEditDescription(item.description || "");
+                        setEditLink(item.link || "");
+                        setEditType(item.type || "texto");
+                        setEditImportance(item.importance || "medium");
+                        setIsEditing(true);
+                      }}
+                      className="text-sky-400 hover:text-sky-300"
+                      title="Editar aviso"
+                    >
+                      <Edit3 className="w-5 h-5" />
+                    </button>
+
+                    <button
+                      onClick={() => confirmDelete(item.id)}
+                      className="text-red-400 hover:text-red-300"
+                      title="Deletar aviso"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+
+                    {item.readBy && item.readBy.length > 0 && (
+                      <button
+                        onClick={() => handleOpenReadModal(item.readBy)}
+                        className="text-yellow-400 hover:text-yellow-300"
+                        title="Ver quem leu"
+                      >
+                        <User className="w-5 h-5" />
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
             </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-3">
-              {item.link && (
-                <a className="flex items-center gap-1 text-sky-400 underline text-sm" href={item.link} target="_blank">
-                  {getIconByLink(item.link)}
-                  Abrir link
-                </a>
-              )}
-
-              <span className="text-zinc-500 text-xs">Criado: {formatDate(item.createdAt)}</span>
-
-              {item.read && item.readAt && (
-                <span className="text-green-400 text-xs flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" />
-                  Lido em: {formatDate(item.readAt)}
-                </span>
-              )}
-            </div>
           </div>
+
         ))}
       </div>
 
       {!isLastPage && (
-        <div className="text-center">
-          <button onClick={() => loadPage("next")} className="px-4 py-2 bg-zinc-800 rounded-xl hover:bg-zinc-700">
+        <div className="text-center mt-4">
+          <button
+            onClick={() => loadPage("next")}
+            className="px-4 py-2 bg-zinc-800 rounded-xl hover:bg-zinc-700"
+          >
             Carregar mais
           </button>
         </div>
       )}
 
-      {/* MODAL ADICIONAR */}
+      {/* MODAIS: Adicionar, Editar, Deletar, Quem leu */}
+      {/* Modal adicionar */}
       <Dialog open={isAdding} onClose={() => setIsAdding(false)}>
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center">
           <div className="bg-zinc-900 p-6 rounded-xl w-full max-w-md space-y-3">
@@ -339,6 +468,28 @@ const NoticesPage = () => {
               value={newLink}
               onChange={(e) => setNewLink(e.target.value)}
             />
+            <select
+              className="w-full p-2 rounded bg-zinc-800"
+              value={newType}
+              onChange={(e) => setNewType(e.target.value as Notice["type"])}
+            >
+              <option value="texto">Texto</option>
+              <option value="pdf">PDF</option>
+              <option value="word">Word</option>
+              <option value="excel">Excel</option>
+              <option value="site">Site</option>
+            </select>
+
+            <select
+              className="w-full p-2 rounded bg-zinc-800"
+              value={newImportance}
+              onChange={(e) => setNewImportance(e.target.value as Notice["importance"])}
+            >
+              <option value="low">Baixa</option>
+              <option value="medium">Média</option>
+              <option value="high">Alta</option>
+            </select>
+
             <div className="flex justify-end gap-2">
               <button className="px-4 py-2 bg-zinc-700 rounded" onClick={() => setIsAdding(false)}>
                 Cancelar
@@ -351,7 +502,7 @@ const NoticesPage = () => {
         </div>
       </Dialog>
 
-      {/* MODAL EDITAR */}
+      {/* Modal editar */}
       <Dialog open={isEditing} onClose={() => setIsEditing(false)}>
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center">
           <div className="bg-zinc-900 p-6 rounded-xl w-full max-w-md space-y-3">
@@ -374,12 +525,73 @@ const NoticesPage = () => {
               value={editLink}
               onChange={(e) => setEditLink(e.target.value)}
             />
+            <select
+              className="w-full p-2 rounded bg-zinc-800"
+              value={editType}
+              onChange={(e) => setEditType(e.target.value as Notice["type"])}
+            >
+              <option value="texto">Texto</option>
+              <option value="pdf">PDF</option>
+              <option value="word">Word</option>
+              <option value="excel">Excel</option>
+              <option value="site">Site</option>
+            </select>
+            <select
+              className="w-full p-2 rounded bg-zinc-800"
+              value={editImportance}
+              onChange={(e) => setEditImportance(e.target.value as Notice["importance"])}
+            >
+              <option value="low">Baixa</option>
+              <option value="medium">Média</option>
+              <option value="high">Alta</option>
+            </select>
+
             <div className="flex justify-end gap-2">
               <button className="px-4 py-2 bg-zinc-700 rounded" onClick={() => setIsEditing(false)}>
                 Cancelar
               </button>
               <button className="px-4 py-2 bg-sky-600 rounded" onClick={handleEdit}>
                 Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* Modal deletar */}
+      <Dialog open={isDeleting} onClose={() => setIsDeleting(false)}>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center">
+          <div className="bg-zinc-900 p-6 rounded-xl w-full max-w-sm space-y-3">
+            <h2 className="text-xl font-semibold">Confirmar Exclusão?</h2>
+            <div className="flex justify-end gap-2">
+              <button className="px-4 py-2 bg-zinc-700 rounded" onClick={() => setIsDeleting(false)}>
+                Cancelar
+              </button>
+              <button className="px-4 py-2 bg-red-600 rounded" onClick={handleDelete}>
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* Modal quem leu */}
+      <Dialog open={readModalOpen} onClose={() => setReadModalOpen(false)}>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center">
+          <div className="bg-zinc-900 p-6 rounded-xl w-full max-w-sm space-y-3">
+            <h2 className="text-xl font-semibold">Quem leu</h2>
+            <ul className="space-y-1">
+              {readList.length === 0 ? (
+                <li className="text-zinc-400 text-sm">Nenhum usuário leu ainda</li>
+              ) : (
+                readList.map((u, i) => (
+                  <li key={i} className="text-zinc-200 text-sm">{u}</li>
+                ))
+              )}
+            </ul>
+            <div className="flex justify-end mt-3">
+              <button className="px-4 py-2 bg-sky-600 rounded" onClick={() => setReadModalOpen(false)}>
+                Fechar
               </button>
             </div>
           </div>
