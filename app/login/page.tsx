@@ -17,14 +17,25 @@ const LoginScreen = () => {
         e.preventDefault();
         setIsLoading(true);
 
+        // validação local
+        if (!email.trim() || !password.trim()) {
+            toast.error("Email e senha não podem estar vazios ou conter apenas espaços.");
+            setIsLoading(false);
+            return;
+        }
+
         try {
             await signInWithEmailAndPassword(auth, email, password);
             toast.success(`Login bem-sucedido! Bem-vindo de volta.`);
-            router.push('/home'); // Redireciona para o home
+            router.push('/home');
         } catch (error: any) {
             console.error("Erro de autenticação:", error);
-            // Fornece feedback específico para erros comuns
-            if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+
+            if (
+                error.code === 'auth/invalid-credential' ||
+                error.code === 'auth/user-not-found' ||
+                error.code === 'auth/wrong-password'
+            ) {
                 toast.error('Email ou senha inválidos.');
             } else if (error.code === 'auth/invalid-email') {
                 toast.error('O formato do email é inválido.');
@@ -36,10 +47,11 @@ const LoginScreen = () => {
         }
     };
 
+
     return (
         <div className="flex min-h-screen items-center justify-center bg-black font-sans p-4">
             <div className="flex w-full max-w-md flex-col items-center gap-6 rounded-2xl p-8 shadow-xl bg-zinc-900 sm:p-10 transition-colors duration-300 border border-zinc-800">
-                
+
                 {/* Título e Subtítulo */}
                 <div className="text-center">
                     <h1 className="text-3xl font-extrabold tracking-tight text-sky-400">
@@ -51,7 +63,7 @@ const LoginScreen = () => {
                 </div>
 
                 <form onSubmit={handleLogin} className="w-full flex flex-col gap-5">
-                    
+
                     {/* Campo Email */}
                     <div className="flex flex-col gap-2">
                         <label htmlFor="email" className="text-sm font-medium text-zinc-300">Email/Usuário</label>
@@ -74,15 +86,17 @@ const LoginScreen = () => {
                             id="password"
                             type="password"
                             value={password}
-                            onChange={(e) => setPassword(e.target.value)}
+                            onChange={(e) => setPassword(e.target.value.replace(/\s+/g, ""))}
                             required
+                            minLength={1}
                             className="w-full rounded-lg border border-zinc-700 bg-zinc-800 p-3 text-zinc-50 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-colors duration-200"
                             placeholder="••••••••"
                             disabled={isLoading}
                         />
+
                     </div>
 
-                    <button type="submit" disabled={isLoading} className={`flex h-12 w-full items-center justify-center gap-2 rounded-full px-8 text-white font-semibold transition-all duration-200 ${ isLoading ? 'bg-zinc-700 cursor-not-allowed' : 'bg-sky-500 hover:bg-sky-400 active:scale-[0.98] shadow-lg shadow-sky-500/30' }`}>
+                    <button type="submit" disabled={isLoading} className={`flex h-12 w-full items-center justify-center gap-2 rounded-full px-8 text-white font-semibold transition-all duration-200 ${isLoading ? 'bg-zinc-700 cursor-not-allowed' : 'bg-sky-500 hover:bg-sky-400 active:scale-[0.98] shadow-lg shadow-sky-500/30'}`}>
                         {isLoading ? <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div> : 'Entrar'}
                     </button>
                 </form>
@@ -97,7 +111,7 @@ const LoginScreen = () => {
                 <p className="text-sm text-zinc-500">
                     Ainda não tem conta?{' '}
                     <Link href="/register" className="text-sky-500 hover:text-sky-400 font-medium transition-colors duration-200">
-                            Cadastrar Agora
+                        Cadastrar Agora
                     </Link>
                 </p>
             </div>
