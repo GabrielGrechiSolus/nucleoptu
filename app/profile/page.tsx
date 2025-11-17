@@ -160,9 +160,9 @@ export default function ProfilePage() {
             className="w-full h-full rounded-full object-cover border border-zinc-700 shadow"
           />
         </div>
-        <label className="bg-zinc-700 hover:bg-zinc-600 px-4 py-2 rounded-lg cursor-pointer text-sm">
-          Alterar foto
-          <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+        <label className="text-sm text-zinc-400">
+          Coloque o link da imagem a baixo para alterar a foto de perfil.
+          Link da foto do linkedin ou github.
         </label>
         <input
           type="text"

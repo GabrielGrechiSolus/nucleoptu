@@ -81,19 +81,19 @@ const Sidebar = () => {
   const navItems = [
     { href: '/home', label: 'Início', icon: <HomeIcon /> },
     { href: '/notice-board', label: 'Mural de Avisos', icon: <NoticeBoardIcon /> },
-    { href: '/reports', label: 'Relatórios', icon: <ReportIcon /> },
+    // { href: '/reports', label: 'Relatórios', icon: <ReportIcon /> },
     { href: '/links', label: 'Links Úteis', icon: <LinkIcon /> },
-    { href: '/support', label: 'Suporte', icon: <SupportIcon /> },
+    // { href: '/support', label: 'Suporte', icon: <SupportIcon /> },
   ];
 
   const adminItems = [
-    { href: '/dashboard', label: 'Dashboard', icon: <ChartIcon /> },
+    // { href: '/dashboard', label: 'Dashboard', icon: <ChartIcon /> },
     { href: '/users', label: 'Usuários', icon: <UsersIcon /> },
     { href: '/profile', label: 'Perfil', icon: <ProfileIcon /> },
-    { href: '/home/settings', label: 'Configurações', icon: <SettingsIcon /> },
+    // { href: '/home/settings', label: 'Configurações', icon: <SettingsIcon /> },
   ];
 
-  // Função de logout com redirecionamento
+  // Função de logout
   const handleLogout = async () => {
     try {
       await auth.signOut();
@@ -120,15 +120,16 @@ const Sidebar = () => {
       `}</style>
 
       {/* Sidebar Desktop */}
-      <aside className="hidden sm:flex flex-col w-64 bg-zinc-900 border-r border-zinc-800 p-4">
+      <aside className="hidden sm:flex flex-col w-64 min-w-64 max-w-64 bg-zinc-900 border-r border-zinc-800 p-4 overflow-hidden">
+
         {/* Perfil */}
         <Link
           href="/profile"
-          className="block p-2 rounded-lg hover:bg-zinc-800 transition-colors mb-8"
+          className="block p-2 rounded-lg hover:bg-zinc-800 transition-colors mb-8 overflow-hidden"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 whitespace-nowrap overflow-hidden">
             <div
-              className="w-10 h-10 rounded-full p-1 animate-pulseLED"
+              className="w-10 h-10 rounded-full p-1 animate-pulseLED shrink-0"
               style={{
                 backgroundColor: '#0000',
                 animation: 'pulseLED 2s infinite',
@@ -142,9 +143,13 @@ const Sidebar = () => {
               />
             </div>
 
-            <div>
-              <p className="font-semibold text-zinc-50">{user?.displayName}</p>
-              <p className="text-xs text-zinc-400">{user?.email}</p>
+            <div className="overflow-hidden">
+              <p className="font-semibold text-zinc-50 whitespace-nowrap overflow-hidden text-ellipsis">
+                {user?.displayName}
+              </p>
+              <p className="text-xs text-zinc-400 whitespace-nowrap overflow-hidden text-ellipsis">
+                {user?.email}
+              </p>
             </div>
           </div>
         </Link>
@@ -155,14 +160,16 @@ const Sidebar = () => {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+              className={`flex items-center gap-3 px-4 py-2 rounded-lg whitespace-nowrap overflow-hidden transition-colors ${
                 pathname === item.href
                   ? 'bg-sky-500/20 text-sky-400'
                   : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-50'
               }`}
             >
-              <span className="w-6 h-6">{item.icon}</span>
-              <span className="font-medium">{item.label}</span>
+              <span className="w-6 h-6 shrink-0">{item.icon}</span>
+              <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                {item.label}
+              </span>
             </Link>
           ))}
         </nav>
@@ -177,14 +184,16 @@ const Sidebar = () => {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+              className={`flex items-center gap-3 px-4 py-2 rounded-lg whitespace-nowrap overflow-hidden transition-colors ${
                 pathname === item.href
                   ? 'bg-sky-500/20 text-sky-400'
                   : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-50'
               }`}
             >
-              <span className="w-6 h-6">{item.icon}</span>
-              <span className="font-medium">{item.label}</span>
+              <span className="w-6 h-6 shrink-0">{item.icon}</span>
+              <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                {item.label}
+              </span>
             </Link>
           ))}
         </nav>
@@ -192,10 +201,12 @@ const Sidebar = () => {
         {/* Logout */}
         <button
           onClick={handleLogout}
-          className="mt-auto w-full flex items-center gap-3 px-4 py-2 rounded-lg text-red-400 hover:bg-red-500/20 transition-colors"
+          className="mt-auto w-full flex items-center gap-3 px-4 py-2 rounded-lg text-red-400 hover:bg-red-500/20 transition-colors whitespace-nowrap overflow-hidden"
         >
-          <span className="w-6 h-6"><LogoutIcon /></span>
-          <span className="font-medium">Sair</span>
+          <span className="w-6 h-6 shrink-0"><LogoutIcon /></span>
+          <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+            Sair
+          </span>
         </button>
       </aside>
 
@@ -209,8 +220,8 @@ const Sidebar = () => {
               pathname === item.href ? 'text-sky-400' : 'text-zinc-400'
             }`}
           >
-            <span className="w-7 h-7">{item.icon}</span>
-            <span className="text-xs">{item.label}</span>
+            <span className="w-7 h-7 shrink-0">{item.icon}</span>
+            <span className="text-xs whitespace-nowrap">{item.label}</span>
           </Link>
         ))}
 
@@ -218,10 +229,8 @@ const Sidebar = () => {
           onClick={handleLogout}
           className="flex flex-col items-center p-2 rounded-md text-zinc-400"
         >
-          <span className="w-7 h-7">
-            <LogoutIcon />
-          </span>
-          <span className="text-xs">Sair</span>
+          <span className="w-7 h-7 shrink-0"><LogoutIcon /></span>
+          <span className="text-xs whitespace-nowrap">Sair</span>
         </button>
       </nav>
     </>

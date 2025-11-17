@@ -12,7 +12,6 @@ import {
   query,
   orderBy,
   limit,
-  startAfter,
   arrayUnion,
   getDoc
 } from "firebase/firestore";
@@ -83,13 +82,15 @@ const NoticesPage = () => {
   const [editImportance, setEditImportance] = useState<Notice["importance"]>("medium");
   const [editTarget, setEditTarget] = useState<Notice["target"]>("todos");
 
-  const [lastVisible, setLastVisible] = useState<any>(null);
-  const [isLastPage, setIsLastPage] = useState(false);
-
   const [readModalOpen, setReadModalOpen] = useState(false);
   const [readList, setReadList] = useState<string[]>([]);
 
-  const PAGE_SIZE = 10;
+  // <<< NOVO: controla quantos avisos aparecem na lista (3 -> 7 -> 10 -> 15 ...)
+  const [visibleCount, setVisibleCount] = useState<number>(3);
+
+  // Fetch limit para evitar carregar milhares de documentos inadvertidamente.
+  // Ajuste conforme necessidade (por exemplo 500)
+  const FETCH_LIMIT = 500;
 
   const formatDate = (ts: number) => {
     const d = new Date(ts);
@@ -114,31 +115,25 @@ const NoticesPage = () => {
   useEffect(() => {
     const fetchUserType = async () => {
       if (!user) return;
-      const userRef = doc(db, "profiles", user.uid);
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        const data = userSnap.data();
-        setUserType(data.noticeType || "todos");
+      try {
+        const userRef = doc(db, "profiles", user.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const data = userSnap.data();
+          setUserType(data.noticeType || "todos");
+        }
+      } catch (err) {
+        console.error("Erro ao buscar tipo de usuário:", err);
       }
     };
     void fetchUserType();
   }, [user]);
 
-  const loadPage = useCallback(
-    async (mode: "first" | "next" = "first") => {
-      if (!user) return;
-
-      const constraints: any[] = [orderBy("createdAt", "desc")];
-      if (mode === "next" && lastVisible) constraints.push(startAfter(lastVisible));
-
-      const q = query(collection(db, "notices"), limit(PAGE_SIZE), ...constraints);
+  // Carregar notices do Firestore (até FETCH_LIMIT). Ordena por createdAt desc.
+  const loadNotices = useCallback(async () => {
+    try {
+      const q = query(collection(db, "notices"), orderBy("createdAt", "desc"), limit(FETCH_LIMIT));
       const snap = await getDocs(q);
-
-      if (snap.empty) {
-        if (mode === "first") setNotices([]);
-        setIsLastPage(true);
-        return;
-      }
 
       const loaded: Notice[] = snap.docs.map((d) => ({
         id: d.id,
@@ -154,63 +149,68 @@ const NoticesPage = () => {
         target: d.data().target || "todos",
       }));
 
-      const sorted = [
-        ...loaded.filter((n) => !(n.readBy?.includes(user.uid))),
-        ...loaded.filter((n) => n.readBy?.includes(user.uid)),
-      ];
-
-      if (mode === "first") setNotices(sorted);
-      else setNotices((prev) => [...prev, ...sorted]);
-
-      setLastVisible(snap.docs[snap.docs.length - 1]);
-      setIsLastPage(snap.docs.length < PAGE_SIZE);
-    },
-    [lastVisible, user]
-  );
+      // Mantemos a ordenação original (já by createdAt desc). Se quiser outro critério, altera aqui.
+      setNotices(loaded);
+    } catch (error) {
+      console.error("Erro ao carregar avisos:", error);
+    }
+  }, []);
 
   useEffect(() => {
-    void loadPage("first");
-  }, [loadPage]);
+    void loadNotices();
+  }, [loadNotices]);
+
+  // Reset visibleCount quando filtros mudam para facilitar busca (comportamento desejado)
+  useEffect(() => {
+    setVisibleCount(3);
+  }, [search, filterDate, statusFilter, importanceFilter, showInactive, userType]);
 
   // Funções de CRUD
   const handleAdd = async () => {
     if (!newTitle.trim() || !user) return;
 
-    await addDoc(collection(db, "notices"), {
-      title: newTitle,
-      description: newDescription,
-      link: newLink,
-      type: newType,
-      importance: newImportance,
-      target: newTarget,
-      active: true,
-      createdAt: Date.now(),
-      creatorEmail: user.email || "Desconhecido",
-      readBy: [],
-    });
+    try {
+      await addDoc(collection(db, "notices"), {
+        title: newTitle,
+        description: newDescription,
+        link: newLink,
+        type: newType,
+        importance: newImportance,
+        target: newTarget,
+        active: true,
+        createdAt: Date.now(),
+        creatorEmail: user.email || "Desconhecido",
+        readBy: [],
+      });
 
-    setNewTitle("");
-    setNewDescription("");
-    setNewLink("");
-    setNewType("texto");
-    setNewImportance("medium");
-    setNewTarget("todos");
-    setIsAdding(false);
-    void loadPage("first");
+      setNewTitle("");
+      setNewDescription("");
+      setNewLink("");
+      setNewType("texto");
+      setNewImportance("medium");
+      setNewTarget("todos");
+      setIsAdding(false);
+      void loadNotices();
+    } catch (err) {
+      console.error("Erro ao adicionar aviso:", err);
+    }
   };
 
   const handleEdit = async () => {
-    await updateDoc(doc(db, "notices", editId), {
-      title: editTitle,
-      description: editDescription,
-      link: editLink,
-      type: editType,
-      importance: editImportance,
-      target: editTarget,
-    });
-
-    setIsEditing(false);
-    void loadPage("first");
+    try {
+      await updateDoc(doc(db, "notices", editId), {
+        title: editTitle,
+        description: editDescription,
+        link: editLink,
+        type: editType,
+        importance: editImportance,
+        target: editTarget,
+      });
+      setIsEditing(false);
+      void loadNotices();
+    } catch (err) {
+      console.error("Erro ao editar aviso:", err);
+    }
   };
 
   const confirmDelete = (id: string) => {
@@ -219,23 +219,35 @@ const NoticesPage = () => {
   };
 
   const handleDelete = async () => {
-    await deleteDoc(doc(db, "notices", deleteId));
-    setIsDeleting(false);
-    setDeleteId("");
-    void loadPage("first");
+    try {
+      await deleteDoc(doc(db, "notices", deleteId));
+      setIsDeleting(false);
+      setDeleteId("");
+      void loadNotices();
+    } catch (err) {
+      console.error("Erro ao deletar aviso:", err);
+    }
   };
 
   const handleToggleActive = async (notice: Notice) => {
     if (!user) return;
-    await updateDoc(doc(db, "notices", notice.id), { active: !notice.active });
-    void loadPage("first");
+    try {
+      await updateDoc(doc(db, "notices", notice.id), { active: !notice.active });
+      void loadNotices();
+    } catch (err) {
+      console.error("Erro ao alternar ativo:", err);
+    }
   };
 
   const handleMarkAsRead = async (notice: Notice) => {
     if (!user) return;
-    const noticeRef = doc(db, "notices", notice.id);
-    await updateDoc(noticeRef, { readBy: arrayUnion(user.email || "Desconhecido") });
-    void loadPage("first");
+    try {
+      const noticeRef = doc(db, "notices", notice.id);
+      await updateDoc(noticeRef, { readBy: arrayUnion(user.email || "Desconhecido") });
+      void loadNotices();
+    } catch (err) {
+      console.error("Erro ao marcar como lido:", err);
+    }
   };
 
   const handleOpenReadModal = (readBy: string[] | undefined) => {
@@ -244,8 +256,13 @@ const NoticesPage = () => {
   };
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    alert("Copiado para a área de transferência!");
+    try {
+      navigator.clipboard.writeText(text);
+      // Use um toast no futuro; por hora alert simples
+      alert("Copiado para a área de transferência!");
+    } catch {
+      // fallback
+    }
   };
 
   // Filtro completo com todos os filtros + tipo do usuário
@@ -285,6 +302,20 @@ const NoticesPage = () => {
       matchesTarget
     );
   });
+
+  // Função para avançar o visibleCount seguindo 3 -> 7 -> 10 -> 15 -> 20 -> ...
+  const showMore = () => {
+    const thresholds = [3, 7, 10, 15, 20, 30, 50]; // você pode ajustar sequencia
+    const current = visibleCount;
+    // encontra próximo threshold maior que o atual
+    const next = thresholds.find((t) => t > current);
+    if (next) {
+      setVisibleCount(next);
+    } else {
+      // se passou todos thresholds, aumenta de 10 em 10
+      setVisibleCount(current + 10);
+    }
+  };
 
   return (
     <div className="space-y-6 p-4">
@@ -339,7 +370,7 @@ const NoticesPage = () => {
 
       {/* LISTA DE AVISOS */}
       <div className="grid gap-4 mt-4">
-        {filtered.map((item) => (
+        {filtered.slice(0, visibleCount).map((item) => (
           <div key={item.id} className={`border border-zinc-800 rounded-xl p-4 transition ${!item.active ? "opacity-50 bg-zinc-900/40" : "bg-zinc-900"}`}>
             <div className="flex justify-between items-start">
               <div className="space-y-1">
@@ -410,8 +441,26 @@ const NoticesPage = () => {
         ))}
       </div>
 
-      {!isLastPage && (
-        <button onClick={() => void loadPage("next")} className="mt-4 px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-sm">Carregar mais</button>
+      {/* BOTÃO MOSTRAR MAIS (aparece só se houver mais itens filtrados) */}
+      {visibleCount < filtered.length && (
+        <div className="flex justify-center">
+          <button
+            onClick={showMore}
+            className="mt-4 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-sm text-white"
+          >
+            Mostrar mais ({Math.min(filtered.length, (() => {
+              // só para mostrar número que vai ficar visível ao clicar
+              const thresholds = [3, 7, 10, 15, 20, 30, 50];
+              const next = thresholds.find((t) => t > visibleCount);
+              return next ?? visibleCount + 10;
+            })())})
+          </button>
+        </div>
+      )}
+
+      {/* Se não houver resultados */}
+      {filtered.length === 0 && (
+        <div className="text-zinc-400 text-sm mt-4">Nenhum aviso encontrado com os filtros selecionados.</div>
       )}
 
       {/* MODAIS */}
