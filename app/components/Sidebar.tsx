@@ -18,6 +18,7 @@ import { ReportIcon } from '../home/ReportIcon';
 import { LinkIcon } from '../home/LinkIcon';
 import { SupportIcon } from '../home/SupportIcon';
 import { ProfileIcon } from '../home/ProfileIcon';
+import { ConnectionIcon } from '../home/ConnectionIcon';
 
 const Sidebar = () => {
   const { user } = useAuth();
@@ -83,6 +84,7 @@ const Sidebar = () => {
     { href: '/notice-board', label: 'Mural de Avisos', icon: <NoticeBoardIcon /> },
     // { href: '/reports', label: 'Relatórios', icon: <ReportIcon /> },
     { href: '/links', label: 'Links Úteis', icon: <LinkIcon /> },
+    { href: '/client-connections', label: 'Conexões de Clientes', icon: <ConnectionIcon /> },
     // { href: '/support', label: 'Suporte', icon: <SupportIcon /> },
   ];
 

@@ -14,104 +14,119 @@ const RegisterScreen = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleRegister = async (e: React.FormEvent) => {
-        e.preventDefault();
+const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-        if (!name.trim()) return toast.error("O nome não pode estar vazio.");
-        if (!email.trim()) return toast.error("O email não pode estar vazio.");
-        if (!password.trim() || !confirmPassword.trim())
-            return toast.error("A senha não pode estar vazia ou conter espaços.");
-        if (password !== confirmPassword)
-            return toast.error("As senhas não coincidem.");
-        if (!email.toLowerCase().endsWith("@solus.inf.br"))
-            return toast.error("E-mail inválido.");
+    // Validação de domínio de email permitido
+    if (!email.toLowerCase().endsWith("@solus.inf.br")) {
+        toast.error("E-mail inválido.");
+        return;
+    }
 
-        setIsLoading(true);
+    // Validar senhas iguais
+    if (password !== confirmPassword) {
+        toast.error('As senhas não coincidem.');
+        return;
+    }
 
-        try {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            await updateProfile(userCredential.user, { displayName: name });
-            toast.success(`Cadastro de ${name} realizado com sucesso!`);
-            router.push('/login');
-        } catch (error: any) {
-            console.error("Erro no cadastro:", error);
-            const errorMap: any = {
-                'auth/email-already-in-use': 'Este email já está em uso.',
-                'auth/invalid-email': 'O formato do email é inválido.',
-                'auth/weak-password': 'Senha fraca. Use no mínimo 6 caracteres.'
-            };
-            toast.error(errorMap[error.code] || 'Erro ao tentar se cadastrar.');
-        } finally {
-            setIsLoading(false);
+    setIsLoading(true);
+
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+        await updateProfile(userCredential.user, {
+            displayName: name,
+        });
+
+        toast.success(`Cadastro de ${name} realizado com sucesso!`);
+        router.push('/login');
+    } catch (error: any) {
+        console.error("Erro no cadastro:", error);
+
+        if (error.code === 'auth/email-already-in-use') {
+            toast.error('Este email já está em uso.');
+        } else if (error.code === 'auth/invalid-email') {
+            toast.error('O formato do email é inválido.');
+        } else if (error.code === 'auth/weak-password') {
+            toast.error('A senha é muito fraca. Use pelo menos 6 caracteres.');
+        } else {
+            toast.error('Ocorreu um erro ao tentar se cadastrar.');
         }
-    };
+    } finally {
+        setIsLoading(false);
+    }
+};
+
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-black overflow-hidden p-4">
-            <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl shadow-xl p-6 sm:p-8 flex flex-col gap-4">
-                
-                <div className="text-center">
-                    <h1 className="text-3xl font-extrabold tracking-tight text-sky-400">
+        <div className="flex min-h-screen items-center justify-center bg-black font-sans p-4 sm:p-6">
+            <div className="flex w-full max-w-4xl flex-col items-center rounded-2xl p-6 sm:p-8 lg:p-10 shadow-xl bg-zinc-900 transition-colors duration-300 border border-zinc-800">
+                <div className="text-center mb-4 sm:mb-5">
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-sky-400">
                         Crie sua Conta
                     </h1>
-                    <p className="text-zinc-400 mt-1">
-                        Junte-se ao Núcleo PTU.
-                    </p>
                 </div>
+                <p className="text-center text-zinc-400 text-sm sm:text-base mb-5 sm:mb-6">
+                    Junte ao nucleo e pague seu salgadinho
+                </p>
 
-                <form onSubmit={handleRegister} className="flex flex-col gap-4">
-
-                    <div className="flex flex-col gap-1">
-                        <label htmlFor="name" className="text-sm text-zinc-300">Nome Completo</label>
+                <form onSubmit={handleRegister} className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mb-5 sm:mb-6">
+                    
+                    {/* Campo Nome */}
+                    <div className="flex flex-col gap-2 sm:gap-2.5">
+                        <label htmlFor="name" className="text-sm sm:text-base font-medium text-zinc-300">Nome Completo</label>
                         <input
                             id="name"
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             required
-                            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 p-3 text-zinc-50 focus:ring-1 focus:ring-sky-500 outline-none"
+                            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 p-3 sm:p-3.5 text-zinc-50 text-sm sm:text-base focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-colors duration-200"
                             placeholder="Seu nome completo"
                             disabled={isLoading}
                         />
                     </div>
 
-                    <div className="flex flex-col gap-1">
-                        <label htmlFor="email" className="text-sm text-zinc-300">Email/Usuário</label>
+                    {/* Campo Email */}
+                    <div className="flex flex-col gap-2 sm:gap-2.5">
+                        <label htmlFor="email" className="text-sm sm:text-base font-medium text-zinc-300">Email/Usuário</label>
                         <input
                             id="email"
                             type="text"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 p-3 text-zinc-50 focus:ring-1 focus:ring-sky-500 outline-none"
-                            placeholder="exemplo@solus.inf.br"
+                            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 p-3 sm:p-3.5 text-zinc-50 text-sm sm:text-base focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-colors duration-200"
+                            placeholder="exemplo@solus.ptumed.com"
                             disabled={isLoading}
                         />
                     </div>
 
-                    <div className="flex flex-col gap-1">
-                        <label htmlFor="password" className="text-sm text-zinc-300">Password</label>
+                    {/* Campo Password */}
+                    <div className="flex flex-col gap-2 sm:gap-2.5">
+                        <label htmlFor="password" className="text-sm sm:text-base font-medium text-zinc-300">Password</label>
                         <input
                             id="password"
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 p-3 text-zinc-50 focus:ring-1 focus:ring-sky-500 outline-none"
+                            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 p-3 sm:p-3.5 text-zinc-50 text-sm sm:text-base focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-colors duration-200"
                             placeholder="••••••••"
                             disabled={isLoading}
                         />
                     </div>
 
-                    <div className="flex flex-col gap-1">
-                        <label htmlFor="confirmPassword" className="text-sm text-zinc-300">Confirmar Password</label>
+                     {/* Campo Confirmar Password */}
+                     <div className="flex flex-col gap-2 sm:gap-2.5">
+                        <label htmlFor="confirmPassword" className="text-sm sm:text-base font-medium text-zinc-300">Confirmar Password</label>
                         <input
                             id="confirmPassword"
                             type="password"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             required
-                            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 p-3 text-zinc-50 focus:ring-1 focus:ring-sky-500 outline-none"
+                            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 p-3 sm:p-3.5 text-zinc-50 text-sm sm:text-base focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-colors duration-200"
                             placeholder="••••••••"
                             disabled={isLoading}
                         />
@@ -120,23 +135,21 @@ const RegisterScreen = () => {
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className={`h-12 w-full rounded-full text-white font-semibold transition-all ${
-                            isLoading
-                                ? 'bg-zinc-700 cursor-not-allowed'
-                                : 'bg-sky-500 hover:bg-sky-400 active:scale-95 shadow-lg shadow-sky-500/30'
+                        className={`flex h-12 sm:h-14 w-full items-center justify-center gap-2 rounded-full px-8 text-base sm:text-lg text-white font-semibold transition-all duration-200 sm:col-span-2 ${
+                            isLoading ? 'bg-zinc-700 cursor-not-allowed' : 'bg-sky-500 hover:bg-sky-400 active:scale-[0.98] shadow-lg shadow-sky-500/30'
                         }`}
                     >
                         {isLoading ? (
-                            <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mx-auto"></div>
+                            <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
                         ) : (
-                            "Cadastrar"
+                            'Cadastrar'
                         )}
                     </button>
                 </form>
 
-                <p className="text-sm text-zinc-500 text-center">
-                    Já tem uma conta?{" "}
-                    <Link href="/login" className="text-sky-500 hover:text-sky-400 font-medium">
+                <p className="text-sm sm:text-base text-zinc-500 mt-2">
+                    Já tem uma conta?{' '}
+                    <Link href="/login" className="text-sky-500 hover:text-sky-400 font-medium transition-colors duration-200">
                         Faça Login
                     </Link>
                 </p>

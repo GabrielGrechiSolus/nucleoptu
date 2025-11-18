@@ -1,0 +1,199 @@
+[
+  {
+    "id": "conn_example_1",
+    "clientName": "Cliente ABC",
+    "description": "Cliente principal com múltiplos serviços",
+    "vpns": [
+      {
+        "id": "vpn_1",
+        "name": "VPN Principal",
+        "host": "vpn.clienteabc.com",
+        "port": "1194",
+        "description": "VPN principal para acesso remoto",
+        "users": [
+          {
+            "id": "user_vpn1_1",
+            "username": "vpn_user1",
+            "password": "vpn_pass123",
+            "description": "Usuário principal VPN"
+          },
+          {
+            "id": "user_vpn1_2",
+            "username": "vpn_user2",
+            "password": "vpn_pass456",
+            "description": "Usuário secundário VPN"
+          }
+        ]
+      },
+      {
+        "id": "vpn_2",
+        "name": "VPN Backup",
+        "host": "vpn-backup.clienteabc.com",
+        "port": "1194",
+        "description": "VPN de backup",
+        "users": [
+          {
+            "id": "user_vpn2_1",
+            "username": "vpn_backup",
+            "password": "vpn_backup123",
+            "description": "Usuário VPN backup"
+          }
+        ]
+      }
+    ],
+    "dockerServers": [
+      {
+        "id": "docker_1",
+        "name": "Servidor Docker Produção",
+        "host": "docker-prod.clienteabc.com",
+        "port": "2376",
+        "environment": "producao",
+        "description": "Servidor Docker em produção",
+        "users": [
+          {
+            "id": "user_docker1_1",
+            "username": "docker_admin",
+            "password": "docker_pass123",
+            "description": "Administrador Docker produção"
+          },
+          {
+            "id": "user_docker1_2",
+            "username": "docker_dev",
+            "password": "docker_dev123",
+            "description": "Desenvolvedor Docker produção"
+          }
+        ]
+      },
+      {
+        "id": "docker_2",
+        "name": "Servidor Docker Homologação",
+        "host": "docker-homolog.clienteabc.com",
+        "port": "2376",
+        "environment": "homologacao",
+        "description": "Servidor Docker em homologação",
+        "users": [
+          {
+            "id": "user_docker2_1",
+            "username": "docker_homolog",
+            "password": "docker_homolog123",
+            "description": "Usuário Docker homologação"
+          }
+        ]
+      }
+    ],
+    "terminalServices": [
+      {
+        "id": "ts_1",
+        "name": "TS Principal",
+        "host": "ts.clienteabc.com",
+        "port": "3389",
+        "description": "Terminal Service principal",
+        "users": [
+          {
+            "id": "user_ts1_1",
+            "username": "ts_admin",
+            "password": "ts_pass123",
+            "description": "Administrador TS principal"
+          },
+          {
+            "id": "user_ts1_2",
+            "username": "ts_user",
+            "password": "ts_user123",
+            "description": "Usuário TS principal"
+          }
+        ]
+      },
+      {
+        "id": "ts_2",
+        "name": "TS Desenvolvimento",
+        "host": "ts-dev.clienteabc.com",
+        "port": "3389",
+        "description": "Terminal Service para ambiente de desenvolvimento",
+        "users": [
+          {
+            "id": "user_ts2_1",
+            "username": "ts_dev",
+            "password": "ts_dev123",
+            "description": "Usuário TS desenvolvimento"
+          }
+        ]
+      }
+    ],
+    "anydesks": [
+      {
+        "id": "anydesk_1",
+        "name": "AnyDesk Servidor Principal",
+        "anydeskId": "123456789",
+        "password": "anydesk_pass123",
+        "description": "AnyDesk do servidor principal",
+        "users": [
+          {
+            "id": "user_anydesk1_1",
+            "username": "anydesk_user1",
+            "password": "anydesk_user_pass",
+            "description": "Usuário AnyDesk servidor principal"
+          }
+        ]
+      },
+      {
+        "id": "anydesk_2",
+        "name": "AnyDesk Estação de Trabalho",
+        "anydeskId": "987654321",
+        "password": "anydesk_pass456",
+        "description": "AnyDesk da estação de trabalho",
+        "users": []
+      }
+    ],
+    "teamviewers": [
+      {
+        "id": "teamviewer_1",
+        "name": "TeamViewer Servidor",
+        "teamviewerId": "123456789",
+        "password": "tv_pass123",
+        "description": "TeamViewer do servidor",
+        "users": [
+          {
+            "id": "user_tv1_1",
+            "username": "tv_admin",
+            "password": "tv_admin_pass",
+            "description": "Administrador TeamViewer"
+          },
+          {
+            "id": "user_tv1_2",
+            "username": "tv_user",
+            "password": "tv_user_pass",
+            "description": "Usuário TeamViewer"
+          }
+        ]
+      }
+    ],
+    "createdAt": 1704067200000,
+    "updatedAt": 1704067200000
+  },
+  {
+    "id": "conn_example_2",
+    "clientName": "Cliente XYZ",
+    "description": "Cliente secundário",
+    "vpns": [
+      {
+        "id": "vpn_3",
+        "name": "VPN Cliente XYZ",
+        "host": "vpn.clientexyz.com",
+        "port": "1194",
+        "description": "VPN do cliente XYZ",
+        "users": [
+          {
+            "id": "user_vpn3_1",
+            "username": "vpn_xyz",
+            "password": "vpn_xyz123",
+            "description": "Usuário VPN XYZ"
+          }
+        ]
+      }
+    ],
+    "dockerServers": [],
+    "terminalServices": [],
+    "anydesks": [],
+    "teamviewers": []
+  }
+]

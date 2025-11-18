@@ -17,7 +17,6 @@ const LoginScreen = () => {
         e.preventDefault();
         setIsLoading(true);
 
-        // validação local
         if (!email.trim() || !password.trim()) {
             toast.error("Email e senha não podem estar vazios ou conter apenas espaços.");
             setIsLoading(false);
