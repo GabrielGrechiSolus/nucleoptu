@@ -5,7 +5,7 @@ import { useAuth } from '../AuthContext';
 import { auth, db } from '../../firebase';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 
 // Ícones
 import { HomeIcon } from '../home/HomeIcon';
@@ -27,6 +27,27 @@ const Sidebar = () => {
 
   const [profileAvatar, setProfileAvatar] = useState('/profile.jpg');
   const [ledColor, setLedColor] = useState('#00ff00');
+  const [unreadNoticesCount, setUnreadNoticesCount] = useState(0);
+
+  // Busca de avisos não lidos
+  useEffect(() => {
+    if (!user) return;
+
+    const q = query(collection(db, 'notices'), where('active', '==', true));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      let unreadCount = 0;
+      querySnapshot.forEach((doc) => {
+        const notice = doc.data();
+        if (!notice.readBy || !notice.readBy.includes(user.email)) {
+          unreadCount++;
+        }
+      });
+      setUnreadNoticesCount(unreadCount);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   // Função para gerar cor aleatória
   const getRandomColor = () => {
@@ -172,6 +193,11 @@ const Sidebar = () => {
               <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis">
                 {item.label}
               </span>
+              {item.href === '/notice-board' && unreadNoticesCount > 0 && (
+                <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {unreadNoticesCount}
+                </span>
+              )}
             </Link>
           ))}
         </nav>
