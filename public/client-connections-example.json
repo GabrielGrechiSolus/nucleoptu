@@ -167,6 +167,20 @@
         ]
       }
     ],
+    "links": [
+      {
+        "id": "link_1",
+        "title": "Painel do Cliente",
+        "url": "https://clienteabc.com/painel",
+        "description": "Acesso principal ao painel do cliente"
+      },
+      {
+        "id": "link_2",
+        "title": "Documentação",
+        "url": "https://docs.clienteabc.com",
+        "description": "Documentação técnica do cliente"
+      }
+    ],
     "createdAt": 1704067200000,
     "updatedAt": 1704067200000
   },
@@ -194,6 +208,14 @@
     "dockerServers": [],
     "terminalServices": [],
     "anydesks": [],
-    "teamviewers": []
+    "teamviewers": [],
+    "links": [
+      {
+        "id": "link_3",
+        "title": "Portal Cliente XYZ",
+        "url": "https://portal.clientexyz.com",
+        "description": "Portal de acesso rápido do cliente"
+      }
+    ]
   }
 ]

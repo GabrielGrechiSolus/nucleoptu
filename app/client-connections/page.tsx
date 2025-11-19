@@ -2,13 +2,20 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { Dialog } from "@headlessui/react";
-import { Plus, Trash2, Edit3, Upload, Download, Search, X, User, Network, Monitor, Server, Eye, EyeOff, HelpCircle, Copy, Check } from "lucide-react";
+import { Plus, Trash2, Edit3, Upload, Download, Search, X, User, Network, Monitor, Server, Eye, EyeOff, HelpCircle, Copy, Check, Link2 } from "lucide-react";
 import { toast } from "react-toastify";
 
 interface ServiceUser {
   id: string;
   username: string;
   password?: string;
+  description?: string;
+}
+
+interface ConnectionLink {
+  id: string;
+  title: string;
+  url: string;
   description?: string;
 }
 
@@ -67,6 +74,7 @@ interface ClientConnection {
   terminalServices: TerminalService[];
   anydesks: AnyDesk[];
   teamviewers: TeamViewer[];
+  links: ConnectionLink[];
   createdAt: number;
   updatedAt: number;
 }
@@ -109,6 +117,7 @@ export default function ClientConnectionsPage() {
               terminalServices: [],
               anydesks: [],
               teamviewers: [],
+              links: [],
               createdAt: conn.createdAt || Date.now(),
               updatedAt: conn.updatedAt || Date.now(),
             };
@@ -120,6 +129,7 @@ export default function ClientConnectionsPage() {
             terminalServices: conn.terminalServices || [],
             anydesks: conn.anydesks || [],
             teamviewers: conn.teamviewers || [],
+            links: conn.links || [],
           };
         });
         setConnections(migrated);
@@ -159,6 +169,7 @@ export default function ClientConnectionsPage() {
         terminalServices: [],
         anydesks: [],
         teamviewers: [],
+        links: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
@@ -248,6 +259,39 @@ export default function ClientConnectionsPage() {
     } else if (serviceType === "teamviewer") {
       setCurrentConnection({ ...currentConnection, teamviewers: updateService(currentConnection.teamviewers) });
     }
+  };
+
+  // Gerenciar Links
+  const addLink = () => {
+    if (!currentConnection) return;
+    const newLink: ConnectionLink = {
+      id: `link_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      title: "",
+      url: "",
+      description: "",
+    };
+    setCurrentConnection({
+      ...currentConnection,
+      links: [...(currentConnection.links || []), newLink],
+    });
+  };
+
+  const updateLink = (linkId: string, field: "title" | "url" | "description", value: string) => {
+    if (!currentConnection) return;
+    setCurrentConnection({
+      ...currentConnection,
+      links: currentConnection.links.map((link) =>
+        link.id === linkId ? { ...link, [field]: value } : link
+      ),
+    });
+  };
+
+  const removeLink = (linkId: string) => {
+    if (!currentConnection) return;
+    setCurrentConnection({
+      ...currentConnection,
+      links: currentConnection.links.filter((link) => link.id !== linkId),
+    });
   };
 
   // Gerenciar VPNs
@@ -496,6 +540,7 @@ export default function ClientConnectionsPage() {
           terminalServices: conn.terminalServices || [],
           anydesks: conn.anydesks || [],
           teamviewers: conn.teamviewers || [],
+          links: conn.links || [],
           createdAt: conn.createdAt || Date.now(),
           updatedAt: conn.updatedAt || Date.now(),
         })).filter((conn) => conn.clientName);
@@ -723,6 +768,10 @@ export default function ClientConnectionsPage() {
                     <div className="flex items-center gap-1">
                       <EyeOff className="w-4 h-4" />
                       <span>{connection.teamviewers.length} TeamViewer(s)</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Link2 className="w-4 h-4" />
+                      <span>{connection.links.length} Link(s)</span>
                     </div>
                   </div>
 
@@ -1016,6 +1065,64 @@ export default function ClientConnectionsPage() {
                   {(!currentConnection?.terminalServices || currentConnection.terminalServices.length === 0) && (
                     <p className="text-sm text-zinc-500 text-center py-2">
                       Nenhum Terminal Service cadastrado. Clique em "Adicionar Terminal Service" para adicionar um.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Links */}
+              <div className="border-b border-zinc-700 pb-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-zinc-300 flex items-center gap-2">
+                    <Link2 className="w-5 h-5" /> Links ({currentConnection?.links.length || 0})
+                  </h3>
+                  <button
+                    onClick={addLink}
+                    className="bg-green-600 hover:bg-green-500 px-3 py-1 rounded text-white text-sm flex items-center gap-1"
+                  >
+                    <Plus size={16} /> Adicionar Link
+                  </button>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {currentConnection?.links.map((link, index) => (
+                    <div key={link.id} className="bg-zinc-800 p-3 rounded border border-zinc-700">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-zinc-300">Link {index + 1}</span>
+                        <button
+                          onClick={() => removeLink(link.id)}
+                          className="text-red-400 hover:text-red-300"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input
+                          type="text"
+                          placeholder="Título *"
+                          className="p-2 rounded bg-zinc-700 border border-zinc-600 text-zinc-50 text-sm focus:border-sky-500 focus:outline-none"
+                          value={link.title}
+                          onChange={(e) => updateLink(link.id, "title", e.target.value)}
+                        />
+                        <input
+                          type="text"
+                          placeholder="URL *"
+                          className="p-2 rounded bg-zinc-700 border border-zinc-600 text-zinc-50 text-sm focus:border-sky-500 focus:outline-none"
+                          value={link.url}
+                          onChange={(e) => updateLink(link.id, "url", e.target.value)}
+                        />
+                      </div>
+                      <textarea
+                        className="mt-2 p-2 rounded bg-zinc-700 border border-zinc-600 text-zinc-50 text-sm focus:border-sky-500 focus:outline-none resize-none"
+                        rows={2}
+                        placeholder="Descrição (opcional)"
+                        value={link.description || ""}
+                        onChange={(e) => updateLink(link.id, "description", e.target.value)}
+                      />
+                    </div>
+                  ))}
+                  {(!currentConnection?.links || currentConnection.links.length === 0) && (
+                    <p className="text-sm text-zinc-500 text-center py-2">
+                      Nenhum link cadastrado. Clique em "Adicionar Link" para registrar um link relacionado ao cliente.
                     </p>
                   )}
                 </div>
@@ -1764,11 +1871,75 @@ export default function ClientConnectionsPage() {
                   </div>
                 )}
 
+                {/* Links */}
+                {selectedConnection.links.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-zinc-300 mb-3 flex items-center gap-2">
+                      <Link2 className="w-5 h-5 text-sky-400" />
+                      Links ({selectedConnection.links.length})
+                    </h3>
+                    <div className="space-y-3">
+                      {selectedConnection.links.map((link, index) => (
+                        <div key={link.id} className="bg-zinc-800 p-4 rounded border border-zinc-700 flex flex-col gap-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div>
+                              <h4 className="font-semibold text-zinc-200">
+                                {link.title || `Link ${index + 1}`}
+                              </h4>
+                              {link.description && (
+                                <p className="text-xs text-zinc-400 mt-1">{link.description}</p>
+                              )}
+                            </div>
+                            <div className="flex gap-2 items-center">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  copyToClipboard(link.url, `link_url_${link.id}`);
+                                }}
+                                className="px-3 py-1 rounded bg-zinc-700 hover:bg-zinc-600 text-xs text-white flex items-center gap-1"
+                              >
+                                {copiedItems.has(`link_url_${link.id}`) ? (
+                                  <>
+                                    <Check size={14} className="text-green-400" /> Copiado
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy size={14} /> Copiar URL
+                                  </>
+                                )}
+                              </button>
+                              <a
+                                href={link.url || "#"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => {
+                                  if (!link.url) e.preventDefault();
+                                }}
+                                className={`px-3 py-1 rounded text-xs text-white flex items-center gap-1 ${
+                                  link.url ? "bg-sky-600 hover:bg-sky-500" : "bg-zinc-700 cursor-not-allowed"
+                                }`}
+                              >
+                                <Link2 size={14} /> Abrir
+                              </a>
+                            </div>
+                          </div>
+                          {link.url && (
+                            <p className="text-xs text-sky-400 break-words underline">
+                              {link.url}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {selectedConnection.vpns.length === 0 &&
                   selectedConnection.dockerServers.length === 0 &&
                   selectedConnection.terminalServices.length === 0 &&
                   selectedConnection.anydesks.length === 0 &&
-                  selectedConnection.teamviewers.length === 0 && (
+                  selectedConnection.teamviewers.length === 0 &&
+                  selectedConnection.links.length === 0 && (
                     <div className="text-center text-zinc-400 py-8">
                       Nenhum serviço cadastrado para este cliente.
                     </div>

@@ -13,6 +13,7 @@ import {
   orderBy,
   limit,
   arrayUnion,
+  arrayRemove,
   getDoc
 } from "firebase/firestore";
 import { db, auth } from "../../firebase";
@@ -250,6 +251,17 @@ const NoticesPage = () => {
     }
   };
 
+  const handleMarkAsUnread = async (notice: Notice) => {
+    if (!user) return;
+    try {
+      const noticeRef = doc(db, "notices", notice.id);
+      await updateDoc(noticeRef, { readBy: arrayRemove(user.email || "Desconhecido") });
+      void loadNotices();
+    } catch (err) {
+      console.error("Erro ao marcar como não lido:", err);
+    }
+  };
+
   const handleOpenReadModal = (readBy: string[] | undefined) => {
     setReadList(readBy || []);
     setReadModalOpen(true);
@@ -397,6 +409,12 @@ const NoticesPage = () => {
               <div className="flex gap-2">
                 {!item.readBy?.includes(user?.email || "") && item.active && (
                   <button onClick={() => handleMarkAsRead(item)} className="text-green-400 hover:text-green-300" title="Marcar como lido">
+                    <CheckCircle className="w-5 h-5" />
+                  </button>
+                )}
+
+                {item.readBy?.includes(user?.email || "") && item.active && (
+                  <button onClick={() => handleMarkAsUnread(item)} className="text-yellow-400 hover:text-yellow-300" title="Marcar como não lido">
                     <CheckCircle className="w-5 h-5" />
                   </button>
                 )}

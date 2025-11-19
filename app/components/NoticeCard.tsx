@@ -1,18 +1,21 @@
 'use client';
 
 import React from 'react';
-import { Edit3, Trash2, Check } from 'lucide-react';
+import { Edit3, Trash2, Check, X } from 'lucide-react';
 
 // Define the shape of a notice object
 interface Notice {
   id: string;
   title: string;
-  description: string;
-  type: string;
+  description?: string;
   link?: string;
-  importance: 'alta' | 'media' | 'baixa';
+  type?: "texto" | "pdf" | "word" | "excel" | "site";
   createdAt: number;
+  creatorEmail?: string;
   readBy?: string[];
+  importance?: "low" | "medium" | "high";
+  active?: boolean;
+  target?: "todos" | "analise" | "desenvolvimento" | "lideranca" | "sustentacao";
 }
 
 // Define the props for the NoticeCard component
@@ -21,9 +24,8 @@ interface NoticeCardProps {
   currentUser: any; // Firebase user object
   onEdit: (notice: Notice) => void;
   onDelete: (id: string) => void;
-  onMarkAsRead: (id: string) => void;
   formatDate: (timestamp: number) => string;
-  iconForType: Record<string, string>;
+  iconForType: Record<string, React.ReactNode>;
   importanceColor: Record<string, string>;
 }
 
@@ -32,12 +34,11 @@ const NoticeCard: React.FC<NoticeCardProps> = ({
   currentUser,
   onEdit,
   onDelete,
-  onMarkAsRead,
   formatDate,
   iconForType,
   importanceColor,
 }) => {
-  const isRead = notice.readBy?.includes(currentUser?.uid);
+  const isRead = notice.readBy?.includes(currentUser?.email);
 
   return (
     <div
@@ -49,7 +50,7 @@ const NoticeCard: React.FC<NoticeCardProps> = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-bold text-sky-400 flex items-center gap-2 truncate">
-            <span>{iconForType[notice.type]}</span>
+            <span>{iconForType[notice.type || 'texto']}</span>
             <span className="truncate">{notice.title}</span>
           </h2>
 
@@ -59,8 +60,8 @@ const NoticeCard: React.FC<NoticeCardProps> = ({
             </span>
           )}
 
-          <span className={`ml-auto text-sm font-medium ${importanceColor[notice.importance || 'media']}`}>
-            {((notice.importance || 'media') as string).toUpperCase()}
+          <span className={`ml-auto text-sm font-medium p-1 rounded-md ${importanceColor[notice.importance || 'medium']}`}>
+            {((notice.importance || 'medium') as string).toUpperCase()}
           </span>
         </div>
 
@@ -77,16 +78,6 @@ const NoticeCard: React.FC<NoticeCardProps> = ({
       </div>
 
       <div className="flex-shrink-0 flex items-center gap-3">
-        {!isRead && (
-          <button
-            onClick={() => onMarkAsRead(notice.id)}
-            className="text-green-400 hover:text-green-300 flex items-center gap-1 text-sm"
-            title="Marcar como lido"
-          >
-            <Check size={18} />
-            <span>Lido</span>
-          </button>
-        )}
         <button onClick={() => onEdit(notice)} className="text-yellow-400 hover:text-yellow-300" title="Editar">
           <Edit3 />
         </button>
