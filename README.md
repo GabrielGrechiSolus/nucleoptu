@@ -4,7 +4,7 @@ Gestão de Contas Médicas e Snacks.
 
 ## Visão Geral
 
-O Nucleo PTU é uma aplicação web construída com Next.js, React, e TypeScript, projetada para otimizar a gestão de contas médicas e o controle de snacks. A aplicação utiliza Firebase para autenticação e armazenamento de dados em tempo real, e Tailwind CSS para uma interface de usuário moderna e responsiva.
+O Nucleo PTU é uma aplicação web construída com Next.js, React, e TypeScript, projetada para otimizar a gestão de contas médicas. A aplicação utiliza Firebase para autenticação e armazenamento de dados em tempo real, e Tailwind CSS para uma interface de usuário moderna e responsiva.
 
 ## Tecnologias Utilizadas
 
