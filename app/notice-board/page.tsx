@@ -14,6 +14,7 @@ import {
   limit,
   arrayUnion,
   arrayRemove,
+  serverTimestamp,
   getDoc
 } from "firebase/firestore";
 import { db, auth } from "../../firebase";
@@ -85,6 +86,9 @@ const NoticesPage = () => {
 
   const [readModalOpen, setReadModalOpen] = useState(false);
   const [readList, setReadList] = useState<string[]>([]);
+
+  // <<< NOVO: controla a modal de detalhes do aviso
+  const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
 
   // <<< NOVO: controla quantos avisos aparecem na lista (3 -> 7 -> 10 -> 15 ...)
   const [visibleCount, setVisibleCount] = useState<number>(3);
@@ -267,14 +271,80 @@ const NoticesPage = () => {
     setReadModalOpen(true);
   };
 
-  const copyToClipboard = (text: string) => {
+  // copyToClipboard removed per user request (no copy-to-clipboard UI)
+
+  // Exportar notices como JSON
+  const handleExportJSON = (items: Notice[]) => {
     try {
-      navigator.clipboard.writeText(text);
-      // Use um toast no futuro; por hora alert simples
-      alert("Copiado para a área de transferência!");
-    } catch {
-      // fallback
+      const data = JSON.stringify(items, null, 2);
+      const blob = new Blob([data], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "notices-export.json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Erro ao exportar JSON:", err);
+      alert("Erro ao exportar JSON");
     }
+  };
+
+  // Importar notices de um arquivo JSON
+  const fileInputRef = React.createRef<HTMLInputElement>();
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (!Array.isArray(parsed)) {
+        alert("Arquivo inválido: espere um array de avisos");
+        return;
+      }
+      let created = 0;
+      for (const item of parsed) {
+        // validação mínima
+        if (!item.title) continue;
+        await addDoc(collection(db, "notices"), {
+          title: item.title,
+          description: item.description || "",
+          link: item.link || "",
+          type: item.type || "texto",
+          importance: item.importance || "medium",
+          target: item.target || "todos",
+          active: item.active !== false,
+          createdAt: item.createdAt || Date.now(),
+          creatorEmail: item.creatorEmail || (user?.email || "Importado"),
+          readBy: item.readBy || [],
+        });
+        created++;
+      }
+      alert(`Importação concluída: ${created} avisos criados`);
+      void loadNotices();
+    } catch (err) {
+      console.error("Erro ao importar JSON:", err);
+      alert("Erro ao importar JSON. Verifique o formato do arquivo.");
+    }
+    // limpa input
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // Sharing removed per user request (no share-to-social UI)
+
+  // <<< NOVO: Funções para controlar a modal de detalhes
+  const openNoticeDetails = (notice: Notice) => {
+    setSelectedNotice(notice);
+  };
+
+  const closeNoticeDetails = () => {
+    setSelectedNotice(null);
   };
 
   // Filtro completo com todos os filtros + tipo do usuário
@@ -374,30 +444,45 @@ const NoticesPage = () => {
             </button>
           )}
         </div>
+        <div className="flex gap-2 mt-2">
+          <button onClick={() => setIsAdding(true)} className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 transition px-4 py-2 rounded-xl text-sm font-medium">
+            <Plus className="w-4 h-4" /> Novo Aviso
+          </button>
 
-        <button onClick={() => setIsAdding(true)} className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 transition px-4 py-2 rounded-xl text-sm font-medium mt-2">
-          <Plus className="w-4 h-4" /> Novo Aviso
-        </button>
+          <button onClick={() => handleExportJSON(notices)} className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 transition px-3 py-2 rounded-xl text-sm font-medium border border-zinc-700">
+            Exportar JSON
+          </button>
+
+          <button onClick={handleImportClick} className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 transition px-3 py-2 rounded-xl text-sm font-medium border border-zinc-700">
+            Importar JSON
+          </button>
+          <input ref={fileInputRef} type="file" accept="application/json" onChange={handleImportFile} className="hidden" />
+        </div>
       </div>
 
       {/* LISTA DE AVISOS */}
       <div className="grid gap-4 mt-4">
         {filtered.slice(0, visibleCount).map((item) => (
-          <div key={item.id} className={`border border-zinc-800 rounded-xl p-4 transition ${!item.active ? "opacity-50 bg-zinc-900/40" : "bg-zinc-900"}`}>
+          <div
+            key={item.id}
+            onClick={() => openNoticeDetails(item)}
+            className={`border border-zinc-800 rounded-xl p-4 transition cursor-pointer hover:border-zinc-700 ${!item.active ? "opacity-50 bg-zinc-900/40" : "bg-zinc-900"}`}
+            role="button"
+          >
             <div className="flex justify-between items-start">
               <div className="space-y-1">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                   <span className={`${typeConfig[item.type || "texto"].color} w-5 h-5 flex items-center justify-center rounded`}>
                     {typeConfig[item.type || "texto"].icon}
                   </span>
-                  <span className="cursor-pointer select-text" onClick={() => copyToClipboard(item.title)}>{item.title}</span>
-                  <span className={`${importanceColor[item.importance || "medium"]} w-3 h-3 rounded-full`} title={`Importância: ${item.importance || "medium"}`} />
+                  <span className="select-text">{item.title}</span>
+                  <span className={`${importanceColor[item.importance || "medium"]} w-3 h-3 rounded-full flex-shrink-0`} title={`Importância: ${item.importance || "medium"}`} />
                 </h2>
-                <p className="text-sm text-zinc-300 cursor-pointer select-text" onClick={() => copyToClipboard(item.description || "")}>{item.description}</p>
+                <p className="text-sm text-zinc-300 select-text">{item.description}</p>
                 <div className="flex flex-wrap gap-2 mt-1 items-center">
                   {item.link && (
-                    <button className="flex items-center gap-1 text-sky-400 underline text-xs" onClick={() => copyToClipboard(item.link || "")}>
-                      {typeConfig[item.type || "site"].icon} Copiar link
+                    <button className="flex items-center gap-1 text-sky-400 underline text-xs" onClick={(e) => { e.stopPropagation(); window.open(item.link, '_blank'); }}>
+                      <Globe className="w-4 h-4" /> Abrir link
                     </button>
                   )}
                   <span className="text-zinc-500 text-xs cursor-pointer select-text">Criado por: {item.creatorEmail}</span>
@@ -406,15 +491,15 @@ const NoticesPage = () => {
                 </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 {!item.readBy?.includes(user?.email || "") && item.active && (
-                  <button onClick={() => handleMarkAsRead(item)} className="text-green-400 hover:text-green-300" title="Marcar como lido">
+                  <button onClick={(e) => { e.stopPropagation(); handleMarkAsRead(item); }} className="text-green-400 hover:text-green-300" title="Marcar como lido">
                     <CheckCircle className="w-5 h-5" />
                   </button>
                 )}
 
                 {item.readBy?.includes(user?.email || "") && item.active && (
-                  <button onClick={() => handleMarkAsUnread(item)} className="text-yellow-400 hover:text-yellow-300" title="Marcar como não lido">
+                  <button onClick={(e) => { e.stopPropagation(); handleMarkAsUnread(item); }} className="text-yellow-400 hover:text-yellow-300" title="Marcar como não lido">
                     <CheckCircle className="w-5 h-5" />
                   </button>
                 )}
@@ -423,7 +508,7 @@ const NoticesPage = () => {
                   <>
                     {item.active ? (
                       <>
-                        <button onClick={() => {
+                        <button onClick={(e) => { e.stopPropagation();
                           setEditId(item.id);
                           setEditTitle(item.title);
                           setEditDescription(item.description || "");
@@ -435,24 +520,25 @@ const NoticesPage = () => {
                         }} className="text-sky-400 hover:text-sky-300" title="Editar aviso">
                           <Edit3 className="w-5 h-5" />
                         </button>
-                        <button onClick={() => handleToggleActive(item)} className="text-yellow-400 hover:text-yellow-300" title="Inativar aviso">
+                        <button onClick={(e) => { e.stopPropagation(); handleToggleActive(item); }} className="text-yellow-400 hover:text-yellow-300" title="Inativar aviso">
                           <Slash className="w-5 h-5" />
                         </button>
-                        <button onClick={() => confirmDelete(item.id)} className="text-red-400 hover:text-red-300" title="Deletar aviso">
+                        <button onClick={(e) => { e.stopPropagation(); confirmDelete(item.id); }} className="text-red-400 hover:text-red-300" title="Deletar aviso">
                           <Trash2 className="w-5 h-5" />
                         </button>
                       </>
                     ) : (
-                      <button onClick={() => handleToggleActive(item)} className="text-green-400 hover:text-green-300" title="Reativar aviso">
+                      <button onClick={(e) => { e.stopPropagation(); handleToggleActive(item); }} className="text-green-400 hover:text-green-300" title="Reativar aviso">
                         <RefreshCcw className="w-5 h-5" />
                       </button>
                     )}
 
-                    <button onClick={() => handleOpenReadModal(item.readBy)} className="text-zinc-400 hover:text-zinc-300" title="Ver lidos">
+                    <button onClick={(e) => { e.stopPropagation(); handleOpenReadModal(item.readBy); }} className="text-zinc-400 hover:text-zinc-300 p-2 rounded-md" title="Ver lidos">
                       <User className="w-5 h-5" />
                     </button>
                   </>
                 )}
+                {/* cópia removida por preferência do usuário */}
               </div>
             </div>
           </div>
@@ -581,6 +667,50 @@ const NoticesPage = () => {
           <div className="flex justify-end">
             <button onClick={() => setReadModalOpen(false)} className="px-4 py-2 rounded bg-zinc-700 hover:bg-zinc-600">Fechar</button>
           </div>
+        </Dialog.Panel>
+      </Dialog>
+
+      {/* <<< NOVO: Modal para exibir detalhes do aviso >>> */}
+      <Dialog
+        open={!!selectedNotice}
+        onClose={closeNoticeDetails}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      >
+        {/* The backdrop, rendered as a fixed sibling to the panel container */}
+        <div className="fixed inset-0 bg-black/70" aria-hidden="true" />
+
+        {/* Full-screen container to center the panel */}
+        <Dialog.Panel
+          className="relative z-10 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto space-y-4"
+        >
+          {selectedNotice && (
+            <>
+              <div className="flex justify-between items-start">
+                <Dialog.Title className="text-2xl font-bold text-white">{selectedNotice.title}</Dialog.Title>
+                <button onClick={closeNoticeDetails} className="text-zinc-400 hover:text-white text-2xl font-bold">&times;</button>
+              </div>
+              <div className="text-sm text-zinc-400 space-y-1">
+                <p><strong>Autor:</strong> {selectedNotice.creatorEmail}</p>
+                <p><strong>Data:</strong> {formatDate(selectedNotice.createdAt)}</p>
+                <p><strong>Importância:</strong> <span className="capitalize">{selectedNotice.importance}</span></p>
+                <p><strong>Direcionado para:</strong> <span className="capitalize">{selectedNotice.target}</span></p>
+                {selectedNotice.link && (
+                  <p>
+                    <strong>Link:</strong>{' '}
+                    <a href={selectedNotice.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sky-400 hover:text-sky-500 underline">
+                      <Globe className="w-4 h-4" /> Abrir em nova aba
+                    </a>
+                  </p>
+                )}
+              </div>
+              {/* compartilhamento removido por preferência do usuário */}
+              {selectedNotice.description && (
+                <div className="mt-4 text-zinc-300 whitespace-pre-wrap break-words">
+                  {selectedNotice.description}
+                </div>
+              )}
+            </>
+          )}
         </Dialog.Panel>
       </Dialog>
     </div>

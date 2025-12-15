@@ -106,7 +106,7 @@ const Sidebar = () => {
     // { href: '/reports', label: 'Relatórios', icon: <ReportIcon /> },
     { href: '/links', label: 'Links Úteis', icon: <LinkIcon /> },
     { href: '/client-connections', label: 'Conexões de Clientes', icon: <ConnectionIcon /> },
-    // { href: '/support', label: 'Suporte', icon: <SupportIcon /> },
+    { href: '/socialfield', label: 'Rede social', icon: <SupportIcon /> },
   ];
 
   const adminItems = [

@@ -2,10 +2,22 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../AuthContext";
+import { PostItem, Post } from "../components/PostItem"; // Importando o componente e o tipo
 import { updateProfile } from "firebase/auth";
 import { auth, db } from "../../firebase";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  getDoc,
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  deleteDoc,
+} from "firebase/firestore";
 import { Dialog } from "@headlessui/react";
+import { Loader2 } from "lucide-react";
 
 interface Skill {
   name: string;
@@ -29,6 +41,9 @@ export default function ProfilePage() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
 
+  const [repostedPosts, setRepostedPosts] = useState<Post[]>([]);
+  const [loadingReposts, setLoadingReposts] = useState(true);
+
   useEffect(() => {
     if (user) {
       setName(user.displayName || "");
@@ -36,8 +51,29 @@ export default function ProfilePage() {
       setPhoto(authPhoto);
       setPreview(authPhoto || "/profile.jpg");
       fetchUserProfile(authPhoto);
+      fetchRepostedPosts();
     }
   }, [user]);
+
+  const fetchRepostedPosts = async () => {
+    if (!user) return;
+    setLoadingReposts(true);
+    try {
+      const q = query(
+        collection(db, "posts"),
+        where("repostedBy", "array-contains", user.uid),
+        orderBy("createdAt", "desc")
+      );
+      const querySnapshot = await getDocs(q);
+      const posts = querySnapshot.docs.map(
+        (doc) => ({ id: doc.id, ...doc.data() } as Post)
+      );
+      setRepostedPosts(posts);
+    } catch (error) {
+      console.error("Erro ao buscar posts repostados:", error);
+    }
+    setLoadingReposts(false);
+  };
 
   const fetchUserProfile = async (authPhoto?: string) => {
     if (!user) return;
@@ -149,6 +185,15 @@ export default function ProfilePage() {
 
   const totalElogios = skills.reduce((acc, s) => acc + (s.score || 0), 0);
 
+  // Função dummy para onDelete, já que não se deleta um post do perfil de outro
+  // A alternativa seria implementar a lógica de "desfazer repost" aqui.
+  const handlePostAction = (id: string) => {
+    console.log(
+      `Ação no post ${id} a partir da página de perfil. Implementar "desfazer repost" se necessário.`
+    );
+    // Para uma implementação completa, você chamaria a função `toggleRepost` aqui.
+  };
+
   return (
     <div className="flex flex-col md:flex-row w-full h-full gap-6 min-w-0">
       {/* Foto e controles */}
@@ -239,6 +284,31 @@ export default function ProfilePage() {
         >
           Ver elogios recebidos ({totalElogios})
         </button>
+
+        {/* Seção de Posts Repostados */}
+        <div className="mt-8 border-t border-zinc-800 pt-6">
+          <h2 className="text-xl font-bold text-zinc-300 mb-4">
+            Posts Repostados
+          </h2>
+          {loadingReposts ? (
+            <div className="flex justify-center p-4">
+              <Loader2 className="animate-spin text-sky-500" />
+            </div>
+          ) : repostedPosts.length > 0 ? (
+            <div className="flex flex-col gap-0">
+              {repostedPosts.map((post) => (
+                <PostItem
+                  key={post.id}
+                  post={post}
+                  currentUser={user}
+                  onDelete={handlePostAction} // Usando a função dummy
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-zinc-500">Você ainda não repostou nada.</p>
+          )}
+        </div>
       </div>
 
       {/* Modal de Skills / Elogios */}
