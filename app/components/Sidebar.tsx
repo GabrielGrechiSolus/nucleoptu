@@ -102,6 +102,7 @@ const Sidebar = () => {
   // Navegação
   const navItems = [
     { href: '/home', label: 'Início', icon: <HomeIcon /> },
+    { href: '/study', label: 'Estudos', icon: <ChartIcon /> },
     { href: '/notice-board', label: 'Mural de Avisos', icon: <NoticeBoardIcon /> },
     // { href: '/reports', label: 'Relatórios', icon: <ReportIcon /> },
     { href: '/links', label: 'Links Úteis', icon: <LinkIcon /> },
@@ -110,6 +111,7 @@ const Sidebar = () => {
   ];
 
   const adminItems = [
+    { href: '/db-registry', label: 'DB Registry', icon: <ReportIcon /> },
     // { href: '/dashboard', label: 'Dashboard', icon: <ChartIcon /> },
     { href: '/users', label: 'Usuários', icon: <UsersIcon /> },
     { href: '/profile', label: 'Perfil', icon: <ProfileIcon /> },

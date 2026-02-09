@@ -5,6 +5,7 @@ import withAuth from "../components/withAuth";
 import {
   collection,
   addDoc,
+  setDoc,
   deleteDoc,
   doc,
   updateDoc,
@@ -302,30 +303,61 @@ const NoticesPage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
+      let text = await file.text();
+
+      // Tentativa de parse direto
+      let parsed: any;
+      try {
+        parsed = JSON.parse(text);
+      } catch (err) {
+        // Se falhar, tentamos uma sanitização simples para valores NaN (não-JSON)
+        // Substitui ocorrências como: `: NaN` por `: null`
+        const sanitized = text.replace(/:\s*NaN/g, ': null');
+        try {
+          parsed = JSON.parse(sanitized);
+          console.warn('JSON parse direto falhou; import usando versão sanitizada (NaN -> null)');
+        } catch (err2) {
+          console.error('Erro ao parsear JSON original e sanitizado', err, err2);
+          alert('Erro ao importar JSON. Verifique o formato do arquivo.');
+          return;
+        }
+      }
+
       if (!Array.isArray(parsed)) {
-        alert("Arquivo inválido: espere um array de avisos");
+        alert('Arquivo inválido: espere um array de avisos');
         return;
       }
+
       let created = 0;
       for (const item of parsed) {
-        // validação mínima
-        if (!item.title) continue;
-        await addDoc(collection(db, "notices"), {
+        if (!item || !item.title) continue;
+
+        const data = {
           title: item.title,
-          description: item.description || "",
-          link: item.link || "",
-          type: item.type || "texto",
-          importance: item.importance || "medium",
-          target: item.target || "todos",
+          description: item.description || '',
+          link: item.link || '',
+          type: item.type || 'texto',
+          importance: item.importance || 'medium',
+          target: item.target || 'todos',
           active: item.active !== false,
-          createdAt: item.createdAt || Date.now(),
-          creatorEmail: item.creatorEmail || (user?.email || "Importado"),
-          readBy: item.readBy || [],
-        });
-        created++;
+          createdAt: typeof item.createdAt === 'number' ? item.createdAt : Date.now(),
+          creatorEmail: item.creatorEmail || (user?.email || 'Importado'),
+          readBy: Array.isArray(item.readBy) ? item.readBy : [],
+        };
+
+        try {
+          if (item.id && typeof item.id === 'string') {
+            // preserva id do item quando informado
+            await setDoc(doc(db, 'notices', item.id), data);
+          } else {
+            await addDoc(collection(db, 'notices'), data);
+          }
+          created++;
+        } catch (innerErr) {
+          console.error('Erro ao gravar aviso importado', innerErr, item);
+        }
       }
+
       alert(`Importação concluída: ${created} avisos criados`);
       void loadNotices();
     } catch (err) {
