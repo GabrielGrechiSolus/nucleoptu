@@ -19,6 +19,11 @@ import { LinkIcon } from '../home/LinkIcon';
 import { SupportIcon } from '../home/SupportIcon';
 import { ProfileIcon } from '../home/ProfileIcon';
 import { ConnectionIcon } from '../home/ConnectionIcon';
+import { MeetingsIcon } from '../home/MeetingsIcon';
+import { KanbanIcon } from '../home/KanbanIcon';
+import { TicketsIcon } from '../home/TicketsIcon';
+import { BooksIcon } from '../home/BooksIcon';
+import { ReportsIcon } from '../home/ReportsIcon';
 
 const Sidebar = () => {
   const { user } = useAuth();
@@ -102,9 +107,12 @@ const Sidebar = () => {
   // Navegação
   const navItems = [
     { href: '/home', label: 'Início', icon: <HomeIcon /> },
-    { href: '/study', label: 'Estudos', icon: <ChartIcon /> },
+    { href: '/tickets', label: 'Chamados', icon: <TicketsIcon /> },
+    { href: '/studies', label: 'Estudos', icon: <BooksIcon /> },
+    { href: '/reports', label: 'Relatórios', icon: <ReportsIcon /> },
     { href: '/notice-board', label: 'Mural de Avisos', icon: <NoticeBoardIcon /> },
-    // { href: '/reports', label: 'Relatórios', icon: <ReportIcon /> },
+    { href: '/meetings', label: 'Reuniões', icon: <MeetingsIcon /> },
+    { href: '/kanban', label: 'Kanban', icon: <KanbanIcon /> },
     { href: '/links', label: 'Links Úteis', icon: <LinkIcon /> },
     { href: '/client-connections', label: 'Conexões de Clientes', icon: <ConnectionIcon /> },
     { href: '/socialfield', label: 'Rede social', icon: <SupportIcon /> },
@@ -145,7 +153,7 @@ const Sidebar = () => {
       `}</style>
 
       {/* Sidebar Desktop */}
-      <aside className="hidden sm:flex flex-col w-64 min-w-64 max-w-64 bg-zinc-900 border-r border-zinc-800 p-4 overflow-hidden">
+      <aside className="hidden sm:flex flex-col w-64 min-w-64 max-w-64 bg-zinc-900 border-r border-zinc-800 p-4 overflow-y-auto max-h-screen scrollbar-hide">
 
         {/* Perfil */}
         <Link
@@ -241,12 +249,12 @@ const Sidebar = () => {
       </aside>
 
       {/* Mobile Bottom Nav */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-800 flex justify-around p-2">
-        {navItems.slice(0, 3).map((item) => (
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-800 flex justify-around p-2 overflow-x-auto">
+        {navItems.slice(0, 5).map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-col items-center p-2 rounded-md transition-colors ${
+            className={`flex flex-col items-center p-2 rounded-md transition-colors flex-shrink-0 ${
               pathname === item.href ? 'text-sky-400' : 'text-zinc-400'
             }`}
           >
@@ -257,7 +265,7 @@ const Sidebar = () => {
 
         <button
           onClick={handleLogout}
-          className="flex flex-col items-center p-2 rounded-md text-zinc-400"
+          className="flex flex-col items-center p-2 rounded-md text-zinc-400 flex-shrink-0"
         >
           <span className="w-7 h-7 shrink-0"><LogoutIcon /></span>
           <span className="text-xs whitespace-nowrap">Sair</span>
