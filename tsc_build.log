@@ -1,0 +1,58 @@
+app/components/FeatureCard.test.tsx(3,32): error TS2307: Cannot find module '@testing-library/react' or its corresponding type declarations.
+app/components/FeatureCard.test.tsx(7,1): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+app/components/FeatureCard.test.tsx(8,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+app/components/FeatureCard.test.tsx(22,5): error TS2304: Cannot find name 'expect'.
+app/components/FeatureCard.test.tsx(25,5): error TS2304: Cannot find name 'expect'.
+app/components/FeatureCard.test.tsx(28,5): error TS2304: Cannot find name 'expect'.
+app/components/HelpManual/HelpManual.test.tsx(4,43): error TS2307: Cannot find module '@testing-library/react' or its corresponding type declarations.
+app/components/HelpManual/HelpManual.test.tsx(7,1): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+app/components/HelpManual/HelpManual.test.tsx(11,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+app/components/HelpManual/HelpManual.test.tsx(14,5): error TS2304: Cannot find name 'expect'.
+app/components/HelpManual/HelpManual.test.tsx(17,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+app/components/HelpManual/HelpManual.test.tsx(23,5): error TS2304: Cannot find name 'expect'.
+app/components/HelpManual/HelpManual.test.tsx(26,5): error TS2304: Cannot find name 'expect'.
+app/components/HelpManual/HelpManual.test.tsx(29,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+app/components/HelpManual/HelpManual.test.tsx(38,5): error TS2304: Cannot find name 'expect'.
+app/notice-board/page.test.tsx(2,52): error TS2307: Cannot find module '@testing-library/react' or its corresponding type declarations.
+app/notice-board/page.test.tsx(8,1): error TS2304: Cannot find name 'jest'.
+app/notice-board/page.test.tsx(8,44): error TS7006: Parameter 'Component' implicitly has an 'any' type.
+app/notice-board/page.test.tsx(11,1): error TS2304: Cannot find name 'jest'.
+app/notice-board/page.test.tsx(22,1): error TS2304: Cannot find name 'jest'.
+app/notice-board/page.test.tsx(23,6): error TS2304: Cannot find name 'jest'.
+app/notice-board/page.test.tsx(24,15): error TS2304: Cannot find name 'jest'.
+app/notice-board/page.test.tsx(25,12): error TS2304: Cannot find name 'jest'.
+app/notice-board/page.test.tsx(26,10): error TS2304: Cannot find name 'jest'.
+app/notice-board/page.test.tsx(27,12): error TS2304: Cannot find name 'jest'.
+app/notice-board/page.test.tsx(28,10): error TS2304: Cannot find name 'jest'.
+app/notice-board/page.test.tsx(29,8): error TS2304: Cannot find name 'jest'.
+app/notice-board/page.test.tsx(30,11): error TS2304: Cannot find name 'jest'.
+app/notice-board/page.test.tsx(31,14): error TS2304: Cannot find name 'jest'.
+app/notice-board/page.test.tsx(32,16): error TS2304: Cannot find name 'jest'.
+app/notice-board/page.test.tsx(62,1): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+app/notice-board/page.test.tsx(63,3): error TS2304: Cannot find name 'beforeEach'.
+app/notice-board/page.test.tsx(64,20): error TS2503: Cannot find namespace 'jest'.
+app/notice-board/page.test.tsx(65,15): error TS2503: Cannot find namespace 'jest'.
+app/notice-board/page.test.tsx(66,17): error TS2503: Cannot find namespace 'jest'.
+app/notice-board/page.test.tsx(67,15): error TS2503: Cannot find namespace 'jest'.
+app/notice-board/page.test.tsx(68,17): error TS2503: Cannot find namespace 'jest'.
+app/notice-board/page.test.tsx(74,13): error TS2503: Cannot find namespace 'jest'.
+app/notice-board/page.test.tsx(74,44): error TS7006: Parameter 'db' implicitly has an 'any' type.
+app/notice-board/page.test.tsx(74,48): error TS7006: Parameter 'path' implicitly has an 'any' type.
+app/notice-board/page.test.tsx(74,54): error TS7006: Parameter 'id' implicitly has an 'any' type.
+app/notice-board/page.test.tsx(77,16): error TS2503: Cannot find namespace 'jest'.
+app/notice-board/page.test.tsx(83,19): error TS2503: Cannot find namespace 'jest'.
+app/notice-board/page.test.tsx(84,21): error TS2503: Cannot find namespace 'jest'.
+app/notice-board/page.test.tsx(87,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+app/notice-board/page.test.tsx(90,5): error TS2304: Cannot find name 'expect'.
+app/notice-board/page.test.tsx(93,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+app/notice-board/page.test.tsx(96,5): error TS2304: Cannot find name 'expect'.
+app/notice-board/page.test.tsx(99,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+app/notice-board/page.test.tsx(103,7): error TS2304: Cannot find name 'expect'.
+app/notice-board/page.test.tsx(107,5): error TS2304: Cannot find name 'expect'.
+app/tickets/page.tsx(941,15): error TS2322: Type '{ isOpen: boolean; onClose: () => void; onSubmit: (text: string) => Promise<void>; observations: Observation[]; ticketId: string; onDeleteObservation: (obsId: any) => Promise<...>; }' is not assignable to type 'IntrinsicAttributes & ObservationModalProps'.
+  Property 'ticketId' does not exist on type 'IntrinsicAttributes & ObservationModalProps'.
+app/tickets/page.tsx(942,37): error TS7006: Parameter 'obsId' implicitly has an 'any' type.
+app/tickets/page.tsx(954,15): error TS2322: Type '{ isOpen: boolean; onClose: () => void; onSubmit: (data: Omit<Study, "id" | "createdAt" | "updatedAt">) => Promise<void>; ticketId: string; ticketNumber: string; ticketDescription: string | undefined; categories: string[]; }' is not assignable to type 'IntrinsicAttributes & AddStudyToTicketModalProps'.
+  Property 'ticketDescription' does not exist on type 'IntrinsicAttributes & AddStudyToTicketModalProps'.
+lib/googleCalendar.ts(39,3): error TS2322: Type 'unknown' is not assignable to type 'Tokens'.
+lib/googleCalendar.ts(64,33): error TS2698: Spread types may only be created from object types.

@@ -12,7 +12,11 @@ export interface Ticket {
   status: 'open' | 'closed';
   observations: Observation[];
   studies: string[];
+  tasks?: string[];
   githubLinks: string[];
+  priority?: 'low' | 'medium' | 'high';
+  category?: string;
+  description?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -21,6 +25,7 @@ export interface Observation {
   id: string;
   text: string;
   createdAt: string;
+  createdBy?: string;
 }
 
 interface TicketModalProps {

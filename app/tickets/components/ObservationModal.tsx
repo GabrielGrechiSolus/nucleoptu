@@ -9,9 +9,11 @@ interface ObservationModalProps {
   onClose: () => void;
   onSubmit: (text: string) => void;
   observations: Observation[];
+  ticketId: string;
+  onDeleteObservation?: (obsId: string) => void;
 }
 
-const ObservationModal: React.FC<ObservationModalProps> = ({ isOpen, onClose, onSubmit, observations }) => {
+const ObservationModal: React.FC<ObservationModalProps> = ({ isOpen, onClose, onSubmit, observations, ticketId, onDeleteObservation }) => {
   const [observationText, setObservationText] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {

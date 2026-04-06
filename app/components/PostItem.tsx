@@ -44,9 +44,9 @@ export interface Post {
 }
 
 const PostItem: React.FC<{ post: Post; currentUser: any; onDelete: (id: string) => void }> = ({ post, currentUser, onDelete }) => {
-  const [isLiked, setIsLiked] = useState(post.likes?.includes(currentUser?.uid));
+  const [isLiked, setIsLiked] = useState(currentUser?.uid ? post.likes?.includes(currentUser.uid) || false : false);
   const [likesCount, setLikesCount] = useState(post.likes?.length || 0);
-  const [isReposted, setIsReposted] = useState(post.repostedBy?.includes(currentUser?.uid));
+  const [isReposted, setIsReposted] = useState(currentUser?.uid ? post.repostedBy?.includes(currentUser.uid) || false : false);
   const [repostsCount, setRepostsCount] = useState(post.repostedBy?.length || 0);
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);

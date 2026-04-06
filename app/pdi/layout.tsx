@@ -1,7 +1,9 @@
+'use client';
+
 import React from 'react';
 import Sidebar from '../components/Sidebar';
 
-export default function KanbanLayout({
+export default function StudiesLayout({
   children,
 }: {
   children: React.ReactNode;

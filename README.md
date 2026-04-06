@@ -77,8 +77,7 @@ Inicia o executor de testes no modo de observação interativo.
    ```
 3. **Configure o Firebase:**
    - Crie um projeto no [Firebase Console](https://console.firebase.google.com/).
-   - Adicione um aplicativo da web ao seu projeto.
-   - Copie as credenciais do Firebase e cole-as no arquivo `firebase.ts`.
+
 4. **Inicie o servidor de desenvolvimento:**
    ```bash
    npm run dev

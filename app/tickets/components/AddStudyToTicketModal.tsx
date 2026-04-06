@@ -10,6 +10,7 @@ interface AddStudyToTicketModalProps {
   onSubmit: (data: Omit<Study, 'id' | 'createdAt' | 'updatedAt'>) => void;
   ticketId: string;
   ticketNumber: string;
+  ticketDescription?: string;
   categories: string[];
 }
 
@@ -19,6 +20,7 @@ const AddStudyToTicketModal: React.FC<AddStudyToTicketModalProps> = ({
   onSubmit,
   ticketId,
   ticketNumber,
+  ticketDescription,
   categories,
 }) => {
   const [formData, setFormData] = useState({
