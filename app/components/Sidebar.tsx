@@ -138,10 +138,7 @@ const Sidebar = () => {
     { href: '/meetings', label: 'Reuniões', icon: Calendar, color: 'text-indigo-400', bgColor: 'bg-indigo-500/10' },
     { href: '/links', label: 'Links Úteis', icon: LinkIcon, color: 'text-cyan-400', bgColor: 'bg-cyan-500/10' },
     { href: '/client-connections', label: 'Conexões', icon: Network, color: 'text-pink-400', bgColor: 'bg-pink-500/10' },
-    { href: '/socialfield', label: 'Rede Social', icon: HeadphonesIcon, color: 'text-orange-400', bgColor: 'bg-orange-500/10' },
-    { href: '/a400', label: 'A400', icon: Sparkles, color: 'text-violet-400', bgColor: 'bg-violet-500/10' },
-    { href: '/pdi', label: 'ToDo', icon: Kanban, color: 'text-rose-400', bgColor: 'bg-rose-500/10' },
-    { href: '/a500', label: 'A500', icon: Kanban, color: 'text-rose-400', bgColor: 'bg-rose-500/10' },
+    { href: '/socialfield', label: 'Rede Social', icon: HeadphonesIcon, color: 'text-orange-400', bgColor: 'bg-orange-500/10' }
   ];
 
   const adminItems = [
