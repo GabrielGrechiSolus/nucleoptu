@@ -1,0 +1,11 @@
+{
+    "cloude-code-toolbox.thinkingMachineMode.enabled": true,
+    "cloude-code-toolbox.thinkingMachineMode.runAwarenessScan": true,
+    "cloude-code-toolbox.thinkingMachineMode.mergeAwarenessIntoClaudeMd": true,
+    "cloude-code-toolbox.thinkingMachineMode.showConfirmationModal": true,
+    "cloude-code-toolbox.thinkingMachineMode.useSeparateContextPackDefaults": true,
+    "cloude-code-toolbox.thinkingMachineMode.includeGit": true,
+    "cloude-code-toolbox.thinkingMachineMode.includeDiagnostics": true,
+    "cloude-code-toolbox.thinkingMachineMode.appendNotepad": true,
+    "cloude-code-toolbox.thinkingMachineMode.openChat": true
+}
