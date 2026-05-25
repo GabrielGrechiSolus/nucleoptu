@@ -12,10 +12,8 @@ export interface Ticket {
   status: 'open' | 'closed';
   observations: Observation[];
   studies: string[];
-  tasks?: string[];
   githubLinks: string[];
-  priority?: 'low' | 'medium' | 'high';
-  category?: string;
+  priority?: 'low' | 'medium' | 'high';  category?: string;
   description?: string;
   createdAt: string;
   updatedAt: string;

@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { Dialog } from '@headlessui/react'; // Add this import
-import { Plus, Search, Filter, X, ChevronDown, Clock, CheckCircle, AlertCircle, Calendar, Tag, User, FileText, BookOpen, Link as LinkIcon, CheckSquare, Target, ChevronRight } from 'lucide-react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Plus, Search, Filter, X, Tag, User, FileText, BookOpen } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { db } from '../../firebase';
 import {
@@ -14,21 +13,14 @@ import {
   query,
   where,
   onSnapshot,
-  Timestamp,
   orderBy,
-  limit,
-  increment,
   writeBatch,
-  getDocs,
-  arrayUnion,
   arrayRemove
 } from 'firebase/firestore';
 import TicketModal, { Ticket, Observation } from './components/TicketModal';
 import ObservationModal from './components/ObservationModal';
-import TicketCard from './components/TicketCard';
 import AddStudyToTicketModal from './components/AddStudyToTicketModal';
 import { Study } from '../studies/components/StudyModal';
-import Link from 'next/link';
 
 // ==================== TIPOS ====================
 
@@ -37,7 +29,6 @@ interface TicketStats {
   open: number;
   closed: number;
   withStudies: number;
-  withTasks: number;
 }
 
 interface FilterOptions {
@@ -45,16 +36,6 @@ interface FilterOptions {
   client: string;
   dateRange: 'all' | 'today' | 'week' | 'month';
   hasStudies: 'all' | 'yes' | 'no';
-  hasTasks: 'all' | 'yes' | 'no';
-}
-
-interface LinkedTask {
-  id: string;
-  title: string;
-  status: 'pendente' | 'feito';
-  type: string;
-  date: string;
-  completedAt?: number;
 }
 
 // ==================== COMPONENTE PRINCIPAL ====================
@@ -62,28 +43,24 @@ interface LinkedTask {
 const TicketsPage = () => {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [tasks, setTasks] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     status: 'all',
     client: '',
     dateRange: 'all',
-    hasStudies: 'all',
-    hasTasks: 'all'
+    hasStudies: 'all'
   });
   const [showFilters, setShowFilters] = useState(false);
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   const [isObservationModalOpen, setIsObservationModalOpen] = useState(false);
   const [isAddStudyModalOpen, setIsAddStudyModalOpen] = useState(false);
-  const [isLinkTaskModalOpen, setIsLinkTaskModalOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [editingTicket, setEditingTicket] = useState<Ticket | undefined>(undefined);
   const [categories, setCategories] = useState<string[]>([]);
   const [clients, setClients] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<TicketStats>({ total: 0, open: 0, closed: 0, withStudies: 0, withTasks: 0 });
+  const [stats, setStats] = useState<TicketStats>({ total: 0, open: 0, closed: 0, withStudies: 0 });
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
-  const [availableTasks, setAvailableTasks] = useState<any[]>([]);
 
   // Carrega tickets do Firestore com ordenação
   useEffect(() => {
@@ -112,14 +89,13 @@ const TicketsPage = () => {
           status: data.status,
           observations: data.observations || [],
           studies: data.studies || [],
-          tasks: data.tasks || [],
           githubLinks: data.githubLinks || [],
           priority: data.priority || 'medium',
           category: data.category || '',
           description: data.description || '',
           createdAt: data.createdAt,
           updatedAt: data.updatedAt,
-        } as Ticket & { tasks?: string[] };
+        } as Ticket;
 
         ticketsData.push(ticket);
 
@@ -136,34 +112,12 @@ const TicketsPage = () => {
       const open = ticketsData.filter(t => t.status === 'open').length;
       const closed = ticketsData.filter(t => t.status === 'closed').length;
       const withStudies = ticketsData.filter(t => t.studies && t.studies.length > 0).length;
-      const withTasks = ticketsData.filter(t => t.tasks && t.tasks.length > 0).length;
 
-      setStats({ total, open, closed, withStudies, withTasks });
+      setStats({ total, open, closed, withStudies });
       setLoading(false);
     }, (error) => {
       console.error('Erro ao carregar tickets:', error);
       setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [user]);
-
-  // Carrega tarefas da agenda
-  useEffect(() => {
-    if (!user) return;
-
-    const q = query(
-      collection(db, 'tasks'),
-      where('userEmail', '==', user.email),
-      orderBy('date', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snap) => {
-      const tasksData = snap.docs.map(d => ({
-        id: d.id,
-        ...d.data()
-      }));
-      setTasks(tasksData);
     });
 
     return () => unsubscribe();
@@ -193,18 +147,6 @@ const TicketsPage = () => {
     return () => unsubscribe();
   }, [user]);
 
-  // Carrega tarefas disponíveis para vincular
-  useEffect(() => {
-    if (!selectedTicket) return;
-
-    const linkedTaskIds = selectedTicket.tasks || [];
-    const available = tasks.filter(task =>
-      !linkedTaskIds.includes(task.id) &&
-      task.status !== 'feito'
-    );
-    setAvailableTasks(available);
-  }, [selectedTicket, tasks]);
-
   // Criar/Atualizar ticket
   const handleCreateTicket = async (data: Omit<Ticket, 'id' | 'observations' | 'studies' | 'createdAt' | 'updatedAt'>) => {
     if (!user) return;
@@ -224,7 +166,6 @@ const TicketsPage = () => {
           userId: user.uid,
           observations: [],
           studies: [],
-          tasks: [],
           githubLinks: data.githubLinks || [],
           createdAt: now,
           updatedAt: now,
@@ -238,86 +179,6 @@ const TicketsPage = () => {
     } catch (error) {
       console.error('Erro ao salvar chamado:', error);
       alert('Erro ao salvar chamado. Tente novamente.');
-    }
-  };
-
-  // Vincular tarefa ao chamado
-  const handleLinkTask = async (taskId: string) => {
-    if (!selectedTicket) return;
-
-    try {
-      const ticketRef = doc(db, 'tickets', selectedTicket.id);
-      await updateDoc(ticketRef, {
-        tasks: arrayUnion(taskId),
-        updatedAt: new Date().toISOString()
-      });
-
-      // Atualizar tarefa com referência ao chamado
-      const taskRef = doc(db, 'tasks', taskId);
-      await updateDoc(taskRef, {
-        ticketId: selectedTicket.id,
-        ticketNumber: selectedTicket.ticketNumber
-      });
-
-      alert('Tarefa vinculada com sucesso!');
-    } catch (error) {
-      console.error('Erro ao vincular tarefa:', error);
-      alert('Erro ao vincular tarefa');
-    }
-  };
-
-  // Desvincular tarefa do chamado
-  const handleUnlinkTask = async (ticketId: string, taskId: string) => {
-    if (!confirm('Remover vínculo com esta tarefa?')) return;
-
-    try {
-      const ticketRef = doc(db, 'tickets', ticketId);
-      await updateDoc(ticketRef, {
-        tasks: arrayRemove(taskId),
-        updatedAt: new Date().toISOString()
-      });
-
-      const taskRef = doc(db, 'tasks', taskId);
-      await updateDoc(taskRef, {
-        ticketId: null,
-        ticketNumber: null
-      });
-
-      alert('Tarefa desvinculada com sucesso!');
-    } catch (error) {
-      console.error('Erro ao desvincular tarefa:', error);
-      alert('Erro ao desvincular tarefa');
-    }
-  };
-
-  // Finalizar chamado via tarefa concluída
-  const handleCompleteTaskAndTicket = async (ticket: Ticket, taskId: string) => {
-    if (!confirm('Marcar tarefa como concluída e finalizar este chamado?')) return;
-
-    try {
-      const batch = writeBatch(db);
-
-      // Atualizar tarefa
-      const taskRef = doc(db, 'tasks', taskId);
-      batch.update(taskRef, {
-        status: 'feito',
-        completedAt: Date.now()
-      });
-
-      // Atualizar ticket
-      const ticketRef = doc(db, 'tickets', ticket.id);
-      batch.update(ticketRef, {
-        status: 'closed',
-        closeDate: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      });
-
-      await batch.commit();
-
-      alert('Tarefa concluída e chamado finalizado com sucesso!');
-    } catch (error) {
-      console.error('Erro ao finalizar:', error);
-      alert('Erro ao finalizar');
     }
   };
 
@@ -339,19 +200,6 @@ const TicketsPage = () => {
           const studyRef = doc(db, 'studies', studyId);
           batch.update(studyRef, {
             tickets: arrayRemove(id)
-          });
-        }
-        await batch.commit();
-      }
-
-      // Remover referências nas tarefas
-      if (ticket?.tasks && ticket.tasks.length > 0) {
-        const batch = writeBatch(db);
-        for (const taskId of ticket.tasks) {
-          const taskRef = doc(db, 'tasks', taskId);
-          batch.update(taskRef, {
-            ticketId: null,
-            ticketNumber: null
           });
         }
         await batch.commit();
@@ -493,11 +341,6 @@ const TicketsPage = () => {
         (filterOptions.hasStudies === 'yes' && ticket.studies && ticket.studies.length > 0) ||
         (filterOptions.hasStudies === 'no' && (!ticket.studies || ticket.studies.length === 0));
 
-      const matchesTasks =
-        filterOptions.hasTasks === 'all' ||
-        (filterOptions.hasTasks === 'yes' && ticket.tasks && ticket.tasks.length > 0) ||
-        (filterOptions.hasTasks === 'no' && (!ticket.tasks || ticket.tasks.length === 0));
-
       let matchesDate = true;
       if (filterOptions.dateRange !== 'all' && ticket.createdAt) {
         const ticketDate = new Date(ticket.createdAt);
@@ -521,7 +364,7 @@ const TicketsPage = () => {
         }
       }
 
-      return matchesSearch && matchesStatus && matchesClient && matchesStudies && matchesTasks && matchesDate;
+      return matchesSearch && matchesStatus && matchesClient && matchesStudies && matchesDate;
     });
   }, [tickets, searchTerm, filterOptions]);
 
@@ -532,18 +375,11 @@ const TicketsPage = () => {
       status: 'all',
       client: '',
       dateRange: 'all',
-      hasStudies: 'all',
-      hasTasks: 'all'
+      hasStudies: 'all'
     });
   };
 
   const activeFiltersCount = Object.values(filterOptions).filter(v => v !== 'all' && v !== '').length + (searchTerm ? 1 : 0);
-
-  // Obter tarefas vinculadas
-  const getLinkedTasks = (ticket: Ticket) => {
-    const taskIds = ticket.tasks || [];
-    return tasks.filter(task => taskIds.includes(task.id));
-  };
 
   if (loading) {
     return (
@@ -566,7 +402,7 @@ const TicketsPage = () => {
             <h1 className="text-3xl font-bold bg-gradient-to-r from-sky-500 to-purple-500 bg-clip-text text-transparent">
               Chamados
             </h1>
-            <p className="text-zinc-400 mt-1">Gerencie seus chamados, tarefas e estudos</p>
+            <p className="text-zinc-400 mt-1">Gerencie seus chamados e estudos</p>
           </div>
 
           <button
@@ -598,10 +434,6 @@ const TicketsPage = () => {
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
             <p className="text-sm text-zinc-400">Com Estudos</p>
             <p className="text-2xl font-bold text-purple-500">{stats.withStudies}</p>
-          </div>
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
-            <p className="text-sm text-zinc-400">Com Tarefas</p>
-            <p className="text-2xl font-bold text-sky-500">{stats.withTasks}</p>
           </div>
         </div>
 
@@ -701,19 +533,6 @@ const TicketsPage = () => {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm text-zinc-400 mb-1">Tarefas</label>
-                <select
-                  value={filterOptions.hasTasks}
-                  onChange={(e) => setFilterOptions(prev => ({ ...prev, hasTasks: e.target.value as any }))}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-sky-500"
-                >
-                  <option value="all">Todos</option>
-                  <option value="yes">Com tarefas</option>
-                  <option value="no">Sem tarefas</option>
-                </select>
-              </div>
-
               {activeFiltersCount > 0 && (
                 <div className="sm:col-span-2 lg:col-span-5 flex justify-end">
                   <button
@@ -733,10 +552,6 @@ const TicketsPage = () => {
         {filteredTickets.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredTickets.map((ticket) => {
-              const linkedTasks = getLinkedTasks(ticket);
-              const hasPendingTasks = linkedTasks.some(task => task.status === 'pendente');
-              const allTasksCompleted = linkedTasks.length > 0 && linkedTasks.every(task => task.status === 'feito');
-
               return (
                 <div
                   key={ticket.id}
@@ -793,60 +608,6 @@ const TicketsPage = () => {
                     )}
                   </div>
 
-                  {/* Tarefas Vinculadas */}
-                  {linkedTasks.length > 0 && (
-                    <div className="p-3 border-b border-zinc-800 bg-zinc-900/30">
-                      <div className="flex items-center gap-2 mb-2">
-                        <CheckSquare size={14} className="text-sky-400" />
-                        <span className="text-xs font-medium text-zinc-300">Tarefas Vinculadas</span>
-                        <span className="text-xs text-zinc-500">
-                          ({linkedTasks.filter(t => t.status === 'feito').length}/{linkedTasks.length})
-                        </span>
-                      </div>
-                      <div className="space-y-2">
-                        {linkedTasks.map(task => (
-                          <div key={task.id} className="flex items-center justify-between bg-zinc-800/30 rounded-lg p-2">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className={`text-xs ${task.status === 'feito' ? 'line-through text-zinc-500' : 'text-white'}`}>
-                                  {task.title}
-                                </span>
-                                <span className={`text-xs px-1.5 py-0.5 rounded ${task.type === 'importante' ? 'bg-blue-500/20 text-blue-400' :
-                                    task.type === 'urgente' ? 'bg-red-500/20 text-red-400' :
-                                      'bg-zinc-500/20 text-zinc-400'
-                                  }`}>
-                                  {task.type === 'importante' ? '📌' : task.type === 'urgente' ? '⚠️' : '📝'}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2 mt-1 text-xs text-zinc-500">
-                                <Calendar size={10} />
-                                <span>{new Date(task.date).toLocaleDateString('pt-BR')}</span>
-                              </div>
-                            </div>
-                            <div className="flex gap-1">
-                              {task.status !== 'feito' && ticket.status === 'open' && (
-                                <button
-                                  onClick={() => handleCompleteTaskAndTicket(ticket, task.id)}
-                                  className="p-1 rounded hover:bg-green-500/10 transition-colors"
-                                  title="Concluir tarefa e finalizar chamado"
-                                >
-                                  <CheckCircle size={14} className="text-green-400" />
-                                </button>
-                              )}
-                              <button
-                                onClick={() => handleUnlinkTask(ticket.id, task.id)}
-                                className="p-1 rounded hover:bg-red-500/10 transition-colors"
-                                title="Desvincular"
-                              >
-                                <X size={12} className="text-red-400" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
                   {/* Ações */}
                   <div className="p-3 flex flex-wrap gap-2">
                     <button
@@ -871,17 +632,6 @@ const TicketsPage = () => {
                     >
                       <BookOpen size={12} />
                       Estudo
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setSelectedTicket(ticket);
-                        setIsLinkTaskModalOpen(true);
-                      }}
-                      className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
-                    >
-                      <Target size={12} />
-                      Vincular Tarefa
                     </button>
 
                     {ticket.status === 'open' && (
@@ -955,94 +705,6 @@ const TicketsPage = () => {
               categories={categories}
             />
 
-            {/* Modal para vincular tarefas */}
-            <Dialog open={isLinkTaskModalOpen} onClose={() => setIsLinkTaskModalOpen(false)} className="relative z-50">
-              <div className="fixed inset-0 bg-black/70" aria-hidden="true" />
-              <div className="fixed inset-0 flex items-center justify-center p-4">
-                <Dialog.Panel className="bg-zinc-900 rounded-xl w-full max-w-2xl max-h-[80vh] overflow-y-auto border border-zinc-700">
-                  <div className="p-6 border-b border-zinc-800">
-                    <Dialog.Title className="text-xl font-bold text-white flex items-center gap-2">
-                      <Target size={20} className="text-sky-400" />
-                      Vincular Tarefa ao Chamado
-                    </Dialog.Title>
-                    <p className="text-sm text-zinc-400 mt-1">
-                      Chamado: #{selectedTicket.ticketNumber} - {selectedTicket.clientName}
-                    </p>
-                  </div>
-
-                  <div className="p-6">
-                    {availableTasks.length === 0 ? (
-                      <div className="text-center py-8">
-                        <Target size={48} className="mx-auto text-zinc-600 mb-3" />
-                        <p className="text-zinc-500">Nenhuma tarefa disponível para vincular</p>
-                        <p className="text-zinc-600 text-sm mt-1">
-                          Todas as tarefas já estão vinculadas ou concluídas
-                        </p>
-                        <Link
-                          href="/produtividade"
-                          className="inline-block mt-4 text-sky-400 hover:text-sky-300 text-sm"
-                        >
-                          Ir para Agenda →
-                        </Link>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {availableTasks.map(task => (
-                          <div
-                            key={task.id}
-                            className="flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg hover:bg-zinc-800 transition-colors"
-                          >
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className={`text-sm font-medium ${task.status === 'feito' ? 'line-through text-zinc-500' : 'text-white'
-                                  }`}>
-                                  {task.title}
-                                </span>
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${task.type === 'importante' ? 'bg-blue-500/20 text-blue-400' :
-                                    task.type === 'urgente' ? 'bg-red-500/20 text-red-400' :
-                                      'bg-zinc-500/20 text-zinc-400'
-                                  }`}>
-                                  {task.type === 'importante' ? '📌 Importante' :
-                                    task.type === 'urgente' ? '⚠️ Urgente' : '📝 Circunstancial'}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-3 mt-1 text-xs text-zinc-500">
-                                <span className="flex items-center gap-1">
-                                  <Calendar size={10} />
-                                  {new Date(task.date).toLocaleDateString('pt-BR')}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Clock size={10} />
-                                  {task.time || 'Sem horário'}
-                                </span>
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => {
-                                handleLinkTask(task.id);
-                                setIsLinkTaskModalOpen(false);
-                              }}
-                              className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 rounded-lg text-sm transition-colors"
-                            >
-                              Vincular
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="p-6 border-t border-zinc-800 flex justify-end">
-                    <button
-                      onClick={() => setIsLinkTaskModalOpen(false)}
-                      className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-white"
-                    >
-                      Fechar
-                    </button>
-                  </div>
-                </Dialog.Panel>
-              </div>
-            </Dialog>
           </>
         )}
       </div>
