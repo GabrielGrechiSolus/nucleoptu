@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Search } from 'lucide-react';
-import { HelpType, UrgencyLevel, HelpMode } from '../types';
+import { HelpFriend, HelpType, UrgencyLevel, HelpMode } from '../types';
 import { useAuth } from '../../AuthContext';
 import { db } from '../../../firebase';
 import { collection, getDocs } from 'firebase/firestore';
@@ -19,36 +19,56 @@ interface HelpFriendModalProps {
     urgency: UrgencyLevel;
     helpType: HelpType;
     description: string;
-  }) => Promise<void>;
+  }, helpFriendId?: string) => Promise<void>;
   availableTickets: Array<{ id: string; ticketNumber: string; clientName: string }>;
+  existingHelpFriend?: HelpFriend | null;
 }
+
+const defaultFormState = {
+  ticketId: '',
+  helpMode: 'public' as HelpMode,
+  friendEmail: '',
+  friendName: '',
+  urgency: 'medium' as UrgencyLevel,
+  helpType: 'technical' as HelpType,
+  description: '',
+};
 
 const HelpFriendModal: React.FC<HelpFriendModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
   availableTickets,
+  existingHelpFriend,
 }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [friends, setFriends] = useState<Array<{ email: string; displayName: string }>>([]);
   const [friendSearch, setFriendSearch] = useState('');
   const [showFriendsList, setShowFriendsList] = useState(false);
-  const [formData, setFormData] = useState({
-    ticketId: '',
-    helpMode: 'public' as HelpMode,
-    friendEmail: '',
-    friendName: '',
-    urgency: 'medium' as UrgencyLevel,
-    helpType: 'technical' as HelpType,
-    description: '',
-  });
+  const [formData, setFormData] = useState(defaultFormState);
 
   useEffect(() => {
     if (isOpen) {
       fetchFriends();
+
+      if (existingHelpFriend) {
+        setFormData({
+          ticketId: existingHelpFriend.ticketId,
+          helpMode: existingHelpFriend.helpMode,
+          friendEmail: existingHelpFriend.friendEmail || '',
+          friendName: existingHelpFriend.friendName || '',
+          urgency: existingHelpFriend.urgency,
+          helpType: existingHelpFriend.helpType,
+          description: existingHelpFriend.description,
+        });
+        setFriendSearch(existingHelpFriend.friendName || '');
+      } else {
+        setFormData(defaultFormState);
+        setFriendSearch('');
+      }
     }
-  }, [isOpen, user]);
+  }, [isOpen, user, existingHelpFriend]);
 
   const fetchFriends = async () => {
     if (!user) return;
@@ -135,16 +155,8 @@ const HelpFriendModal: React.FC<HelpFriendModalProps> = ({
         urgency: formData.urgency,
         helpType: formData.helpType,
         description: formData.description,
-      });
-      setFormData({
-        ticketId: '',
-        helpMode: 'public',
-        friendEmail: '',
-        friendName: '',
-        urgency: 'medium',
-        helpType: 'technical',
-        description: '',
-      });
+      }, existingHelpFriend?.id);
+      setFormData(defaultFormState);
       setFriendSearch('');
       onClose();
     } catch (error) {
@@ -161,7 +173,9 @@ const HelpFriendModal: React.FC<HelpFriendModalProps> = ({
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-white">Pedir Ajuda</h2>
+          <h2 className="text-2xl font-bold text-white">
+            {existingHelpFriend ? 'Editar Solicitação' : 'Pedir Ajuda'}
+          </h2>
           <button
             onClick={onClose}
             className="text-zinc-400 hover:text-white transition-colors"
@@ -341,7 +355,7 @@ const HelpFriendModal: React.FC<HelpFriendModalProps> = ({
               disabled={loading}
               className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white transition-colors font-medium"
             >
-              {loading ? 'Criando...' : 'Criar Solicitação'}
+              {loading ? (existingHelpFriend ? 'Salvando...' : 'Criando...') : (existingHelpFriend ? 'Salvar Alterações' : 'Criar Solicitação')}
             </button>
           </div>
         </form>

@@ -47,6 +47,7 @@ const HelpFriendsPage = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedHelpFriend, setSelectedHelpFriend] = useState<HelpFriend | null>(null);
+  const [editingHelpFriend, setEditingHelpFriend] = useState<HelpFriend | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -146,9 +147,51 @@ const HelpFriendsPage = () => {
     }
   };
 
+  const handleUpdateHelpFriend = async (data: any, helpFriendId: string) => {
+    if (!helpFriendId) return;
+
+    try {
+      setLoading(true);
+      await updateDoc(doc(db, 'helpFriends', helpFriendId), {
+        ticketId: data.ticketId,
+        ticketNumber: data.ticketNumber,
+        helpMode: data.helpMode,
+        friendEmail: data.helpMode === 'friend' ? data.friendEmail || null : null,
+        friendName: data.helpMode === 'friend' ? data.friendName || null : null,
+        urgency: data.urgency,
+        helpType: data.helpType,
+        description: data.description,
+        updatedAt: new Date().toISOString(),
+      });
+      setEditingHelpFriend(null);
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('Erro ao atualizar solicitação:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteHelpFriend = async () => {
+    if (!selectedHelpFriend) return;
+
+    try {
+      setLoading(true);
+      await deleteDoc(doc(db, 'helpFriends', selectedHelpFriend.id));
+      setShowDetailModal(false);
+      setSelectedHelpFriend(null);
+    } catch (error) {
+      console.error('Erro ao excluir solicitação:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ==================== ACEITAR AJUDA ====================
 
-  const handleAcceptHelp = async () => {
+  const handleAcceptHelp = async (requiresRelatus: boolean) => {
     if (!selectedHelpFriend || !user) return;
 
     try {
@@ -158,6 +201,7 @@ const HelpFriendsPage = () => {
         helperEmail: user.email,
         helperName: user.displayName || user.email,
         acceptedAt: new Date().toISOString(),
+        requiresRelatus,
         updatedAt: new Date().toISOString(),
       });
       setShowDetailModal(false);
@@ -426,7 +470,10 @@ const HelpFriendsPage = () => {
             </div>
 
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => {
+                setEditingHelpFriend(null);
+                setIsModalOpen(true);
+              }}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 rounded-lg px-4 py-2 font-medium transition-colors"
             >
               <Plus size={18} />
@@ -475,9 +522,19 @@ const HelpFriendsPage = () => {
       {/* Modais */}
       <HelpFriendModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleCreateHelpFriend}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingHelpFriend(null);
+        }}
+        onSubmit={async (data, helpFriendId) => {
+          if (helpFriendId) {
+            await handleUpdateHelpFriend(data, helpFriendId);
+          } else {
+            await handleCreateHelpFriend(data);
+          }
+        }}
         availableTickets={availableTickets}
+        existingHelpFriend={editingHelpFriend}
       />
 
       <HelpDetailModal
@@ -489,6 +546,13 @@ const HelpFriendsPage = () => {
         onResolve={handleResolveHelp}
         onReject={handleRejectHelp}
         onClose2={handleCloseHelp}
+        onEdit={() => {
+          if (!selectedHelpFriend) return;
+          setShowDetailModal(false);
+          setEditingHelpFriend(selectedHelpFriend);
+          setIsModalOpen(true);
+        }}
+        onDelete={handleDeleteHelpFriend}
       />
     </div>
   );

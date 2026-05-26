@@ -9,10 +9,12 @@ interface HelpDetailModalProps {
   onClose: () => void;
   helpFriend: HelpFriend | null;
   currentUserEmail: string;
-  onAccept?: () => Promise<void>;
+  onAccept?: (requiresRelatus: boolean) => Promise<void>;
   onResolve?: (resolution: string) => Promise<void>;
   onReject?: () => Promise<void>;
   onClose2?: () => Promise<void>;
+  onEdit?: () => void;
+  onDelete?: () => Promise<void>;
 }
 
 const HelpDetailModal: React.FC<HelpDetailModalProps> = ({
@@ -24,10 +26,13 @@ const HelpDetailModal: React.FC<HelpDetailModalProps> = ({
   onResolve,
   onReject,
   onClose2,
+  onEdit,
+  onDelete,
 }) => {
   const [loading, setLoading] = useState(false);
   const [resolutionText, setResolutionText] = useState('');
   const [showResolutionForm, setShowResolutionForm] = useState(false);
+  const [requiresRelatus, setRequiresRelatus] = useState(false);
 
   if (!isOpen || !helpFriend) return null;
 
@@ -40,7 +45,7 @@ const HelpDetailModal: React.FC<HelpDetailModalProps> = ({
     if (!onAccept) return;
     try {
       setLoading(true);
-      await onAccept();
+      await onAccept(requiresRelatus);
       onClose();
     } catch (error) {
       console.error('Erro ao aceitar:', error);
@@ -94,6 +99,21 @@ const HelpDetailModal: React.FC<HelpDetailModalProps> = ({
     } catch (error) {
       console.error('Erro ao fechar:', error);
       alert('Erro ao fechar a solicitação');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!onDelete) return;
+    if (!confirm('Tem certeza que deseja excluir esta solicitação permanentemente?')) return;
+    try {
+      setLoading(true);
+      await onDelete();
+      onClose();
+    } catch (error) {
+      console.error('Erro ao excluir:', error);
+      alert('Erro ao excluir a solicitação');
     } finally {
       setLoading(false);
     }
@@ -227,6 +247,11 @@ const HelpDetailModal: React.FC<HelpDetailModalProps> = ({
                   Aceitou em: {new Date(helpFriend.acceptedAt).toLocaleDateString('pt-BR')}
                 </p>
               )}
+              {helpFriend.requiresRelatus && (
+                <p className="text-xs text-emerald-200 mt-2">
+                  Necessita registrar auxílio no Relatus
+                </p>
+              )}
             </div>
           )}
 
@@ -262,14 +287,27 @@ const HelpDetailModal: React.FC<HelpDetailModalProps> = ({
           <div className="flex gap-3 flex-wrap pt-4 border-t border-zinc-700">
             {/* Se é o amigo ou modo público e ainda não aceitou */}
             {!isRequester && !isHelper && (helpFriend.status === 'open') && onAccept && (
-              <button
-                onClick={handleAccept}
-                disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 text-white transition-colors font-medium"
-              >
-                <CheckCircle2 size={18} />
-                Aceitar Ajudar
-              </button>
+              <div className="w-full space-y-4">
+                <label className="flex items-center gap-3 p-4 bg-zinc-800 border border-zinc-700 rounded-lg">
+                  <input
+                    type="checkbox"
+                    checked={requiresRelatus}
+                    onChange={(e) => setRequiresRelatus(e.target.checked)}
+                    className="h-4 w-4 rounded border-zinc-600 bg-zinc-900 text-emerald-500 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm text-zinc-200">
+                    Precisa registrar auxílio no Relatus ao iniciar a ajuda?
+                  </span>
+                </label>
+                <button
+                  onClick={handleAccept}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 text-white transition-colors font-medium"
+                >
+                  <CheckCircle2 size={18} />
+                  Aceitar Ajudar
+                </button>
+              </div>
             )}
 
             {/* Se é o ajudante e a solicitação está em progresso */}
@@ -311,6 +349,27 @@ const HelpDetailModal: React.FC<HelpDetailModalProps> = ({
               >
                 <XCircle size={18} />
                 Fechar Solicitação
+              </button>
+            )}
+
+            {/* Se for o solicitante, pode editar enquanto estiver aberta */}
+            {isRequester && helpFriend.status === 'open' && onEdit && (
+              <button
+                onClick={onEdit}
+                className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white transition-colors font-medium"
+              >
+                Editar Solicitação
+              </button>
+            )}
+
+            {/* Se for o solicitante, pode excluir */}
+            {isRequester && onDelete && (
+              <button
+                onClick={handleDelete}
+                disabled={loading}
+                className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 disabled:bg-rose-800 text-white transition-colors font-medium"
+              >
+                {loading ? 'Excluindo...' : 'Excluir Solicitação'}
               </button>
             )}
 

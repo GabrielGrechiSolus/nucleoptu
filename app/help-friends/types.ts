@@ -25,6 +25,7 @@ export interface HelpFriend {
   helperEmail?: string;
   helperName?: string;
   acceptedAt?: string;
+  requiresRelatus?: boolean;
   
   // Resolução
   resolution?: string;
