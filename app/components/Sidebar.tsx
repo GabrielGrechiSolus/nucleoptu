@@ -132,6 +132,7 @@ const Sidebar = () => {
   const navItems = [
     { href: '/home', label: 'Início', icon: Home, color: 'text-sky-400', bgColor: 'bg-sky-500/10' },
     { href: '/tickets', label: 'Chamados', icon: Ticket, color: 'text-blue-400', bgColor: 'bg-blue-500/10' },
+    { href: '/help-friends', label: 'Help Friends', icon: Zap, color: 'text-yellow-400', bgColor: 'bg-yellow-500/10' },
     { href: '/studies', label: 'Estudos', icon: BookOpen, color: 'text-emerald-400', bgColor: 'bg-emerald-500/10' },
     { href: '/reports', label: 'Relatórios', icon: PieChart, color: 'text-purple-400', bgColor: 'bg-purple-500/10' },
     { href: '/notice-board', label: 'Mural', icon: Bell, color: 'text-amber-400', bgColor: 'bg-amber-500/10' },
