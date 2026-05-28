@@ -1,9 +1,33 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from 'react';
-import { Plus, Search, Filter, X, Tag, User, FileText, BookOpen } from 'lucide-react';
-import { useAuth } from '../AuthContext';
-import { db } from '../../firebase';
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  useDeferredValue,
+} from "react";
+
+import {
+  Plus,
+  Search,
+  Filter,
+  X,
+  MoreVertical,
+  BookOpen,
+  MessageSquare,
+  Trash2,
+  Pencil,
+  CheckCircle2,
+  Clock3,
+  Sparkles,
+  LayoutGrid,
+} from "lucide-react";
+
+import { motion, AnimatePresence } from "framer-motion";
+
+import { useAuth } from "../AuthContext";
+import { db } from "../../firebase";
+
 import {
   collection,
   addDoc,
@@ -15,14 +39,23 @@ import {
   onSnapshot,
   orderBy,
   writeBatch,
-  arrayRemove
-} from 'firebase/firestore';
-import TicketModal, { Ticket, Observation } from './components/TicketModal';
-import ObservationModal from './components/ObservationModal';
-import AddStudyToTicketModal from './components/AddStudyToTicketModal';
-import { Study } from '../studies/components/StudyModal';
+  arrayRemove,
+} from "firebase/firestore";
 
-// ==================== TIPOS ====================
+import TicketModal, {
+  Ticket,
+  Observation,
+} from "./components/TicketModal";
+
+import ObservationModal from "./components/ObservationModal";
+
+import AddStudyToTicketModal from "./components/AddStudyToTicketModal";
+
+import { Study } from "../studies/components/StudyModal";
+
+// ======================================================
+// TYPES
+// ======================================================
 
 interface TicketStats {
   total: number;
@@ -32,136 +65,308 @@ interface TicketStats {
 }
 
 interface FilterOptions {
-  status: 'all' | 'open' | 'closed';
+  status: "all" | "open" | "closed";
   client: string;
-  dateRange: 'all' | 'today' | 'week' | 'month';
-  hasStudies: 'all' | 'yes' | 'no';
+  dateRange: "all" | "today" | "week" | "month";
+  hasStudies: "all" | "yes" | "no";
 }
 
-// ==================== COMPONENTE PRINCIPAL ====================
+// ======================================================
+// HELPERS
+// ======================================================
+
+const cn = (...classes: (string | false | undefined)[]) =>
+  classes.filter(Boolean).join(" ");
+
+const formatDate = (date?: string) => {
+  if (!date) return "-";
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(date));
+};
+
+// ======================================================
+// MAIN COMPONENT
+// ======================================================
 
 const TicketsPage = () => {
   const { user } = useAuth();
+
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
-    status: 'all',
-    client: '',
-    dateRange: 'all',
-    hasStudies: 'all'
-  });
-  const [showFilters, setShowFilters] = useState(false);
-  const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
-  const [isObservationModalOpen, setIsObservationModalOpen] = useState(false);
-  const [isAddStudyModalOpen, setIsAddStudyModalOpen] = useState(false);
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-  const [editingTicket, setEditingTicket] = useState<Ticket | undefined>(undefined);
   const [categories, setCategories] = useState<string[]>([]);
   const [clients, setClients] = useState<string[]>([]);
+
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<TicketStats>({ total: 0, open: 0, closed: 0, withStudies: 0 });
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const deferredSearch = useDeferredValue(searchTerm);
+
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    status: "all",
+    client: "",
+    dateRange: "all",
+    hasStudies: "all",
+  });
+
+  const [showFilters, setShowFilters] = useState(false);
+
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+
+  const [editingTicket, setEditingTicket] = useState<Ticket | undefined>();
+
+  const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
+
+  const [isObservationModalOpen, setIsObservationModalOpen] =
+    useState(false);
+
+  const [isAddStudyModalOpen, setIsAddStudyModalOpen] =
+    useState(false);
+
+  const [stats, setStats] = useState<TicketStats>({
+    total: 0,
+    open: 0,
+    closed: 0,
+    withStudies: 0,
+  });
+
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
-  // Carrega tickets do Firestore com ordenação
+  // ======================================================
+  // LOAD TICKETS
+  // ======================================================
+
   useEffect(() => {
     if (!user) return;
 
     setLoading(true);
 
     const q = query(
-      collection(db, 'tickets'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      collection(db, "tickets"),
+      where("userId", "==", user.uid),
+      orderBy("createdAt", "desc")
     );
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const ticketsData: Ticket[] = [];
-      const clientsSet = new Set<string>();
+    const unsubscribe = onSnapshot(
+      q,
+      (querySnapshot) => {
+        const ticketsData: Ticket[] = [];
 
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        const ticket = {
-          id: doc.id,
-          ticketNumber: data.ticketNumber,
-          clientName: data.clientName,
-          openDate: data.openDate,
-          closeDate: data.closeDate || undefined,
-          status: data.status,
-          observations: data.observations || [],
-          studies: data.studies || [],
-          githubLinks: data.githubLinks || [],
-          priority: data.priority || 'medium',
-          category: data.category || '',
-          description: data.description || '',
-          createdAt: data.createdAt,
-          updatedAt: data.updatedAt,
-        } as Ticket;
+        const clientsSet = new Set<string>();
 
-        ticketsData.push(ticket);
+        querySnapshot.forEach((document) => {
+          const data = document.data();
 
-        if (data.clientName) {
-          clientsSet.add(data.clientName);
-        }
-      });
+          const ticket = {
+            id: document.id,
+            ticketNumber: data.ticketNumber,
+            clientName: data.clientName,
+            openDate: data.openDate,
+            closeDate: data.closeDate || undefined,
+            status: data.status,
+            observations: data.observations || [],
+            studies: data.studies || [],
+            githubLinks: data.githubLinks || [],
+            priority: data.priority || "medium",
+            category: data.category || "",
+            description: data.description || "",
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+          } as Ticket;
 
-      setTickets(ticketsData);
-      setClients(Array.from(clientsSet).sort());
+          ticketsData.push(ticket);
 
-      // Calcular estatísticas
-      const total = ticketsData.length;
-      const open = ticketsData.filter(t => t.status === 'open').length;
-      const closed = ticketsData.filter(t => t.status === 'closed').length;
-      const withStudies = ticketsData.filter(t => t.studies && t.studies.length > 0).length;
+          if (data.clientName) {
+            clientsSet.add(data.clientName);
+          }
+        });
 
-      setStats({ total, open, closed, withStudies });
-      setLoading(false);
-    }, (error) => {
-      console.error('Erro ao carregar tickets:', error);
-      setLoading(false);
-    });
+        setTickets(ticketsData);
+
+        setClients(Array.from(clientsSet).sort());
+
+        setStats({
+          total: ticketsData.length,
+          open: ticketsData.filter((t) => t.status === "open")
+            .length,
+          closed: ticketsData.filter((t) => t.status === "closed")
+            .length,
+          withStudies: ticketsData.filter(
+            (t) => t.studies && t.studies.length > 0
+          ).length,
+        });
+
+        setLoading(false);
+      },
+      (error) => {
+        console.error(error);
+        setLoading(false);
+      }
+    );
 
     return () => unsubscribe();
   }, [user]);
 
-  // Carrega categorias de estudos
+  // ======================================================
+  // LOAD CATEGORIES
+  // ======================================================
+
   useEffect(() => {
     if (!user) return;
 
     const q = query(
-      collection(db, 'studies'),
-      where('userId', '==', user.uid),
-      orderBy('category')
+      collection(db, "studies"),
+      where("userId", "==", user.uid),
+      orderBy("category")
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const categoriesSet = new Set<string>();
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
+
+      querySnapshot.forEach((document) => {
+        const data = document.data();
+
         if (data.category) {
           categoriesSet.add(data.category);
         }
       });
+
       setCategories(Array.from(categoriesSet).sort());
     });
 
     return () => unsubscribe();
   }, [user]);
 
-  // Criar/Atualizar ticket
-  const handleCreateTicket = async (data: Omit<Ticket, 'id' | 'observations' | 'studies' | 'createdAt' | 'updatedAt'>) => {
+  // ======================================================
+  // FILTERS
+  // ======================================================
+
+  const filteredTickets = useMemo(() => {
+    return tickets.filter((ticket) => {
+      const searchLower = deferredSearch.toLowerCase();
+
+      const matchesSearch =
+        deferredSearch === "" ||
+        ticket.ticketNumber
+          .toLowerCase()
+          .includes(searchLower) ||
+        ticket.clientName
+          .toLowerCase()
+          .includes(searchLower) ||
+        ticket.description
+          ?.toLowerCase()
+          .includes(searchLower) ||
+        ticket.category?.toLowerCase().includes(searchLower);
+
+      const matchesStatus =
+        filterOptions.status === "all" ||
+        ticket.status === filterOptions.status;
+
+      const matchesClient =
+        filterOptions.client === "" ||
+        ticket.clientName === filterOptions.client;
+
+      const matchesStudies =
+        filterOptions.hasStudies === "all" ||
+        (filterOptions.hasStudies === "yes" &&
+          ticket.studies?.length > 0) ||
+        (filterOptions.hasStudies === "no" &&
+          ticket.studies?.length === 0);
+
+      let matchesDate = true;
+
+      if (
+        filterOptions.dateRange !== "all" &&
+        ticket.createdAt
+      ) {
+        const ticketDate = new Date(ticket.createdAt);
+
+        const now = new Date();
+
+        switch (filterOptions.dateRange) {
+          case "today":
+            matchesDate =
+              ticketDate.toDateString() === now.toDateString();
+            break;
+
+          case "week": {
+            const weekAgo = new Date();
+            weekAgo.setDate(now.getDate() - 7);
+
+            matchesDate = ticketDate >= weekAgo;
+            break;
+          }
+
+          case "month": {
+            const monthAgo = new Date();
+            monthAgo.setMonth(now.getMonth() - 1);
+
+            matchesDate = ticketDate >= monthAgo;
+            break;
+          }
+        }
+      }
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesClient &&
+        matchesStudies &&
+        matchesDate
+      );
+    });
+  }, [tickets, deferredSearch, filterOptions]);
+
+  // ======================================================
+  // ACTIONS
+  // ======================================================
+
+  const clearFilters = () => {
+    setSearchTerm("");
+
+    setFilterOptions({
+      status: "all",
+      client: "",
+      dateRange: "all",
+      hasStudies: "all",
+    });
+  };
+
+  const activeFiltersCount =
+    Object.values(filterOptions).filter(
+      (v) => v !== "all" && v !== ""
+    ).length + (searchTerm ? 1 : 0);
+
+  // ======================================================
+  // CREATE / UPDATE
+  // ======================================================
+
+  const handleCreateTicket = async (
+    data: Omit<
+      Ticket,
+      | "id"
+      | "observations"
+      | "studies"
+      | "createdAt"
+      | "updatedAt"
+    >
+  ) => {
     if (!user) return;
 
     try {
       const now = new Date().toISOString();
 
       if (editingTicket) {
-        const ticketRef = doc(db, 'tickets', editingTicket.id);
+        const ticketRef = doc(db, "tickets", editingTicket.id);
+
         await updateDoc(ticketRef, {
           ...data,
           updatedAt: now,
         });
       } else {
-        const newTicketData = {
+        await addDoc(collection(db, "tickets"), {
           ...data,
           userId: user.uid,
           observations: [],
@@ -169,240 +374,260 @@ const TicketsPage = () => {
           githubLinks: data.githubLinks || [],
           createdAt: now,
           updatedAt: now,
-        };
-
-        await addDoc(collection(db, 'tickets'), newTicketData);
+        });
       }
 
       setIsTicketModalOpen(false);
       setEditingTicket(undefined);
     } catch (error) {
-      console.error('Erro ao salvar chamado:', error);
-      alert('Erro ao salvar chamado. Tente novamente.');
+      console.error(error);
     }
   };
 
-  // Deletar ticket
+  // ======================================================
+  // DELETE
+  // ======================================================
+
   const handleDeleteTicket = async (id: string) => {
-    if (!confirm('Tem certeza que deseja deletar este chamado? Esta ação não pode ser desfeita.')) {
-      return;
-    }
+    const confirmed = window.confirm(
+      "Tem certeza que deseja excluir este chamado?"
+    );
+
+    if (!confirmed) return;
 
     setIsDeleting(id);
 
     try {
-      const ticket = tickets.find(t => t.id === id);
+      const ticket = tickets.find((t) => t.id === id);
 
-      // Remover referências nos estudos
-      if (ticket?.studies && ticket.studies.length > 0) {
+      if (ticket?.studies?.length) {
         const batch = writeBatch(db);
+
         for (const studyId of ticket.studies) {
-          const studyRef = doc(db, 'studies', studyId);
+          const studyRef = doc(db, "studies", studyId);
+
           batch.update(studyRef, {
-            tickets: arrayRemove(id)
+            tickets: arrayRemove(id),
           });
         }
+
         await batch.commit();
       }
 
-      await deleteDoc(doc(db, 'tickets', id));
-
+      await deleteDoc(doc(db, "tickets", id));
     } catch (error) {
-      console.error('Erro ao deletar chamado:', error);
-      alert('Erro ao deletar chamado. Tente novamente.');
+      console.error(error);
     } finally {
       setIsDeleting(null);
     }
   };
 
-  // Fechar/Abrir ticket
+  // ======================================================
+  // TOGGLE STATUS
+  // ======================================================
+
   const handleToggleStatus = async (ticket: Ticket) => {
-    const newStatus = ticket.status === 'open' ? 'closed' : 'open';
-
     try {
-      const ticketRef = doc(db, 'tickets', ticket.id);
-      const updateData: any = {
+      const newStatus =
+        ticket.status === "open" ? "closed" : "open";
+
+      const ticketRef = doc(db, "tickets", ticket.id);
+
+      await updateDoc(ticketRef, {
         status: newStatus,
-        updatedAt: new Date().toISOString()
-      };
-
-      if (newStatus === 'closed') {
-        updateData.closeDate = new Date().toISOString();
-      } else {
-        updateData.closeDate = null;
-      }
-
-      await updateDoc(ticketRef, updateData);
+        closeDate:
+          newStatus === "closed"
+            ? new Date().toISOString()
+            : null,
+        updatedAt: new Date().toISOString(),
+      });
     } catch (error) {
-      console.error('Erro ao alterar status:', error);
+      console.error(error);
     }
   };
 
-  // Adicionar observação
+  // ======================================================
+  // OBSERVATION
+  // ======================================================
+
   const handleAddObservation = async (text: string) => {
     if (!selectedTicket) return;
 
-    const newObservation: Observation = {
-      id: Date.now().toString(),
-      text,
-      createdAt: new Date().toISOString(),
-      createdBy: user?.displayName || user?.email || 'Usuário'
-    };
-
-    const updatedObservations = [newObservation, ...selectedTicket.observations];
-    const ticketRef = doc(db, 'tickets', selectedTicket.id);
-
     try {
-      await updateDoc(ticketRef, {
-        observations: updatedObservations,
-        updatedAt: new Date().toISOString(),
-      });
+      const newObservation: Observation = {
+        id: Date.now().toString(),
+        text,
+        createdAt: new Date().toISOString(),
+        createdBy:
+          user?.displayName ||
+          user?.email ||
+          "Usuário",
+      };
+
+      const updatedObservations = [
+        newObservation,
+        ...selectedTicket.observations,
+      ];
+
+      await updateDoc(
+        doc(db, "tickets", selectedTicket.id),
+        {
+          observations: updatedObservations,
+          updatedAt: new Date().toISOString(),
+        }
+      );
 
       setSelectedTicket({
         ...selectedTicket,
         observations: updatedObservations,
       });
-
-      const input = document.querySelector('input[placeholder="Adicionar observação..."]') as HTMLInputElement;
-      if (input) input.value = '';
-
     } catch (error) {
-      console.error('Erro ao adicionar observação:', error);
-      alert('Erro ao adicionar observação. Tente novamente.');
+      console.error(error);
     }
   };
 
-  // Deletar observação
-  const handleDeleteObservation = async (ticketId: string, observationId: string) => {
-    if (!confirm('Remover esta observação?')) return;
+  // ======================================================
+  // DELETE OBSERVATION
+  // ======================================================
 
-    const ticket = tickets.find(t => t.id === ticketId);
+  const handleDeleteObservation = async (
+    ticketId: string,
+    observationId: string
+  ) => {
+    const ticket = tickets.find((t) => t.id === ticketId);
+
     if (!ticket) return;
 
-    const updatedObservations = ticket.observations.filter(obs => obs.id !== observationId);
-
     try {
-      await updateDoc(doc(db, 'tickets', ticketId), {
+      const updatedObservations =
+        ticket.observations.filter(
+          (obs) => obs.id !== observationId
+        );
+
+      await updateDoc(doc(db, "tickets", ticketId), {
         observations: updatedObservations,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
     } catch (error) {
-      console.error('Erro ao deletar observação:', error);
+      console.error(error);
     }
   };
 
-  // Criar estudo a partir do ticket
-  const handleCreateStudyFromTicket = async (data: Omit<Study, 'id' | 'createdAt' | 'updatedAt'>) => {
+  // ======================================================
+  // CREATE STUDY
+  // ======================================================
+
+  const handleCreateStudyFromTicket = async (
+    data: Omit<Study, "id" | "createdAt" | "updatedAt">
+  ) => {
     if (!user || !selectedTicket) return;
 
     try {
       const now = new Date().toISOString();
-      const newStudyData = {
-        ...data,
-        userId: user.uid,
-        tickets: [selectedTicket.id],
-        createdAt: now,
-        updatedAt: now,
-      };
 
-      const docRef = await addDoc(collection(db, 'studies'), newStudyData);
+      const docRef = await addDoc(
+        collection(db, "studies"),
+        {
+          ...data,
+          userId: user.uid,
+          tickets: [selectedTicket.id],
+          createdAt: now,
+          updatedAt: now,
+        }
+      );
 
-      const ticketRef = doc(db, 'tickets', selectedTicket.id);
-      await updateDoc(ticketRef, {
-        studies: [...(selectedTicket.studies || []), docRef.id],
-        updatedAt: now
-      });
+      await updateDoc(
+        doc(db, "tickets", selectedTicket.id),
+        {
+          studies: [
+            ...(selectedTicket.studies || []),
+            docRef.id,
+          ],
+          updatedAt: now,
+        }
+      );
 
       setIsAddStudyModalOpen(false);
       setSelectedTicket(null);
-
     } catch (error) {
-      console.error('Erro ao criar estudo:', error);
-      alert('Erro ao criar estudo. Tente novamente.');
+      console.error(error);
     }
   };
 
-  // Filtrar tickets
-  const filteredTickets = useMemo(() => {
-    return tickets.filter((ticket) => {
-      const searchLower = searchTerm.toLowerCase();
-      const matchesSearch =
-        searchTerm === '' ||
-        ticket.ticketNumber.toLowerCase().includes(searchLower) ||
-        ticket.clientName.toLowerCase().includes(searchLower) ||
-        (ticket.description && ticket.description.toLowerCase().includes(searchLower)) ||
-        (ticket.category && ticket.category.toLowerCase().includes(searchLower));
-
-      const matchesStatus = filterOptions.status === 'all' || ticket.status === filterOptions.status;
-      const matchesClient = filterOptions.client === '' || ticket.clientName === filterOptions.client;
-
-      const matchesStudies =
-        filterOptions.hasStudies === 'all' ||
-        (filterOptions.hasStudies === 'yes' && ticket.studies && ticket.studies.length > 0) ||
-        (filterOptions.hasStudies === 'no' && (!ticket.studies || ticket.studies.length === 0));
-
-      let matchesDate = true;
-      if (filterOptions.dateRange !== 'all' && ticket.createdAt) {
-        const ticketDate = new Date(ticket.createdAt);
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-        switch (filterOptions.dateRange) {
-          case 'today':
-            matchesDate = ticketDate >= today;
-            break;
-          case 'week':
-            const weekAgo = new Date(today);
-            weekAgo.setDate(weekAgo.getDate() - 7);
-            matchesDate = ticketDate >= weekAgo;
-            break;
-          case 'month':
-            const monthAgo = new Date(today);
-            monthAgo.setMonth(monthAgo.getMonth() - 1);
-            matchesDate = ticketDate >= monthAgo;
-            break;
-        }
-      }
-
-      return matchesSearch && matchesStatus && matchesClient && matchesStudies && matchesDate;
-    });
-  }, [tickets, searchTerm, filterOptions]);
-
-  // Limpar filtros
-  const clearFilters = () => {
-    setSearchTerm('');
-    setFilterOptions({
-      status: 'all',
-      client: '',
-      dateRange: 'all',
-      hasStudies: 'all'
-    });
-  };
-
-  const activeFiltersCount = Object.values(filterOptions).filter(v => v !== 'all' && v !== '').length + (searchTerm ? 1 : 0);
+  // ======================================================
+  // LOADING
+  // ======================================================
 
   if (loading) {
     return (
-      <div className="w-full min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-zinc-400">Carregando chamados...</p>
+      <div className="min-h-screen bg-[#09090b] text-white">
+        <div className="mx-auto max-w-7xl p-6">
+          <div className="mb-10 flex items-center justify-between">
+            <div className="space-y-3">
+              <div className="h-10 w-64 animate-pulse rounded-xl bg-white/5" />
+              <div className="h-5 w-80 animate-pulse rounded-lg bg-white/5" />
+            </div>
+
+            <div className="h-12 w-44 animate-pulse rounded-2xl bg-white/5" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-32 animate-pulse rounded-3xl border border-white/5 bg-white/[0.03]"
+              />
+            ))}
+          </div>
+
+          <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-72 animate-pulse rounded-3xl border border-white/5 bg-white/[0.03]"
+              />
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="w-full min-h-screen bg-zinc-950 text-zinc-100 p-4 sm:p-6">
-      <div className="max-w-7xl mx-auto">
+  // ======================================================
+  // RENDER
+  // ======================================================
 
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-sky-500 to-purple-500 bg-clip-text text-transparent">
-              Chamados
-            </h1>
-            <p className="text-zinc-400 mt-1">Gerencie seus chamados e estudos</p>
+  return (
+    <div className="min-h-screen bg-[#09090b] text-white">
+      {/* BACKGROUND */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute left-0 top-0 h-[500px] w-[500px] rounded-full bg-sky-500/10 blur-3xl" />
+
+        <div className="absolute bottom-0 right-0 h-[500px] w-[500px] rounded-full bg-fuchsia-500/10 blur-3xl" />
+      </div>
+
+      <div className="relative mx-auto max-w-7xl p-4 sm:p-6">
+        {/* ====================================================== */}
+        {/* HEADER */}
+        {/* ====================================================== */}
+
+        <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-1.5 text-sm text-zinc-300 backdrop-blur-xl">
+              <Sparkles className="size-4 text-sky-400" />
+              Workspace de Chamados
+            </div>
+
+            <div>
+              <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+                Central de Tickets
+              </h1>
+
+              <p className="mt-3 max-w-2xl text-base leading-relaxed text-zinc-400">
+                Gerencie chamados, observações e estudos com
+                uma experiência moderna, rápida e organizada.
+              </p>
+            </div>
           </div>
 
           <button
@@ -410,264 +635,487 @@ const TicketsPage = () => {
               setEditingTicket(undefined);
               setIsTicketModalOpen(true);
             }}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-sky-500 to-purple-500 rounded-lg text-white font-medium hover:from-sky-600 hover:to-purple-600 transition-all shadow-lg hover:shadow-xl"
+            className="group inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-sky-400/20 bg-gradient-to-r from-sky-500 to-indigo-500 px-5 font-medium text-white shadow-2xl shadow-sky-500/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-sky-500/40 active:scale-[0.98]"
           >
-            <Plus size={20} />
+            <Plus className="size-5 transition-transform group-hover:rotate-90" />
             Novo Chamado
           </button>
         </div>
 
-        {/* Estatísticas */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
-            <p className="text-sm text-zinc-400">Total</p>
-            <p className="text-2xl font-bold text-white">{stats.total}</p>
-          </div>
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
-            <p className="text-sm text-zinc-400">Abertos</p>
-            <p className="text-2xl font-bold text-green-500">{stats.open}</p>
-          </div>
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
-            <p className="text-sm text-zinc-400">Fechados</p>
-            <p className="text-2xl font-bold text-zinc-500">{stats.closed}</p>
-          </div>
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
-            <p className="text-sm text-zinc-400">Com Estudos</p>
-            <p className="text-2xl font-bold text-purple-500">{stats.withStudies}</p>
+        {/* ====================================================== */}
+        {/* STATS */}
+        {/* ====================================================== */}
+
+        <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {[
+            {
+              label: "Total",
+              value: stats.total,
+              icon: LayoutGrid,
+              color:
+                "from-white/10 to-white/[0.03]",
+            },
+            {
+              label: "Abertos",
+              value: stats.open,
+              icon: Clock3,
+              color:
+                "from-emerald-500/20 to-emerald-500/5",
+            },
+            {
+              label: "Fechados",
+              value: stats.closed,
+              icon: CheckCircle2,
+              color:
+                "from-zinc-500/20 to-zinc-500/5",
+            },
+            {
+              label: "Com Estudos",
+              value: stats.withStudies,
+              icon: BookOpen,
+              color:
+                "from-fuchsia-500/20 to-fuchsia-500/5",
+            },
+          ].map((item) => (
+            <motion.div
+              key={item.label}
+              whileHover={{ y: -4 }}
+              transition={{ duration: 0.2 }}
+              className={cn(
+                "relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br p-5 backdrop-blur-2xl",
+                item.color
+              )}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-zinc-400">
+                    {item.label}
+                  </p>
+
+                  <p className="mt-2 text-3xl font-semibold tracking-tight">
+                    {item.value}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <item.icon className="size-5 text-white" />
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* ====================================================== */}
+        {/* SEARCH */}
+        {/* ====================================================== */}
+
+        <div className="sticky top-4 z-20 mb-8">
+          <div className="rounded-3xl border border-white/10 bg-black/40 p-4 shadow-2xl backdrop-blur-2xl">
+            <div className="flex flex-col gap-3 lg:flex-row">
+              {/* SEARCH */}
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-zinc-500" />
+
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) =>
+                    setSearchTerm(e.target.value)
+                  }
+                  placeholder="Buscar ticket, cliente, categoria..."
+                  className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.03] pl-12 pr-12 text-sm text-white outline-none transition-all placeholder:text-zinc-500 focus:border-sky-500/50 focus:bg-white/[0.05]"
+                />
+
+                <AnimatePresence>
+                  {searchTerm && (
+                    <motion.button
+                      initial={{
+                        opacity: 0,
+                        scale: 0.8,
+                      }}
+                      animate={{
+                        opacity: 1,
+                        scale: 1,
+                      }}
+                      exit={{
+                        opacity: 0,
+                        scale: 0.8,
+                      }}
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 transition hover:text-white"
+                    >
+                      <X className="size-4" />
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* FILTER BUTTON */}
+              <button
+                onClick={() =>
+                  setShowFilters(!showFilters)
+                }
+                className={cn(
+                  "inline-flex h-12 items-center justify-center gap-2 rounded-2xl border px-5 text-sm font-medium transition-all",
+                  showFilters || activeFiltersCount > 0
+                    ? "border-sky-500/40 bg-sky-500/10 text-sky-400"
+                    : "border-white/10 bg-white/[0.03] text-zinc-300 hover:bg-white/[0.06]"
+                )}
+              >
+                <Filter className="size-4" />
+                Filtros
+
+                {activeFiltersCount > 0 && (
+                  <span className="flex size-5 items-center justify-center rounded-full bg-sky-500 text-[11px] font-semibold text-white">
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* FILTERS */}
+            <AnimatePresence>
+              {showFilters && (
+                <motion.div
+                  initial={{
+                    opacity: 0,
+                    height: 0,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    height: "auto",
+                  }}
+                  exit={{
+                    opacity: 0,
+                    height: 0,
+                  }}
+                  transition={{
+                    duration: 0.2,
+                  }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-4 grid gap-4 border-t border-white/10 pt-4 md:grid-cols-2 xl:grid-cols-4">
+                    <FilterSelect
+                      label="Status"
+                      value={filterOptions.status}
+                      onChange={(value) =>
+                        setFilterOptions((prev) => ({
+                          ...prev,
+                          status: value as any,
+                        }))
+                      }
+                      options={[
+                        {
+                          label: "Todos",
+                          value: "all",
+                        },
+                        {
+                          label: "Abertos",
+                          value: "open",
+                        },
+                        {
+                          label: "Fechados",
+                          value: "closed",
+                        },
+                      ]}
+                    />
+
+                    <FilterSelect
+                      label="Cliente"
+                      value={filterOptions.client}
+                      onChange={(value) =>
+                        setFilterOptions((prev) => ({
+                          ...prev,
+                          client: value,
+                        }))
+                      }
+                      options={[
+                        {
+                          label: "Todos",
+                          value: "",
+                        },
+                        ...clients.map((client) => ({
+                          label: client,
+                          value: client,
+                        })),
+                      ]}
+                    />
+
+                    <FilterSelect
+                      label="Período"
+                      value={filterOptions.dateRange}
+                      onChange={(value) =>
+                        setFilterOptions((prev) => ({
+                          ...prev,
+                          dateRange: value as any,
+                        }))
+                      }
+                      options={[
+                        {
+                          label: "Todo período",
+                          value: "all",
+                        },
+                        {
+                          label: "Hoje",
+                          value: "today",
+                        },
+                        {
+                          label: "Últimos 7 dias",
+                          value: "week",
+                        },
+                        {
+                          label: "Últimos 30 dias",
+                          value: "month",
+                        },
+                      ]}
+                    />
+
+                    <FilterSelect
+                      label="Estudos"
+                      value={filterOptions.hasStudies}
+                      onChange={(value) =>
+                        setFilterOptions((prev) => ({
+                          ...prev,
+                          hasStudies: value as any,
+                        }))
+                      }
+                      options={[
+                        {
+                          label: "Todos",
+                          value: "all",
+                        },
+                        {
+                          label: "Com estudos",
+                          value: "yes",
+                        },
+                        {
+                          label: "Sem estudos",
+                          value: "no",
+                        },
+                      ]}
+                    />
+
+                    {activeFiltersCount > 0 && (
+                      <div className="md:col-span-2 xl:col-span-4">
+                        <button
+                          onClick={clearFilters}
+                          className="text-sm text-zinc-400 transition hover:text-white"
+                        >
+                          Limpar filtros
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
-        {/* Barra de busca e filtros */}
-        <div className="mb-6 space-y-3">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-2.5 text-zinc-500" size={20} />
-              <input
-                type="text"
-                placeholder="Buscar por número, cliente, descrição ou categoria..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-10 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-sky-500 transition-colors"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-2.5 text-zinc-500 hover:text-white"
-                >
-                  <X size={18} />
-                </button>
-              )}
+        {/* ====================================================== */}
+        {/* EMPTY */}
+        {/* ====================================================== */}
+
+        {filteredTickets.length === 0 && (
+          <div className="flex flex-col items-center justify-center rounded-[32px] border border-white/10 bg-white/[0.03] px-6 py-24 text-center backdrop-blur-2xl">
+            <div className="mb-6 rounded-full border border-white/10 bg-white/[0.03] p-5">
+              <Search className="size-10 text-zinc-500" />
             </div>
+
+            <h2 className="text-2xl font-semibold">
+              Nenhum chamado encontrado
+            </h2>
+
+            <p className="mt-3 max-w-md text-zinc-400">
+              Tente ajustar os filtros ou criar um novo
+              chamado para começar.
+            </p>
 
             <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg border transition-all ${showFilters || activeFiltersCount > 0
-                ? 'bg-sky-500/10 border-sky-500 text-sky-500'
-                : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:bg-zinc-800'
-                }`}
+              onClick={clearFilters}
+              className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 text-sm font-medium transition hover:bg-white/[0.06]"
             >
-              <Filter size={18} />
-              Filtros
-              {activeFiltersCount > 0 && (
-                <span className="ml-1 bg-sky-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {activeFiltersCount}
-                </span>
-              )}
+              Limpar filtros
             </button>
-          </div>
-
-          {/* Painel de filtros expandido */}
-          {showFilters && (
-            <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div>
-                <label className="block text-sm text-zinc-400 mb-1">Status</label>
-                <select
-                  value={filterOptions.status}
-                  onChange={(e) => setFilterOptions(prev => ({ ...prev, status: e.target.value as any }))}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-sky-500"
-                >
-                  <option value="all">Todos</option>
-                  <option value="open">Abertos</option>
-                  <option value="closed">Fechados</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm text-zinc-400 mb-1">Cliente</label>
-                <select
-                  value={filterOptions.client}
-                  onChange={(e) => setFilterOptions(prev => ({ ...prev, client: e.target.value }))}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-sky-500"
-                >
-                  <option value="">Todos</option>
-                  {clients.map(client => (
-                    <option key={client} value={client}>{client}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm text-zinc-400 mb-1">Período</label>
-                <select
-                  value={filterOptions.dateRange}
-                  onChange={(e) => setFilterOptions(prev => ({ ...prev, dateRange: e.target.value as any }))}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-sky-500"
-                >
-                  <option value="all">Todo período</option>
-                  <option value="today">Hoje</option>
-                  <option value="week">Últimos 7 dias</option>
-                  <option value="month">Últimos 30 dias</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm text-zinc-400 mb-1">Estudos</label>
-                <select
-                  value={filterOptions.hasStudies}
-                  onChange={(e) => setFilterOptions(prev => ({ ...prev, hasStudies: e.target.value as any }))}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-sky-500"
-                >
-                  <option value="all">Todos</option>
-                  <option value="yes">Com estudos</option>
-                  <option value="no">Sem estudos</option>
-                </select>
-              </div>
-
-              {activeFiltersCount > 0 && (
-                <div className="sm:col-span-2 lg:col-span-5 flex justify-end">
-                  <button
-                    onClick={clearFilters}
-                    className="text-sm text-zinc-400 hover:text-white flex items-center gap-1"
-                  >
-                    <X size={14} />
-                    Limpar filtros
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Grid de Chamados */}
-        {filteredTickets.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredTickets.map((ticket) => {
-              return (
-                <div
-                  key={ticket.id}
-                  className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-700 transition-all"
-                >
-                  {/* Header do Card */}
-                  <div className="p-4 border-b border-zinc-800">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm text-sky-400">#{ticket.ticketNumber}</span>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ticket.status === 'open'
-                              ? 'bg-green-500/20 text-green-400'
-                              : 'bg-zinc-500/20 text-zinc-400'
-                            }`}>
-                            {ticket.status === 'open' ? 'Aberto' : 'Fechado'}
-                          </span>
-                        </div>
-                        <h3 className="text-white font-semibold mt-1">{ticket.clientName}</h3>
-                      </div>
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => {
-                            setEditingTicket(ticket);
-                            setIsTicketModalOpen(true);
-                          }}
-                          className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
-                          title="Editar"
-                        >
-                          <svg className="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTicket(ticket.id)}
-                          className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
-                          title="Excluir"
-                          disabled={isDeleting === ticket.id}
-                        >
-                          <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                    {ticket.description && (
-                      <p className="text-sm text-zinc-400 mt-2 line-clamp-2">{ticket.description}</p>
-                    )}
-                    {ticket.category && (
-                      <div className="flex items-center gap-1 mt-2">
-                        <Tag size={12} className="text-zinc-500" />
-                        <span className="text-xs text-zinc-500">{ticket.category}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Ações */}
-                  <div className="p-3 flex flex-wrap gap-2">
-                    <button
-                      onClick={() => {
-                        setSelectedTicket(ticket);
-                        setIsObservationModalOpen(true);
-                      }}
-                      className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      {ticket.observations.length} Obs
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setSelectedTicket(ticket);
-                        setIsAddStudyModalOpen(true);
-                      }}
-                      className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
-                    >
-                      <BookOpen size={12} />
-                      Estudo
-                    </button>
-
-                    {ticket.status === 'open' && (
-                      <button
-                        onClick={() => handleToggleStatus(ticket)}
-                        className="px-3 py-1.5 text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg transition-colors"
-                      >
-                        Fechar
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-16 bg-zinc-900/50 border border-zinc-800 rounded-lg">
-            <FileText size={48} className="mx-auto text-zinc-700 mb-4" />
-            <p className="text-zinc-400 text-lg mb-2">Nenhum chamado encontrado</p>
-            <p className="text-zinc-500 text-sm mb-6">
-              {searchTerm || activeFiltersCount > 0
-                ? 'Tente ajustar seus filtros ou termos de busca'
-                : 'Clique em "Novo Chamado" para começar'}
-            </p>
-            {(searchTerm || activeFiltersCount > 0) && (
-              <button
-                onClick={clearFilters}
-                className="px-4 py-2 bg-zinc-800 rounded-lg text-sm hover:bg-zinc-700 transition"
-              >
-                Limpar filtros
-              </button>
-            )}
           </div>
         )}
 
-        {/* Modais */}
+        {/* ====================================================== */}
+        {/* GRID */}
+        {/* ====================================================== */}
+
+        {filteredTickets.length > 0 && (
+          <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
+            <AnimatePresence mode="popLayout">
+              {filteredTickets.map((ticket, index) => {
+                const isOpen =
+                  ticket.status === "open";
+
+                return (
+                  <motion.div
+                    key={ticket.id}
+                    layout
+                    initial={{
+                      opacity: 0,
+                      y: 10,
+                    }}
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                    }}
+                    exit={{
+                      opacity: 0,
+                      scale: 0.95,
+                    }}
+                    transition={{
+                      delay: index * 0.02,
+                    }}
+                    className="group relative overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02] backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:shadow-2xl hover:shadow-black/40"
+                  >
+                    {/* glow */}
+                    <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
+                      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-400 to-transparent" />
+                    </div>
+
+                    {/* CONTENT */}
+                    <div className="p-6">
+                      {/* TOP */}
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-400">
+                              #{ticket.ticketNumber}
+                            </span>
+
+                            <span
+                              className={cn(
+                                "rounded-full px-3 py-1 text-xs font-medium",
+                                isOpen
+                                  ? "bg-emerald-500/10 text-emerald-400"
+                                  : "bg-zinc-500/10 text-zinc-400"
+                              )}
+                            >
+                              {isOpen
+                                ? "Aberto"
+                                : "Fechado"}
+                            </span>
+                          </div>
+
+                          <h2 className="mt-4 text-xl font-semibold tracking-tight">
+                            {ticket.clientName}
+                          </h2>
+
+                          <p className="mt-1 text-sm text-zinc-500">
+                            Criado em{" "}
+                            {formatDate(
+                              ticket.createdAt
+                            )}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2 opacity-0 transition-all duration-200 group-hover:opacity-100">
+                          <button
+                            onClick={() => {
+                              setEditingTicket(ticket);
+                              setIsTicketModalOpen(true);
+                            }}
+                            className="rounded-xl border border-white/10 bg-white/[0.03] p-2 text-zinc-400 transition hover:bg-white/[0.06] hover:text-white"
+                          >
+                            <Pencil className="size-4" />
+                          </button>
+
+                          <button
+                            disabled={
+                              isDeleting === ticket.id
+                            }
+                            onClick={() =>
+                              handleDeleteTicket(
+                                ticket.id
+                              )
+                            }
+                            className="rounded-xl border border-red-500/20 bg-red-500/10 p-2 text-red-400 transition hover:bg-red-500/20"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* DESCRIPTION */}
+                      {ticket.description && (
+                        <p className="mt-5 line-clamp-3 text-sm leading-relaxed text-zinc-400">
+                          {ticket.description}
+                        </p>
+                      )}
+
+                      {/* CATEGORY */}
+                      {ticket.category && (
+                        <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-zinc-300">
+                          <Sparkles className="size-3" />
+                          {ticket.category}
+                        </div>
+                      )}
+
+                      {/* FOOTER */}
+                      <div className="mt-8 flex flex-wrap gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedTicket(ticket);
+                            setIsObservationModalOpen(
+                              true
+                            );
+                          }}
+                          className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 text-sm font-medium text-zinc-300 transition-all hover:bg-white/[0.06] hover:text-white"
+                        >
+                          <MessageSquare className="size-4" />
+
+                          {
+                            ticket.observations
+                              .length
+                          }{" "}
+                          observações
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setSelectedTicket(ticket);
+                            setIsAddStudyModalOpen(
+                              true
+                            );
+                          }}
+                          className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 text-sm font-medium text-zinc-300 transition-all hover:bg-white/[0.06] hover:text-white"
+                        >
+                          <BookOpen className="size-4" />
+                          Estudo
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            handleToggleStatus(ticket)
+                          }
+                          className={cn(
+                            "inline-flex h-11 items-center justify-center rounded-2xl px-4 text-sm font-medium transition-all",
+                            isOpen
+                              ? "bg-emerald-500 text-black hover:bg-emerald-400"
+                              : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                          )}
+                        >
+                          {isOpen
+                            ? "Fechar"
+                            : "Reabrir"}
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {/* ====================================================== */}
+        {/* MODALS */}
+        {/* ====================================================== */}
+
         <TicketModal
           isOpen={isTicketModalOpen}
           onClose={() => {
@@ -689,7 +1137,12 @@ const TicketsPage = () => {
               onSubmit={handleAddObservation}
               observations={selectedTicket.observations}
               ticketId={selectedTicket.id}
-              onDeleteObservation={(obsId: string) => handleDeleteObservation(selectedTicket.id, obsId)}
+              onDeleteObservation={(obsId: string) =>
+                handleDeleteObservation(
+                  selectedTicket.id,
+                  obsId
+                )
+              }
             />
 
             <AddStudyToTicketModal
@@ -698,18 +1151,70 @@ const TicketsPage = () => {
                 setIsAddStudyModalOpen(false);
                 setSelectedTicket(null);
               }}
-              onSubmit={handleCreateStudyFromTicket}
+              onSubmit={
+                handleCreateStudyFromTicket
+              }
               ticketId={selectedTicket.id}
-              ticketNumber={selectedTicket.ticketNumber}
-              ticketDescription={selectedTicket.description}
+              ticketNumber={
+                selectedTicket.ticketNumber
+              }
+              ticketDescription={
+                selectedTicket.description
+              }
               categories={categories}
             />
-
           </>
         )}
       </div>
     </div>
   );
 };
+
+// ======================================================
+// FILTER SELECT
+// ======================================================
+
+interface FilterSelectProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: {
+    label: string;
+    value: string;
+  }[];
+}
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: FilterSelectProps) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-medium text-zinc-400">
+        {label}
+      </label>
+
+      <select
+        value={value}
+        onChange={(e) =>
+          onChange(e.target.value)
+        }
+        className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 text-sm text-white outline-none transition-all focus:border-sky-500/40"
+      >
+        {options.map((option) => (
+          <option
+            key={option.value}
+            value={option.value}
+            className="bg-[#09090b]"
+          >
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
 
 export default TicketsPage;

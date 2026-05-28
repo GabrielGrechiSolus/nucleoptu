@@ -1,7 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, User, Clock, AlertCircle, FileText, CheckCircle2, XCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  X, User, FileText, CheckCircle2, XCircle, Clock,
+  AlertTriangle, Edit2, Trash2, ChevronRight,
+  HandHelping, Globe, UserCheck, Calendar, Zap,
+} from 'lucide-react';
 import { HelpFriend } from '../types';
 
 interface HelpDetailModalProps {
@@ -16,6 +20,99 @@ interface HelpDetailModalProps {
   onEdit?: () => void;
   onDelete?: () => Promise<void>;
 }
+
+// ==================== HELPERS ====================
+
+const STATUS_MAP: Record<string, { label: string; cls: string }> = {
+  'open':        { label: 'Aberta',       cls: 'bg-sky-500/15 text-sky-300 border border-sky-500/30' },
+  'in-progress': { label: 'Em Progresso', cls: 'bg-purple-500/15 text-purple-300 border border-purple-500/30' },
+  'resolved':    { label: 'Resolvida',    cls: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' },
+  'closed':      { label: 'Fechada',      cls: 'bg-zinc-500/15 text-zinc-400 border border-zinc-500/30' },
+};
+
+const URGENCY_MAP: Record<string, { label: string; cls: string; dot: string }> = {
+  high:   { label: 'Alta',  cls: 'text-red-400',    dot: 'bg-red-400' },
+  medium: { label: 'Média', cls: 'text-amber-400',  dot: 'bg-amber-400' },
+  low:    { label: 'Baixa', cls: 'text-emerald-400', dot: 'bg-emerald-400' },
+};
+
+const HELP_TYPE_MAP: Record<string, string> = {
+  business:    '💼 Regra de Negócio',
+  technical:   '🛠️ Técnico',
+  independent: '⚙️ Independente',
+};
+
+const fmtDate = (iso: string) =>
+  new Date(iso).toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+
+const initials = (name: string) =>
+  name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+
+// ==================== SUBCOMPONENTS ====================
+
+const Avatar: React.FC<{ name: string; color?: string }> = ({ name, color = 'bg-blue-500/20 text-blue-300' }) => (
+  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 ${color}`}>
+    {initials(name)}
+  </div>
+);
+
+const InfoRow: React.FC<{ label: string; children: React.ReactNode; icon?: React.ReactNode }> = ({ label, children, icon }) => (
+  <div className="flex items-start justify-between gap-4 py-2.5 border-b border-zinc-800/70 last:border-0">
+    <span className="flex items-center gap-1.5 text-xs text-zinc-500 shrink-0 pt-0.5 min-w-[110px]">
+      {icon}
+      {label}
+    </span>
+    <div className="text-sm text-zinc-200 text-right">{children}</div>
+  </div>
+);
+
+const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500 mb-2">{children}</p>
+);
+
+const ActionBtn: React.FC<{
+  onClick: () => void;
+  disabled?: boolean;
+  variant?: 'primary' | 'danger' | 'ghost' | 'success' | 'warning';
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+  fullWidth?: boolean;
+}> = ({ onClick, disabled, variant = 'ghost', icon, children, fullWidth }) => {
+  const variantCls = {
+    primary: 'bg-blue-600 hover:bg-blue-500 text-white border-transparent',
+    success: 'bg-emerald-600 hover:bg-emerald-500 text-white border-transparent',
+    danger:  'bg-rose-600 hover:bg-rose-500 text-white border-transparent',
+    warning: 'bg-amber-600 hover:bg-amber-500 text-white border-transparent',
+    ghost:   'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700',
+  }[variant];
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`
+        inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium
+        border transition-all duration-150 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
+        ${variantCls} ${fullWidth ? 'w-full' : ''}
+      `}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+};
+
+// ==================== MODAL PRINCIPAL ====================
+
+const scrollbarStyle = `
+  .hf-scroll::-webkit-scrollbar { width: 4px; }
+  .hf-scroll::-webkit-scrollbar-track { background: transparent; }
+  .hf-scroll::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 999px; }
+  .hf-scroll::-webkit-scrollbar-thumb:hover { background: #52525b; }
+` as string;
 
 const HelpDetailModal: React.FC<HelpDetailModalProps> = ({
   isOpen,
@@ -33,358 +130,372 @@ const HelpDetailModal: React.FC<HelpDetailModalProps> = ({
   const [resolutionText, setResolutionText] = useState('');
   const [showResolutionForm, setShowResolutionForm] = useState(false);
   const [requiresRelatus, setRequiresRelatus] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<null | 'close' | 'delete' | 'reject'>(null);
+
+  // Reset state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setResolutionText('');
+      setShowResolutionForm(false);
+      setRequiresRelatus(false);
+      setConfirmAction(null);
+      setLoading(false);
+    }
+  }, [isOpen]);
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isOpen, onClose]);
+
+  const withLoading = useCallback(async (fn: () => Promise<void>) => {
+    try {
+      setLoading(true);
+      await fn();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   if (!isOpen || !helpFriend) return null;
 
   const isRequester = helpFriend.requesterEmail === currentUserEmail;
-  const isHelper = helpFriend.helperEmail === currentUserEmail;
-  const isFriendRequest = helpFriend.helpMode === 'friend' && helpFriend.friendEmail === currentUserEmail;
+  const isHelper    = helpFriend.helperEmail === currentUserEmail;
   const isDirectedToMe = helpFriend.helpMode === 'friend' && helpFriend.friendEmail === currentUserEmail;
+  const canAccept   = !isRequester && !isHelper && helpFriend.status === 'open';
 
-  const handleAccept = async () => {
-    if (!onAccept) return;
-    try {
-      setLoading(true);
-      await onAccept(requiresRelatus);
-      onClose();
-    } catch (error) {
-      console.error('Erro ao aceitar:', error);
-      alert('Erro ao aceitar a solicitação');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const status  = STATUS_MAP[helpFriend.status]  ?? STATUS_MAP['closed'];
+  const urgency = URGENCY_MAP[helpFriend.urgency] ?? { label: helpFriend.urgency, cls: 'text-zinc-400', dot: 'bg-zinc-400' };
 
-  const handleResolve = async () => {
-    if (!onResolve || !resolutionText.trim()) {
-      alert('Descreva a resolução');
-      return;
-    }
-    try {
-      setLoading(true);
-      await onResolve(resolutionText);
+  const handleAccept = () => withLoading(async () => {
+    await onAccept?.(requiresRelatus);
+    onClose();
+  });
+
+  const handleResolve = () => {
+    if (!resolutionText.trim()) return;
+    withLoading(async () => {
+      await onResolve?.(resolutionText);
       setResolutionText('');
       setShowResolutionForm(false);
       onClose();
-    } catch (error) {
-      console.error('Erro ao resolver:', error);
-      alert('Erro ao resolver a solicitação');
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
-  const handleReject = async () => {
-    if (!onReject) return;
-    if (!confirm('Tem certeza que deseja rejeitar esta solicitação?')) return;
-    try {
-      setLoading(true);
-      await onReject();
-      onClose();
-    } catch (error) {
-      console.error('Erro ao rejeitar:', error);
-      alert('Erro ao rejeitar a solicitação');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleConfirmed = () => withLoading(async () => {
+    if (confirmAction === 'close')   await onClose2?.();
+    if (confirmAction === 'delete')  await onDelete?.();
+    if (confirmAction === 'reject')  await onReject?.();
+    setConfirmAction(null);
+    onClose();
+  });
 
-  const handleClose = async () => {
-    if (!onClose2) return;
-    if (!confirm('Tem certeza que deseja fechar esta solicitação?')) return;
-    try {
-      setLoading(true);
-      await onClose2();
-      onClose();
-    } catch (error) {
-      console.error('Erro ao fechar:', error);
-      alert('Erro ao fechar a solicitação');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!onDelete) return;
-    if (!confirm('Tem certeza que deseja excluir esta solicitação permanentemente?')) return;
-    try {
-      setLoading(true);
-      await onDelete();
-      onClose();
-    } catch (error) {
-      console.error('Erro ao excluir:', error);
-      alert('Erro ao excluir a solicitação');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getHelpTypeLabel = (type: string) => {
-    switch (type) {
-      case 'business':
-        return '💼 Regra de Negócio';
-      case 'technical':
-        return '🛠️ Técnico';
-      case 'independent':
-        return '⚙️ Independente';
-      default:
-        return type;
-    }
-  };
-
-  const getUrgencyLabel = (urgency: string) => {
-    switch (urgency) {
-      case 'high':
-        return '🔴 Alta';
-      case 'medium':
-        return '🟡 Média';
-      case 'low':
-        return '🟢 Baixa';
-      default:
-        return urgency;
-    }
+  // ── Confirm overlay ──
+  const confirmLabels: Record<string, { title: string; body: string; btnLabel: string }> = {
+    close:  { title: 'Fechar solicitação?', body: 'Esta ação irá encerrar a solicitação. Não será possível desfazer.', btnLabel: 'Confirmar fechamento' },
+    delete: { title: 'Excluir solicitação?', body: 'Esta ação é permanente e não poderá ser desfeita.', btnLabel: 'Sim, excluir' },
+    reject: { title: 'Rejeitar solicitação?', body: 'Você irá rejeitar esta solicitação de ajuda.', btnLabel: 'Confirmar rejeição' },
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-white">
-            Detalhes - {helpFriend.ticketNumber}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-zinc-400 hover:text-white transition-colors"
-          >
-            <X size={24} />
-          </button>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <style>{scrollbarStyle}</style>
+      <div
+        className="
+          relative bg-zinc-900 border border-zinc-800 rounded-2xl
+          w-full max-w-lg
+          flex flex-col
+          max-h-[90dvh] sm:max-h-[85vh]
+          shadow-2xl shadow-black/50
+        "
+      >
+        {/* ── HEADER ── */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-zinc-800 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 shrink-0">
+              <HandHelping size={16} className="text-blue-400" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-base font-semibold text-white truncate leading-tight">
+                {helpFriend.ticketNumber}
+              </h2>
+              <p className="text-xs text-zinc-500 truncate">Solicitação de ajuda</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 ml-3">
+            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${status.cls}`}>
+              {status.label}
+            </span>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+              aria-label="Fechar modal"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
-        <div className="space-y-6">
-          {/* Status Badge */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-              helpFriend.status === 'open'
-                ? 'bg-blue-500/20 text-blue-400'
-                : helpFriend.status === 'in-progress'
-                ? 'bg-purple-500/20 text-purple-400'
-                : helpFriend.status === 'resolved'
-                ? 'bg-emerald-500/20 text-emerald-400'
-                : 'bg-gray-500/20 text-gray-400'
-            }`}>
-              {helpFriend.status === 'open' && 'Aberta'}
-              {helpFriend.status === 'in-progress' && 'Em Progresso'}
-              {helpFriend.status === 'resolved' && 'Resolvida'}
-              {helpFriend.status === 'closed' && 'Fechada'}
-            </div>
-            {isDirectedToMe && (
-              <span className="px-3 py-1 rounded-full text-sm font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                Pedido direcionado a você
-              </span>
-            )}
-          </div>
+        {/* ── SCROLLABLE BODY ── */}
+        <div
+          className="overflow-y-auto flex-1 px-5 py-4 space-y-5 hf-scroll"
+          style={{ scrollbarWidth: 'thin', scrollbarColor: '#3f3f46 transparent' }}
+        >
 
-          {/* Info Básicas */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-zinc-800/50 p-3 rounded-lg">
-              <p className="text-xs text-zinc-400 mb-1">Solicitante</p>
-              <p className="text-white font-medium">{helpFriend.requesterName}</p>
-              <p className="text-xs text-zinc-500">{helpFriend.requesterEmail}</p>
+          {/* Badge direcionado */}
+          {isDirectedToMe && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs">
+              <UserCheck size={14} />
+              Este pedido foi direcionado diretamente a você
             </div>
-            <div className="bg-zinc-800/50 p-3 rounded-lg">
-              <p className="text-xs text-zinc-400 mb-1">Data de Criação</p>
-              <p className="text-white font-medium">
-                {new Date(helpFriend.createdAt).toLocaleDateString('pt-BR')}
-              </p>
-              <p className="text-xs text-zinc-500">
-                {new Date(helpFriend.createdAt).toLocaleTimeString('pt-BR')}
-              </p>
-            </div>
-          </div>
+          )}
 
-          {/* Modo e Tipo */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-zinc-800/50 p-3 rounded-lg">
-              <p className="text-xs text-zinc-400 mb-1">Modo</p>
-              <p className="text-white font-medium">
-                {helpFriend.helpMode === 'friend' ? '👤 Amigo Específico' : '🌐 Público'}
-              </p>
-              {helpFriend.helpMode === 'friend' && (
-                <p className="text-xs text-zinc-500">{helpFriend.friendName}</p>
+          {/* ── SOLICITANTE ── */}
+          <div>
+            <SectionTitle>Solicitante</SectionTitle>
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
+              <Avatar name={helpFriend.requesterName} color="bg-blue-500/20 text-blue-300" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-white truncate">{helpFriend.requesterName}</p>
+                <p className="text-xs text-zinc-500 truncate">{helpFriend.requesterEmail}</p>
+              </div>
+              {isRequester && (
+                <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/25 shrink-0">
+                  Você
+                </span>
               )}
             </div>
-            <div className="bg-zinc-800/50 p-3 rounded-lg">
-              <p className="text-xs text-zinc-400 mb-1">Tipo de Ajuda</p>
-              <p className="text-white font-medium">{getHelpTypeLabel(helpFriend.helpType)}</p>
+          </div>
+
+          {/* ── DETALHES ── */}
+          <div>
+            <SectionTitle>Detalhes</SectionTitle>
+            <div className="bg-zinc-800/50 border border-zinc-700/50 rounded-xl px-3 divide-y divide-zinc-800">
+              <InfoRow label="Modo" icon={<Globe size={12} />}>
+                {helpFriend.helpMode === 'friend' ? (
+                  <span className="flex flex-col items-end gap-0.5">
+                    <span>👤 Amigo específico</span>
+                    {helpFriend.friendName && (
+                      <span className="text-xs text-zinc-500">{helpFriend.friendName}</span>
+                    )}
+                  </span>
+                ) : (
+                  '🌐 Público'
+                )}
+              </InfoRow>
+              <InfoRow label="Tipo" icon={<FileText size={12} />}>
+                {HELP_TYPE_MAP[helpFriend.helpType] ?? helpFriend.helpType}
+              </InfoRow>
+              <InfoRow label="Urgência" icon={<Zap size={12} />}>
+                <span className={`flex items-center gap-1.5 justify-end ${urgency.cls}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${urgency.dot}`} />
+                  {urgency.label}
+                </span>
+              </InfoRow>
+              <InfoRow label="Criado em" icon={<Calendar size={12} />}>
+                <span className="text-xs">{fmtDate(helpFriend.createdAt)}</span>
+              </InfoRow>
             </div>
           </div>
 
-          {/* Urgência */}
-          <div className="bg-zinc-800/50 p-3 rounded-lg">
-            <p className="text-xs text-zinc-400 mb-1">Nível de Urgência</p>
-            <p className="text-white font-medium">{getUrgencyLabel(helpFriend.urgency)}</p>
-          </div>
-
-          {/* Descrição */}
+          {/* ── DESCRIÇÃO ── */}
           {helpFriend.description && (
-            <div className="bg-zinc-800/50 p-4 rounded-lg">
-              <p className="text-xs text-zinc-400 mb-2 flex items-center gap-2">
-                <FileText size={14} />
-                Observações
-              </p>
-              <p className="text-zinc-100 whitespace-pre-wrap">{helpFriend.description}</p>
+            <div>
+              <SectionTitle>Observações</SectionTitle>
+              <div className="p-3 rounded-xl bg-zinc-800/50 border border-zinc-700/50 text-sm text-zinc-200 whitespace-pre-wrap leading-relaxed">
+                {helpFriend.description}
+              </div>
             </div>
           )}
 
-          {/* Helper Info */}
+          {/* ── AJUDANTE ── */}
           {helpFriend.helperEmail && (
-            <div className="bg-emerald-500/10 border border-emerald-500/50 p-4 rounded-lg">
-              <p className="text-xs text-emerald-400 mb-2">Ajudante</p>
-              <p className="text-white font-medium">{helpFriend.helperName}</p>
-              <p className="text-xs text-zinc-500">{helpFriend.helperEmail}</p>
-              {helpFriend.acceptedAt && (
-                <p className="text-xs text-emerald-400 mt-2">
-                  Aceitou em: {new Date(helpFriend.acceptedAt).toLocaleDateString('pt-BR')}
-                </p>
-              )}
-              {helpFriend.requiresRelatus && (
-                <p className="text-xs text-emerald-200 mt-2">
-                  Necessita registrar auxílio no Relatus
-                </p>
-              )}
+            <div>
+              <SectionTitle>Ajudante</SectionTitle>
+              <div className="p-3 rounded-xl bg-emerald-500/8 border border-emerald-500/25 space-y-2">
+                <div className="flex items-center gap-3">
+                  <Avatar name={helpFriend.helperName ?? helpFriend.helperEmail} color="bg-emerald-500/20 text-emerald-300" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-white truncate">{helpFriend.helperName}</p>
+                    <p className="text-xs text-zinc-500 truncate">{helpFriend.helperEmail}</p>
+                  </div>
+                </div>
+                {helpFriend.acceptedAt && (
+                  <p className="text-xs text-emerald-400 flex items-center gap-1.5 pl-0.5">
+                    <Clock size={11} />
+                    Aceitou em {fmtDate(helpFriend.acceptedAt)}
+                  </p>
+                )}
+                {helpFriend.requiresRelatus && (
+                  <p className="text-xs text-emerald-300 bg-emerald-500/10 px-2.5 py-1.5 rounded-lg border border-emerald-500/20">
+                    Necessita registrar auxílio no Relatus
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
-          {/* Resolução */}
+          {/* ── RESOLUÇÃO ── */}
           {helpFriend.resolution && (
-            <div className="bg-blue-500/10 border border-blue-500/50 p-4 rounded-lg">
-              <p className="text-xs text-blue-400 mb-2">Resolução</p>
-              <p className="text-zinc-100 whitespace-pre-wrap">{helpFriend.resolution}</p>
-              {helpFriend.resolvedAt && (
-                <p className="text-xs text-blue-400 mt-2">
-                  Resolvido em: {new Date(helpFriend.resolvedAt).toLocaleDateString('pt-BR')}
+            <div>
+              <SectionTitle>Resolução</SectionTitle>
+              <div className="p-3 rounded-xl bg-blue-500/8 border border-blue-500/25 space-y-2">
+                <p className="text-sm text-zinc-200 whitespace-pre-wrap leading-relaxed">
+                  {helpFriend.resolution}
                 </p>
-              )}
+                {helpFriend.resolvedAt && (
+                  <p className="text-xs text-blue-400 flex items-center gap-1.5">
+                    <Clock size={11} />
+                    Resolvido em {fmtDate(helpFriend.resolvedAt)}
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
-          {/* Formulário de Resolução */}
+          {/* ── FORMULÁRIO DE RESOLUÇÃO ── */}
           {showResolutionForm && (
-            <div className="bg-zinc-800/50 p-4 rounded-lg border border-zinc-700">
-              <label className="block text-sm font-medium text-zinc-300 mb-2">
-                Descreva a Resolução
-              </label>
+            <div>
+              <SectionTitle>Descreva a resolução</SectionTitle>
               <textarea
                 value={resolutionText}
-                onChange={(e) => setResolutionText(e.target.value)}
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors min-h-[120px]"
-                placeholder="Descreva como você resolveu o problema..."
+                onChange={e => setResolutionText(e.target.value)}
+                placeholder="Como você resolveu o problema…"
+                rows={4}
+                className="
+                  w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl
+                  text-sm text-white placeholder-zinc-600
+                  focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20
+                  transition-colors resize-none
+                "
               />
             </div>
           )}
 
-          {/* Ações */}
-          <div className="flex gap-3 flex-wrap pt-4 border-t border-zinc-700">
-            {/* Se é o amigo ou modo público e ainda não aceitou */}
-            {!isRequester && !isHelper && (helpFriend.status === 'open') && onAccept && (
-              <div className="w-full space-y-4">
-                <label className="flex items-center gap-3 p-4 bg-zinc-800 border border-zinc-700 rounded-lg">
-                  <input
-                    type="checkbox"
-                    checked={requiresRelatus}
-                    onChange={(e) => setRequiresRelatus(e.target.checked)}
-                    className="h-4 w-4 rounded border-zinc-600 bg-zinc-900 text-emerald-500 focus:ring-emerald-500"
-                  />
-                  <span className="text-sm text-zinc-200">
-                    Precisa registrar auxílio no Relatus ao iniciar a ajuda?
-                  </span>
-                </label>
-                <button
-                  onClick={handleAccept}
-                  disabled={loading}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 text-white transition-colors font-medium"
-                >
-                  <CheckCircle2 size={18} />
-                  Aceitar Ajudar
-                </button>
+          {/* ── ACEITAR (checkbox relatus) ── */}
+          {canAccept && onAccept && (
+            <div>
+              <SectionTitle>Aceitar ajuda</SectionTitle>
+              <label className="flex items-start gap-3 p-3 rounded-xl bg-zinc-800/50 border border-zinc-700/50 cursor-pointer hover:bg-zinc-800 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={requiresRelatus}
+                  onChange={e => setRequiresRelatus(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-zinc-600 bg-zinc-900 text-emerald-500 focus:ring-emerald-500 shrink-0"
+                />
+                <span className="text-sm text-zinc-300 leading-snug">
+                  Precisa registrar auxílio no Relatus ao iniciar a ajuda?
+                </span>
+              </label>
+            </div>
+          )}
+
+          {/* ── CONFIRM OVERLAY (inline) ── */}
+          {confirmAction && (
+            <div className="rounded-xl border border-rose-500/30 bg-rose-500/8 p-4 space-y-3">
+              <div className="flex items-start gap-2">
+                <AlertTriangle size={16} className="text-rose-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-rose-300">
+                    {confirmLabels[confirmAction].title}
+                  </p>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    {confirmLabels[confirmAction].body}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <ActionBtn variant="danger" onClick={handleConfirmed} disabled={loading}>
+                  {loading ? 'Aguarde…' : confirmLabels[confirmAction].btnLabel}
+                </ActionBtn>
+                <ActionBtn variant="ghost" onClick={() => setConfirmAction(null)}>
+                  Cancelar
+                </ActionBtn>
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* ── FOOTER / AÇÕES ── */}
+        {!confirmAction && (
+          <div className="px-5 py-4 border-t border-zinc-800 shrink-0 space-y-2">
+
+            {/* Aceitar */}
+            {canAccept && onAccept && (
+              <ActionBtn variant="success" icon={<CheckCircle2 size={15} />} onClick={handleAccept} disabled={loading} fullWidth>
+                {loading ? 'Aceitando…' : 'Aceitar ajudar'}
+              </ActionBtn>
+            )}
+
+            {/* Helper: resolver */}
+            {isHelper && helpFriend.status === 'in-progress' && (
+              showResolutionForm ? (
+                <div className="flex gap-2">
+                  <ActionBtn
+                    variant="primary"
+                    onClick={handleResolve}
+                    disabled={loading || !resolutionText.trim()}
+                    fullWidth
+                  >
+                    {loading ? 'Salvando…' : 'Confirmar resolução'}
+                  </ActionBtn>
+                  <ActionBtn variant="ghost" onClick={() => setShowResolutionForm(false)}>
+                    Cancelar
+                  </ActionBtn>
+                </div>
+              ) : (
+                <ActionBtn variant="primary" icon={<CheckCircle2 size={15} />} onClick={() => setShowResolutionForm(true)} fullWidth>
+                  Marcar como resolvido
+                </ActionBtn>
+              )
+            )}
+
+            {/* Requester: editar + fechar + excluir */}
+            {isRequester && helpFriend.status === 'open' && (
+              <div className="flex gap-2 flex-wrap">
+                {onEdit && (
+                  <ActionBtn variant="ghost" icon={<Edit2 size={14} />} onClick={onEdit}>
+                    Editar
+                  </ActionBtn>
+                )}
+                {onClose2 && (
+                  <ActionBtn variant="warning" icon={<XCircle size={14} />} onClick={() => setConfirmAction('close')}>
+                    Fechar
+                  </ActionBtn>
+                )}
+                {onDelete && (
+                  <ActionBtn variant="danger" icon={<Trash2 size={14} />} onClick={() => setConfirmAction('delete')}>
+                    Excluir
+                  </ActionBtn>
+                )}
               </div>
             )}
 
-            {/* Se é o ajudante e a solicitação está em progresso */}
-            {isHelper && helpFriend.status === 'in-progress' && (
-              <>
-                {!showResolutionForm ? (
-                  <button
-                    onClick={() => setShowResolutionForm(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors font-medium"
-                  >
-                    Marcar como Resolvido
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      onClick={handleResolve}
-                      disabled={loading}
-                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white transition-colors font-medium"
-                    >
-                      {loading ? 'Resolvendo...' : 'Confirmar Resolução'}
-                    </button>
-                    <button
-                      onClick={() => setShowResolutionForm(false)}
-                      className="px-4 py-2 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-white transition-colors"
-                    >
-                      Cancelar
-                    </button>
-                  </>
-                )}
-              </>
+            {/* Requester: excluir quando não está open */}
+            {isRequester && helpFriend.status !== 'open' && onDelete && (
+              <ActionBtn variant="danger" icon={<Trash2 size={14} />} onClick={() => setConfirmAction('delete')}>
+                Excluir permanentemente
+              </ActionBtn>
             )}
 
-            {/* Se é o solicitante e está aberta, pode fechar */}
-            {isRequester && helpFriend.status === 'open' && onClose2 && (
-              <button
-                onClick={handleClose}
-                disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-red-800 text-white transition-colors font-medium"
-              >
-                <XCircle size={18} />
-                Fechar Solicitação
-              </button>
-            )}
-
-            {/* Se for o solicitante, pode editar enquanto estiver aberta */}
-            {isRequester && helpFriend.status === 'open' && onEdit && (
-              <button
-                onClick={onEdit}
-                className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white transition-colors font-medium"
-              >
-                Editar Solicitação
-              </button>
-            )}
-
-            {/* Se for o solicitante, pode excluir */}
-            {isRequester && onDelete && (
-              <button
-                onClick={handleDelete}
-                disabled={loading}
-                className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 disabled:bg-rose-800 text-white transition-colors font-medium"
-              >
-                {loading ? 'Excluindo...' : 'Excluir Solicitação'}
-              </button>
-            )}
-
-            {/* Se é o amigo e rejeitar é possível */}
-            {isFriendRequest && helpFriend.status === 'open' && onReject && (
-              <button
-                onClick={handleReject}
-                disabled={loading}
-                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-red-800 text-white transition-colors font-medium"
-              >
-                {loading ? 'Rejeitando...' : 'Rejeitar'}
-              </button>
+            {/* Friend: rejeitar */}
+            {isDirectedToMe && helpFriend.status === 'open' && onReject && (
+              <ActionBtn variant="danger" icon={<XCircle size={14} />} onClick={() => setConfirmAction('reject')}>
+                Rejeitar solicitação
+              </ActionBtn>
             )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

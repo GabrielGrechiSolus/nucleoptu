@@ -640,7 +640,7 @@ const HomePage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md"
+            className="fixed inset-0 z-50 flex items-center justify-center"
           >
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -702,7 +702,7 @@ const HomePage = () => {
                 <motion.div
                   key={idx}
                   whileHover={{ scale: 1.05 }}
-                  className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-4 py-2 border border-slate-700"
+                  className="backdrop-blur-sm rounded-xl px-4 py-2 border border-slate-700"
                 >
                   <div className="flex items-center gap-2">
                     <stat.icon size={14} className="text-sky-400" />
@@ -753,77 +753,7 @@ const HomePage = () => {
             </div>
           </button>
         </motion.div>
-
-        {/* Ações Rápidas */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-10"
-        >
-          <h2 className="text-sm font-semibold text-slate-400 mb-3 flex items-center gap-2">
-            <Zap size={14} />
-            AÇÕES RÁPIDAS
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-            <QuickAction icon={PlusCircle} label="Novo Post" href="/socialfield" color="text-orange-400" />
-            <QuickAction icon={Bell} label="Ver Avisos" href="/notice-board" color="text-amber-400" />
-            <QuickAction icon={Ticket} label="Abrir Chamado" href="/tickets" color="text-blue-400" />
-            <QuickAction icon={Link2} label="Adicionar Link" href="/links" color="text-cyan-400" />
-            <QuickAction icon={Calendar} label="Agendar" href="/meetings" color="text-indigo-400" />
-            <QuickAction icon={CheckCircle2} label="Tarefas" href="/pdi" color="text-rose-400" />
-          </div>
-        </motion.div>
-
-        {/* Seção de Boas Práticas */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-5"
-        >
-          <div className="bg-gradient-to-r from-sky-600/10 to-blue-600/10 backdrop-blur-sm border border-sky-500/20 rounded-xl p-5">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center">
-                <Brain size={20} className="text-sky-400" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-sky-400 mb-1">Dica do Dia</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Compartilhe um conhecimento hoje! Cada post ou link útil fortalece a cultura de aprendizado da equipe.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-r from-purple-600/10 to-pink-600/10 backdrop-blur-sm border border-purple-500/20 rounded-xl p-5">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
-                <Users size={20} className="text-purple-400" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-purple-400 mb-1">Conecte-se</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Interaja com seus colegas no Feed e fortaleça o networking da equipe.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-r from-emerald-600/10 to-teal-600/10 backdrop-blur-sm border border-emerald-500/20 rounded-xl p-5">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                <TrendingUp size={20} className="text-emerald-400" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-emerald-400 mb-1">Organize-se</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Use o módulo de Tarefas para acompanhar seus objetivos diários e manter o foco.
-                </p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
+      
 
         {/* Footer */}
         <motion.div
