@@ -363,7 +363,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({
                     />
                     <div className="flex-1">
                       <span className="text-sm font-medium text-white">#{ticket.ticketNumber}</span>
-                      <p className="text-xs text-zinc-400">{ticket.title}</p>
+                      <p className="text-xs text-zinc-400">{ticket.description || 'Sem descrição'}</p>
                     </div>
                   </label>
                 ))}
@@ -576,7 +576,7 @@ const SolutionModal: React.FC<SolutionModalProps> = ({
                     />
                     <div className="flex-1">
                       <span className="text-sm font-medium text-white">#{ticket.ticketNumber}</span>
-                      <p className="text-xs text-zinc-400">{ticket.title}</p>
+                      <p className="text-xs text-zinc-400">{ticket.description || 'Sem descrição'}</p>
                     </div>
                   </label>
                 ))}
@@ -789,16 +789,17 @@ const QuestionsPage = () => {
 
   // Carregar perguntas
   useEffect(() => {
-    if (!user) return;
+    if (!user?.email) return;
+    const userEmail = user.email;
     const q = query(collection(db, 'questions'), orderBy('createdAt', 'desc'));
     return onSnapshot(q, (snap) => {
       const allQuestions: Question[] = [];
       snap.forEach(doc => {
         const data = doc.data() as Question;
         // Filtrar por visibilidade
-        const isOwner = data.authorEmail === user.email;
+        const isOwner = data.authorEmail === userEmail;
         const isPublic = data.visibility === 'public';
-        const isAllowed = data.visibility === 'specific' && data.allowedUsers.includes(user.email);
+        const isAllowed = data.visibility === 'specific' && data.allowedUsers.includes(userEmail);
         const isPrivate = data.visibility === 'private' && isOwner;
 
         if (isOwner || isPublic || isAllowed || isPrivate) {
@@ -820,8 +821,9 @@ const QuestionsPage = () => {
 
   // Carregar tickets
   useEffect(() => {
-    if (!user) return;
-    const q = query(collection(db, 'tickets'), where('userEmail', '==', user.email));
+    if (!user?.email) return;
+    const userEmail = user.email;
+    const q = query(collection(db, 'tickets'), where('userEmail', '==', userEmail));
     return onSnapshot(q, (snap) => {
       setAvailableTickets(snap.docs.map(d => ({ ...(d.data() as Ticket), id: d.id })));
     });
@@ -829,15 +831,16 @@ const QuestionsPage = () => {
 
   // Actions
   const handleCreateQuestion = useCallback(async (data: any) => {
-    if (!user) return;
+    if (!user?.email) return;
+    const userEmail = user.email;
 
     // Remove qualquer id que possa ter vindo do formulário
     const { id, ...questionData } = data;
 
     await addDoc(collection(db, 'questions'), {
       ...questionData,  // Sem o campo id
-      authorEmail: user.email,
-      authorName: questionData.isAnonymous ? 'Anônimo' : (user.displayName || user.email?.split('@')[0] || 'Usuário'),
+      authorEmail: userEmail,
+      authorName: questionData.isAnonymous ? 'Anônimo' : (user.displayName || userEmail.split('@')[0] || 'Usuário'),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       status: 'open',
@@ -860,11 +863,12 @@ const QuestionsPage = () => {
   }, []);
 
   const handleCreateSolution = useCallback(async (data: any) => {
-    if (!user) return;
+    if (!user?.email) return;
+    const userEmail = user.email;
     await addDoc(collection(db, 'solutions'), {
       ...data,
-      authorEmail: user.email,
-      authorName: user.displayName || user.email,
+      authorEmail: userEmail,
+      authorName: user.displayName || userEmail,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       likes: [],
@@ -903,13 +907,14 @@ const QuestionsPage = () => {
   }, []);
 
   const handleAddAnswer = useCallback(async (questionId: string, content: string) => {
-    if (!user || !content.trim()) return;
+    if (!user?.email || !content.trim()) return;
+    const userEmail = user.email;
 
     const answer: Answer = {
       id: Date.now().toString(),
       content,
-      authorEmail: user.email,
-      authorName: user.displayName || user.email,
+      authorEmail: userEmail,
+      authorName: user.displayName || userEmail,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isSolution: false,
@@ -946,27 +951,29 @@ const QuestionsPage = () => {
   }, []);
 
   const handleLikeQuestion = useCallback(async (questionId: string) => {
-    if (!user) return;
+    if (!user?.email) return;
+    const userEmail = user.email;
     const questionRef = doc(db, 'questions', questionId);
     const questionSnap = await getDoc(questionRef);
     if (questionSnap.exists()) {
       const questionData = questionSnap.data() as Question;
-      const hasLiked = questionData.likes.includes(user.email);
+      const hasLiked = questionData.likes.includes(userEmail);
       await updateDoc(questionRef, {
-        likes: hasLiked ? arrayRemove(user.email) : arrayUnion(user.email),
+        likes: hasLiked ? arrayRemove(userEmail) : arrayUnion(userEmail),
       });
     }
   }, [user]);
 
   const handleLikeSolution = useCallback(async (solutionId: string) => {
-    if (!user) return;
+    if (!user?.email) return;
+    const userEmail = user.email;
     const solutionRef = doc(db, 'solutions', solutionId);
     const solutionSnap = await getDoc(solutionRef);
     if (solutionSnap.exists()) {
       const solutionData = solutionSnap.data() as Solution;
-      const hasLiked = solutionData.likes.includes(user.email);
+      const hasLiked = solutionData.likes.includes(userEmail);
       await updateDoc(solutionRef, {
-        likes: hasLiked ? arrayRemove(user.email) : arrayUnion(user.email),
+        likes: hasLiked ? arrayRemove(userEmail) : arrayUnion(userEmail),
       });
     }
   }, [user]);
