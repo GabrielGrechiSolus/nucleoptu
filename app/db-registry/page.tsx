@@ -1,5 +1,8 @@
 "use client";
 
+// ============================================
+// IMPORTAÇÕES E CONFIGURAÇÕES INICIAIS
+// ============================================
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { db, auth } from "../../firebase";
 import {
@@ -67,16 +70,21 @@ import {
 } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
 
-// ===== Tipos =====
+// ============================================
+// TIPOS E INTERFACES
+// ============================================
+
+// OBS: Tipos de objeto suportados no registro do banco.
 type ObjType = "package" | "function" | "procedure" | "trigger" | "view" | "other";
 
+// OBS: Estrutura principal de um objeto do banco de dados.
 interface DBObject {
   id: string;
   name: string;
   type: ObjType;
   modules: string[];
   origins: string[];
-  observations?: string;
+  observations?: string; // OBS: Observação resumida do objeto.
   active?: boolean;
   favorite?: boolean;
   tags?: string[];
@@ -85,16 +93,21 @@ interface DBObject {
   createdBy?: string | null;
 }
 
+// OBS: Dados do formulário de criação/edição.
 interface FormData {
   name: string;
   type: ObjType;
   modules: string[];
   origins: string[];
-  observations: string;
+  observations: string; // OBS: Texto resumido da observação.
   tags: string[];
 }
 
-// ===== Constantes =====
+// ============================================
+// CONSTANTES E CONFIGURAÇÕES
+// ============================================
+
+// OBS: Mapeia cada tipo de objeto a um ícone, cor e estilo visual.
 const TYPE_CONFIG: Record<ObjType, { label: string; icon: React.ElementType; color: string; gradient: string }> = {
   package: { 
     label: "Package", 
@@ -134,6 +147,7 @@ const TYPE_CONFIG: Record<ObjType, { label: string; icon: React.ElementType; col
   },
 };
 
+// OBS: Opções disponíveis para ordenar a lista de objetos.
 const SORT_OPTIONS = [
   { label: "Mais recentes", value: "newest" },
   { label: "Mais antigos", value: "oldest" },
@@ -142,9 +156,11 @@ const SORT_OPTIONS = [
   { label: "Tipo", value: "type" },
 ] as const;
 
-// ===== Componentes Auxiliares =====
+// ============================================
+// COMPONENTES AUXILIARES (SUBCOMPONENTES)
+// ============================================
 
-// Badge de Tipo
+// OBS: Badge visual para exibir o tipo do objeto.
 const TypeBadge: React.FC<{ type: ObjType; size?: "sm" | "md" }> = ({ type, size = "sm" }) => {
   const config = TYPE_CONFIG[type];
   const Icon = config.icon;
@@ -162,7 +178,7 @@ const TypeBadge: React.FC<{ type: ObjType; size?: "sm" | "md" }> = ({ type, size
   );
 };
 
-// Badge de Status
+// OBS: Badge para indicar se o objeto está ativo ou inativo.
 const StatusBadge: React.FC<{ active: boolean }> = ({ active }) => (
   <span className={`
     inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
@@ -176,7 +192,7 @@ const StatusBadge: React.FC<{ active: boolean }> = ({ active }) => (
   </span>
 );
 
-// Chip removível
+// OBS: Chip removível para módulos, origens e tags.
 const Chip: React.FC<{
   label: string;
   onRemove?: () => void;
@@ -204,7 +220,7 @@ const Chip: React.FC<{
   </span>
 );
 
-// Input com animação
+// OBS: Input estilizado com animação de foco.
 const AnimatedInput: React.FC<{
   label: string;
   value: string;
@@ -254,7 +270,7 @@ const AnimatedInput: React.FC<{
   );
 };
 
-// Card Skeleton
+// OBS: Esqueleto de card usado durante carregamento.
 const CardSkeleton: React.FC = () => (
   <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5 animate-pulse">
     <div className="flex justify-between mb-4">
@@ -275,22 +291,28 @@ const CardSkeleton: React.FC = () => (
   </div>
 );
 
-// ===== Componente Principal =====
+// ============================================
+// COMPONENTE PRINCIPAL
+// ============================================
+
+// OBS: Página principal de registro de objetos do banco de dados.
 export default function DBRegistryPage() {
+  // OBS: Usuário atualmente logado (pode ser nulo).
   const currentUser = auth.currentUser;
 
-  // ===== Estados =====
-  const [items, setItems] = useState<DBObject[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState<string>("");
-  const [showOnlyActive, setShowOnlyActive] = useState(true);
-  const [sortBy, setSortBy] = useState<string>("newest");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  // ===== ESTADOS =====
+  
+  const [items, setItems] = useState<DBObject[]>([]);        // OBS: Lista de objetos carregados do Firestore.
+  const [loading, setLoading] = useState(true);               // OBS: Controle de carregamento inicial.
+  const [search, setSearch] = useState("");                  // OBS: Termo de busca textual.
+  const [filterType, setFilterType] = useState<string>("");   // OBS: Filtro por tipo de objeto.
+  const [showOnlyActive, setShowOnlyActive] = useState(true); // OBS: Exibir apenas objetos ativos.
+  const [sortBy, setSortBy] = useState<string>("newest");    // OBS: Critério de ordenação.
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid"); // OBS: Modo de visualização (grade ou lista).
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set()); // OBS: IDs selecionados para ações em lote.
+  const [isSelectionMode, setIsSelectionMode] = useState(false); // OBS: Ativa modo de seleção múltipla.
 
-  // Modal states
+  // OBS: Controles de modais.
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<DBObject | null>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -298,7 +320,7 @@ export default function DBRegistryPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
-  // Form states
+  // OBS: Estado do formulário de criação/edição.
   const [formData, setFormData] = useState<FormData>({
     name: "",
     type: "package",
@@ -310,13 +332,14 @@ export default function DBRegistryPage() {
   const [moduleInput, setModuleInput] = useState("");
   const [originInput, setOriginInput] = useState("");
   const [tagInput, setTagInput] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState(false); // OBS: Previne duplo clique em salvamento.
 
-  // UI states
-  const [showFilters, setShowFilters] = useState(true);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(true);      // OBS: Mostrar ou esconder painel de filtros.
+  const [copiedId, setCopiedId] = useState<string | null>(null); // OBS: ID do último item copiado.
 
-  // ===== Efeitos =====
+  // ===== EFEITOS =====
+  
+  // OBS: Escuta em tempo real as alterações no Firestore.
   useEffect(() => {
     setLoading(true);
     const q = query(
@@ -341,10 +364,10 @@ export default function DBRegistryPage() {
       }
     );
     
-    return () => unsub();
+    return () => unsub(); // OBS: Limpeza do listener ao desmontar.
   }, []);
 
-  // Keyboard shortcuts
+  // OBS: Atalhos de teclado (Ctrl+N para novo, Ctrl+F para busca, ESC para limpar seleção).
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "n") {
@@ -365,7 +388,9 @@ export default function DBRegistryPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // ===== Handlers =====
+  // ===== HANDLERS (FUNÇÕES DE EVENTO) =====
+  
+  // OBS: Abre modal para criar novo objeto.
   const openNewModal = useCallback(() => {
     setEditing(null);
     setFormData({
@@ -379,6 +404,7 @@ export default function DBRegistryPage() {
     setModalOpen(true);
   }, []);
 
+  // OBS: Abre modal para editar objeto existente.
   const openEditModal = useCallback((item: DBObject) => {
     setEditing(item);
     setFormData({
@@ -392,11 +418,13 @@ export default function DBRegistryPage() {
     setModalOpen(true);
   }, []);
 
+  // OBS: Abre modal de visualização de detalhes.
   const openViewModal = useCallback((item: DBObject) => {
     setViewItem(item);
     setViewModalOpen(true);
   }, []);
 
+  // OBS: Adiciona item a uma lista (módulos, origens ou tags) e limpa o input.
   const addToList = useCallback(
     (field: "modules" | "origins" | "tags", value: string, setInput: (v: string) => void) => {
       const trimmed = value.trim();
@@ -412,6 +440,7 @@ export default function DBRegistryPage() {
     [formData]
   );
 
+  // OBS: Remove item de uma lista (módulos, origens ou tags).
   const removeFromList = useCallback(
     (field: "modules" | "origins" | "tags", item: string) => {
       setFormData((prev) => ({
@@ -422,6 +451,7 @@ export default function DBRegistryPage() {
     []
   );
 
+  // OBS: Salva objeto no Firestore (criação ou atualização).
   const handleSave = async () => {
     if (!formData.name.trim()) {
       toast.error("Informe o nome do objeto");
@@ -475,6 +505,7 @@ export default function DBRegistryPage() {
     }
   };
 
+  // OBS: Exclui um objeto do Firestore.
   const handleDelete = async (id: string) => {
     try {
       await deleteDoc(doc(db, "db_objects", id));
@@ -487,6 +518,7 @@ export default function DBRegistryPage() {
     }
   };
 
+  // OBS: Alterna o status ativo/inativo do objeto.
   const toggleActive = async (item: DBObject) => {
     try {
       const ref = doc(db, "db_objects", item.id);
@@ -498,6 +530,7 @@ export default function DBRegistryPage() {
     }
   };
 
+  // OBS: Marca/desmarca objeto como favorito.
   const toggleFavorite = async (item: DBObject) => {
     try {
       const ref = doc(db, "db_objects", item.id);
@@ -508,6 +541,7 @@ export default function DBRegistryPage() {
     }
   };
 
+  // OBS: Copia texto para área de transferência.
   const copyToClipboard = async (text: string, id: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -519,6 +553,7 @@ export default function DBRegistryPage() {
     }
   };
 
+  // OBS: Exclusão em lote de múltiplos objetos selecionados.
   const bulkDelete = async () => {
     if (selectedItems.size === 0) return;
     if (!confirm(`Deseja excluir ${selectedItems.size} registros? Esta ação é irreversível.`)) return;
@@ -537,6 +572,7 @@ export default function DBRegistryPage() {
     setIsSelectionMode(false);
   };
 
+  // OBS: Adiciona ou remove um ID do conjunto de itens selecionados.
   const toggleItemSelection = (id: string) => {
     setSelectedItems((prev) => {
       const next = new Set(prev);
@@ -549,7 +585,8 @@ export default function DBRegistryPage() {
     });
   };
 
-  // ===== Dados Filtrados e Ordenados =====
+  // ===== DADOS FILTRADOS E ORDENADOS =====
+  // OBS: Aplica filtros de texto, tipo, ativo e ordenação.
   const filteredAndSorted = useMemo(() => {
     let result = items.filter((item) => {
       if (showOnlyActive && item.active === false) return false;
@@ -591,7 +628,8 @@ export default function DBRegistryPage() {
     return result;
   }, [items, search, filterType, showOnlyActive, sortBy]);
 
-  // ===== Estatísticas =====
+  // ===== ESTATÍSTICAS =====
+  // OBS: Calcula totais para exibição nos cards de estatística.
   const stats = useMemo(() => {
     const total = items.length;
     const active = items.filter((i) => i.active !== false).length;
@@ -604,6 +642,9 @@ export default function DBRegistryPage() {
     return { total, active, inactive, types };
   }, [items]);
 
+  // ============================================
+  // RENDERIZAÇÃO (JSX)
+  // ============================================
   return (
     <div className="min-h-screen bg-zinc-950">
       <Toaster
@@ -618,7 +659,8 @@ export default function DBRegistryPage() {
       />
 
       <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
-        {/* ===== Header ===== */}
+        {/* ===== HEADER ===== */}
+        {/* OBS: Cabeçalho com título, estatísticas rápidas e botões principais. */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-4">
@@ -690,6 +732,7 @@ export default function DBRegistryPage() {
           </div>
 
           {/* ===== Filters ===== */}
+          {/* OBS: Painel expansível de filtros e busca. */}
           <Transition
             show={showFilters}
             enter="transition-all duration-300"
@@ -817,7 +860,8 @@ export default function DBRegistryPage() {
           </Transition>
         </div>
 
-        {/* ===== Content ===== */}
+        {/* ===== CONTENT (LISTAGEM) ===== */}
+        {/* OBS: Exibe skeleton, mensagem vazia ou lista de cards em grade ou lista. */}
         {loading ? (
           <div className={viewMode === "grid" 
             ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
@@ -930,6 +974,7 @@ export default function DBRegistryPage() {
                     </span>
                   </div>
                   {item.observations && (
+                    // OBS: Exibe observação resumida.
                     <p className="text-xs text-zinc-600 line-clamp-2 mt-2 pl-6">
                       {item.observations}
                     </p>
@@ -1089,7 +1134,8 @@ export default function DBRegistryPage() {
         )}
       </div>
 
-      {/* ===== Create/Edit Modal ===== */}
+      {/* ===== CREATE/EDIT MODAL ===== */}
+      {/* OBS: Modal para criar ou editar um objeto. */}
       <Dialog open={modalOpen} onClose={() => setModalOpen(false)} className="relative z-50">
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" aria-hidden />
         <div className="fixed inset-0 flex items-center justify-center p-4">
@@ -1254,6 +1300,7 @@ export default function DBRegistryPage() {
               {/* Observations */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-zinc-300">Observações</label>
+                {/* OBS: Campo de texto para observação resumida. */}
                 <textarea
                   rows={4}
                   value={formData.observations}
@@ -1296,7 +1343,8 @@ export default function DBRegistryPage() {
         </div>
       </Dialog>
 
-      {/* ===== View Modal ===== */}
+      {/* ===== VIEW MODAL ===== */}
+      {/* OBS: Modal para visualizar detalhes completos do objeto. */}
       <Dialog open={viewModalOpen} onClose={() => setViewModalOpen(false)} className="relative z-50">
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" aria-hidden />
         <div className="fixed inset-0 flex items-center justify-center p-4">
@@ -1403,6 +1451,7 @@ export default function DBRegistryPage() {
                         <MessageSquare size={16} className="text-amber-400" />
                         Observações
                       </h4>
+                      {/* OBS: Exibe observação resumida salva no objeto. */}
                       <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">
                         {viewItem.observations}
                       </p>
@@ -1466,7 +1515,8 @@ export default function DBRegistryPage() {
         </div>
       </Dialog>
 
-      {/* ===== Delete Confirmation Modal ===== */}
+      {/* ===== DELETE CONFIRMATION MODAL ===== */}
+      {/* OBS: Modal de confirmação antes de excluir permanentemente um objeto. */}
       <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} className="relative z-50">
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" aria-hidden />
         <div className="fixed inset-0 flex items-center justify-center p-4">
