@@ -142,14 +142,13 @@ const HelpFriendsPage = () => {
   // ==================== SUBSCRIPTIONS ====================
 
   useEffect(() => {
-    if (!user) return;
-    // Filtra apenas os tickets abertos do próprio usuário logado.
-    // Ajuste o campo abaixo caso o seu modelo use outro nome
-    // (ex: 'createdBy', 'ownerEmail', 'assignedTo', etc.)
+    if (!user?.uid) return;
+    const userId = user.uid;
+
+    // Filtra apenas os tickets do usuário logado.
     const q = query(
       collection(db, 'tickets'),
-      where('status', '==', 'open'),
-      where('userEmail', '==', user.email),
+      where('userId', '==', userId),
       orderBy('openDate', 'desc')
     );
     return onSnapshot(q, (snap) => {

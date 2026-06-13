@@ -331,6 +331,9 @@ interface Meeting {
   summary?: string;
   recording?: string;
   transcript?: string;
+  linkedTickets?: string[];
+  linkedStudies?: string[];
+  linkedSolutions?: string[];
   createdAt: number;
   updatedAt: number;
   createdBy: string;
@@ -477,6 +480,8 @@ const VotingBar = ({ decision }: { decision: Decision }) => {
 
 const MeetingsPage = () => {
   const user = auth.currentUser;
+  const currentUserEmail = user?.email;
+  const currentUserUid = user?.uid;
 
   // Estados principais
   const [meetings, setMeetings] = useState<Meeting[]>([]);
@@ -517,6 +522,12 @@ const MeetingsPage = () => {
   const [newCategories, setNewCategories] = useState<string[]>([]);
   const [newVisibility, setNewVisibility] = useState<"public" | "private" | "team">("team");
   const [newRecurring, setNewRecurring] = useState(false);
+  const [availableMeetingTickets, setAvailableMeetingTickets] = useState<Array<{ id: string; ticketNumber: string; clientName: string }>>([]);
+  const [availableStudies, setAvailableStudies] = useState<Array<{ id: string; title: string }>>([]);
+  const [availableSolutions, setAvailableSolutions] = useState<Array<{ id: string; title: string }>>([]);
+  const [linkedTicketIds, setLinkedTicketIds] = useState<string[]>([]);
+  const [linkedStudyIds, setLinkedStudyIds] = useState<string[]>([]);
+  const [linkedSolutionIds, setLinkedSolutionIds] = useState<string[]>([]);
   const [newRecurringFrequency, setNewRecurringFrequency] = useState<"daily" | "weekly" | "monthly" | "yearly">("weekly");
   const [newRecurringInterval, setNewRecurringInterval] = useState("1");
   const [newRecurringEndDate, setNewRecurringEndDate] = useState("");
@@ -600,6 +611,48 @@ const MeetingsPage = () => {
       setError("Erro ao carregar reuniões");
       setLoading(false);
     }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user?.uid || !user.email) return;
+    const userId = user.uid;
+    const userEmail = user.email;
+
+    const ticketQuery = query(
+      collection(db, 'tickets'),
+      where('userId', '==', userId),
+      orderBy('createdAt', 'desc')
+    );
+
+    const studyQuery = query(
+      collection(db, 'studies'),
+      where('userId', '==', userId),
+      orderBy('createdAt', 'desc')
+    );
+
+    const solutionQuery = query(
+      collection(db, 'solutions'),
+      where('authorEmail', '==', userEmail),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribeTickets = onSnapshot(ticketQuery, (snapshot) => {
+      setAvailableMeetingTickets(snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as any) } as any)));
+    });
+
+    const unsubscribeStudies = onSnapshot(studyQuery, (snapshot) => {
+      setAvailableStudies(snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as any) } as any)));
+    });
+
+    const unsubscribeSolutions = onSnapshot(solutionQuery, (snapshot) => {
+      setAvailableSolutions(snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as any) } as any)));
+    });
+
+    return () => {
+      unsubscribeTickets();
+      unsubscribeStudies();
+      unsubscribeSolutions();
+    };
   }, [user]);
 
   // Filtrar meetings
@@ -704,6 +757,9 @@ const MeetingsPage = () => {
         metrics: [],
         tags: tagsList,
         categories: newCategories,
+        linkedTickets: linkedTicketIds,
+        linkedStudies: linkedStudyIds,
+        linkedSolutions: linkedSolutionIds,
         status: "scheduled",
         visibility: newVisibility,
         createdAt: Date.now(),
@@ -737,6 +793,9 @@ const MeetingsPage = () => {
       setNewCategories([]);
       setNewVisibility("team");
       setNewRecurring(false);
+      setLinkedTicketIds([]);
+      setLinkedStudyIds([]);
+      setLinkedSolutionIds([]);
       setShowNewMeeting(false);
     } catch (error) {
       console.error("Erro ao criar reunião:", error);
@@ -1457,7 +1516,7 @@ const MeetingsPage = () => {
                         <StatusBadge status={meeting.status} />
                       </div>
 
-                      <div className="flex items-center gap-4 text-xs text-zinc-400 mb-3">
+                      <div className="flex items-center gap-4 text-xs text-zinc-400 mb-3 flex-wrap">
                         <span className="flex items-center gap-1">
                           <Calendar size={12} />
                           {format(new Date(meeting.date), "dd/MM HH:mm")}
@@ -1473,6 +1532,29 @@ const MeetingsPage = () => {
                           </span>
                         )}
                       </div>
+
+                      {(meeting.linkedTickets?.length || meeting.linkedStudies?.length || meeting.linkedSolutions?.length) > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {meeting.linkedTickets?.length > 0 && (
+                            <span className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30">
+                              <Link2 size={12} />
+                              {meeting.linkedTickets.length} chamado{meeting.linkedTickets.length > 1 ? 's' : ''}
+                            </span>
+                          )}
+                          {meeting.linkedStudies?.length > 0 && (
+                            <span className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                              <FileText size={12} />
+                              {meeting.linkedStudies.length} estudo{meeting.linkedStudies.length > 1 ? 's' : ''}
+                            </span>
+                          )}
+                          {meeting.linkedSolutions?.length > 0 && (
+                            <span className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/30">
+                              <Sparkles size={12} />
+                              {meeting.linkedSolutions.length} solução{meeting.linkedSolutions.length > 1 ? 'es' : ''}
+                            </span>
+                          )}
+                        </div>
+                      )}
 
                       {/* Participants Avatars */}
                       <div className="flex -space-x-2 mb-3">
@@ -1636,15 +1718,25 @@ const MeetingsPage = () => {
                 <label className="block text-sm font-medium text-zinc-400 mb-1">
                   Tipo de Local
                 </label>
-                <select
-                  value={newLocationType}
-                  onChange={(e) => setNewLocationType(e.target.value as any)}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-sky-500"
-                >
-                  <option value="virtual">Virtual</option>
-                  <option value="physical">Presencial</option>
-                  <option value="hybrid">Híbrido</option>
-                </select>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { value: 'virtual', label: 'Virtual' },
+                    { value: 'physical', label: 'Presencial' },
+                    { value: 'hybrid', label: 'Híbrido' },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setNewLocationType(option.value as any)}
+                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors border ${newLocationType === option.value
+                        ? 'border-sky-500 bg-sky-500/15 text-white'
+                        : 'border-zinc-700 bg-zinc-800 text-zinc-300 hover:border-zinc-600'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -1705,6 +1797,21 @@ const MeetingsPage = () => {
                 placeholder="joao@email.com, maria@email.com"
                 className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-sky-500"
               />
+              {newParticipants.trim() && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {newParticipants.split(',').map(email => email.trim()).filter(Boolean).slice(0, 5).map(email => (
+                    <span key={email} className="inline-flex items-center gap-2 rounded-full bg-zinc-800/80 px-3 py-1 text-xs text-zinc-300 border border-zinc-700">
+                      <AtSign size={12} />
+                      {email}
+                    </span>
+                  ))}
+                  {newParticipants.split(',').map(email => email.trim()).filter(Boolean).length > 5 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-zinc-800/80 px-3 py-1 text-xs text-zinc-400 border border-zinc-700">
+                      +{newParticipants.split(',').map(email => email.trim()).filter(Boolean).length - 5} mais
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Tags e Categorias */}
@@ -1719,6 +1826,121 @@ const MeetingsPage = () => {
                 placeholder="sprint, planejamento, produto"
                 className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-sky-500"
               />
+            </div>
+
+            <div className="grid gap-4">
+              <div className="bg-zinc-900/80 border border-zinc-700 rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-3 gap-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-white">Vínculos relacionados</h3>
+                    <p className="text-xs text-zinc-500">Associe a reunião a tickets, estudos e soluções existentes.</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-zinc-400">
+                    <span>{linkedTicketIds.length} tickets</span>
+                    <span>{linkedStudyIds.length} estudos</span>
+                    <span>{linkedSolutionIds.length} soluções</span>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">Chamados</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                      {availableMeetingTickets.length === 0 ? (
+                        <p className="text-xs text-zinc-500">Nenhum chamado disponível</p>
+                      ) : (
+                        availableMeetingTickets.map((ticket) => (
+                          <label
+                            key={ticket.id}
+                            className="flex items-center gap-2 p-3 rounded-xl border border-zinc-800 transition-colors hover:border-sky-500"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={linkedTicketIds.includes(ticket.id)}
+                              onChange={(e) => {
+                                setLinkedTicketIds((prev) =>
+                                  e.target.checked
+                                    ? [...prev, ticket.id]
+                                    : prev.filter((id) => id !== ticket.id)
+                                );
+                              }}
+                              className="w-4 h-4 text-sky-500 border-zinc-700 bg-zinc-900"
+                            />
+                            <div className="min-w-0">
+                              <div className="text-sm text-white truncate">{ticket.ticketNumber}</div>
+                              <div className="text-xs text-zinc-500 truncate">{ticket.clientName}</div>
+                            </div>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">Estudos</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                      {availableStudies.length === 0 ? (
+                        <p className="text-xs text-zinc-500">Nenhum estudo disponível</p>
+                      ) : (
+                        availableStudies.map((study) => (
+                          <label
+                            key={study.id}
+                            className="flex items-center gap-2 p-3 rounded-xl border border-zinc-800 transition-colors hover:border-sky-500"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={linkedStudyIds.includes(study.id)}
+                              onChange={(e) => {
+                                setLinkedStudyIds((prev) =>
+                                  e.target.checked
+                                    ? [...prev, study.id]
+                                    : prev.filter((id) => id !== study.id)
+                                );
+                              }}
+                              className="w-4 h-4 text-sky-500 border-zinc-700 bg-zinc-900"
+                            />
+                            <div className="min-w-0">
+                              <div className="text-sm text-white truncate">{study.title}</div>
+                            </div>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">Soluções</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                      {availableSolutions.length === 0 ? (
+                        <p className="text-xs text-zinc-500">Nenhuma solução disponível</p>
+                      ) : (
+                        availableSolutions.map((solution) => (
+                          <label
+                            key={solution.id}
+                            className="flex items-center gap-2 p-3 rounded-xl border border-zinc-800 transition-colors hover:border-sky-500"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={linkedSolutionIds.includes(solution.id)}
+                              onChange={(e) => {
+                                setLinkedSolutionIds((prev) =>
+                                  e.target.checked
+                                    ? [...prev, solution.id]
+                                    : prev.filter((id) => id !== solution.id)
+                                );
+                              }}
+                              className="w-4 h-4 text-sky-500 border-zinc-700 bg-zinc-900"
+                            />
+                            <div className="min-w-0">
+                              <div className="text-sm text-white truncate">{solution.title}</div>
+                            </div>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Visibilidade */}
