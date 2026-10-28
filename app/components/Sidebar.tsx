@@ -57,13 +57,6 @@ const NAV_ITEMS: NavItem[] = [
     gradient: 'from-sky-500/20 to-sky-600/10',
   },
   {
-    href: '/help-friends',
-    label: 'Help Friends',
-    icon: Sparkles,
-    color: 'text-amber-400',
-    gradient: 'from-amber-500/20 to-amber-600/10',
-  },
-  {
     href: '/notice-board',
     label: 'Mural',
     icon: Bell,
