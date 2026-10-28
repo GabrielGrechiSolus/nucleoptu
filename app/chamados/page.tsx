@@ -63,6 +63,44 @@ function ChamadosPage() {
   const [gravando, setGravando] = useState(false);
   const [msg, setMsg] = useState('');
   const pastaRef = useRef<HTMLInputElement>(null);
+  const [caminho, setCaminho] = useState('C:/RepositorioGit/chatgpt/chamados');
+  const [lendo, setLendo] = useState(false);
+
+  useEffect(() => {
+    try {
+      const salvo = localStorage.getItem('chamados-caminho');
+      if (salvo) setCaminho(salvo);
+    } catch {}
+  }, []);
+
+  const lerDoCaminho = async () => {
+    setMsg('');
+    setLendo(true);
+    try {
+      const r = await fetch('/api/chamados/importar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caminho }),
+      });
+      const j = await r.json();
+      if (!r.ok) {
+        setMsg(j.erro ?? 'Não foi possível ler a pasta.');
+        return;
+      }
+      if (!j.chamados.length) {
+        setMsg('Nenhum chamado encontrado nessa pasta.');
+        return;
+      }
+      try {
+        localStorage.setItem('chamados-caminho', caminho);
+      } catch {}
+      setPrevia(j.chamados as Chamado[]);
+    } catch {
+      setMsg('Não foi possível ler a pasta. Confirme que o sistema está rodando na sua máquina.');
+    } finally {
+      setLendo(false);
+    }
+  };
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -72,7 +110,8 @@ function ChamadosPage() {
       setItens(snap.docs.map((d) => d.data() as Chamado));
     } catch (e) {
       console.error(e);
-      setErro('Não foi possível carregar os chamados.');
+      const codigo = (e as { code?: string })?.code ?? 'erro desconhecido';
+      setErro(`Não foi possível carregar os chamados do Firestore (${codigo}).${codigo === 'permission-denied' ? ' As regras do Firestore não permitem ler a coleção chamados.' : ''}`);
     } finally {
       setCarregando(false);
     }
@@ -112,7 +151,10 @@ function ChamadosPage() {
       await carregar();
     } catch (e) {
       console.error(e);
-      setMsg('Erro ao gravar. Nada foi marcado como importado; tente novamente.');
+      const codigo = (e as { code?: string })?.code ?? 'erro desconhecido';
+      setItens((atual) => [...previa, ...atual.filter((i) => !previa.some((p) => p.id === i.id))]);
+      setPrevia(null);
+      setMsg(`Não foi possível gravar no Firestore (${codigo}${codigo === 'permission-denied' ? ': as regras não permitem escrever na coleção chamados' : ''}). Os chamados lidos estão exibidos abaixo, mas não foram salvos e somem ao atualizar a página.`);
     } finally {
       setGravando(false);
     }
@@ -188,6 +230,28 @@ function ChamadosPage() {
 
       {msg && <div className="mb-4 rounded-md border border-sky-700/50 bg-sky-900/20 px-3 py-2 text-sm text-sky-200">{msg}</div>}
       {erro && <div className="mb-4 rounded-md border border-rose-700/50 bg-rose-900/20 px-3 py-2 text-sm text-rose-200">{erro}</div>}
+
+      <section className="mb-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+        <label className="flex flex-col gap-1 text-xs text-zinc-400">
+          Pasta dos contextos (caminho no computador onde o sistema está rodando)
+          <div className="flex gap-2">
+            <input
+              value={caminho}
+              onChange={(e) => setCaminho(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !lendo && lerDoCaminho()}
+              placeholder="C:/RepositorioGit/chatgpt/chamados"
+              className="flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 font-mono text-sm text-zinc-100"
+            />
+            <button
+              onClick={lerDoCaminho}
+              disabled={lendo || !caminho.trim()}
+              className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-60"
+            >
+              {lendo ? 'Lendo...' : 'Ler pasta'}
+            </button>
+          </div>
+        </label>
+      </section>
 
       <section className="mb-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
         <div className="flex flex-wrap items-end gap-3">
