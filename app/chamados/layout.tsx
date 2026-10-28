@@ -7,7 +7,7 @@ export default function ChamadosLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-screen bg-black text-zinc-50">
+    <div className="flex mt-[60px] h-[calc(100vh-60px)] bg-black text-zinc-50">
       <Sidebar />
       <main className="flex-1 p-4 sm:p-8 overflow-y-auto">{children}</main>
     </div>

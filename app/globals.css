@@ -12,55 +12,93 @@
   display: none;  /* Chrome, Safari and Opera */
 }
 
+/* Aparência no padrão do web_relatus (tema claro, Poppins, azul #00518C e grená #B4044A).
+   As páginas usam classes Tailwind escuras (zinc/black/sky); estas regras as remapeiam para a
+   paleta do Relatus sem reescrever cada tela. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --primary: #00518c;
+  --primary-light: #1791e2;
+  --primary-dark: #003d67;
+  --secondary: #b4044a;
+  --background: #f1f1f1;
+  --surface: #ffffff;
+  --line: #ebebf0;
+  --shape: #e1e1e8;
+  --title: #121214;
+  --text: #333333;
+  --description: #454343;
+  --error: #ff301a;
+  --success: #329f92;
+  --alert: #ffa626;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
+html { color-scheme: light; }
+html body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text);
+  font-family: var(--font-poppins), Poppins, Arial, sans-serif;
 }
+html input, html select, html textarea, html button { font-family: inherit; }
 
-/* Tema claro: as páginas usam classes escuras fixas (zinc/black); estas regras as remapeiam
-   quando <html> tem a classe "light" (alternada pelo botão de tema do menu lateral). */
-html.light { color-scheme: light; }
-html.light body { background: #f4f6f8; color: #0f172a; }
+/* Superfícies */
+html [class~="bg-black"],
+html [class~="bg-zinc-950"] { background-color: var(--background) !important; }
+html [class~="bg-zinc-900"],
+html [class*="bg-zinc-900/"]:not([class*=":bg-zinc-900/"]) { background-color: var(--surface) !important; }
+html [class~="bg-zinc-800"],
+html [class*="bg-zinc-800/"]:not([class*=":bg-zinc-800/"]) { background-color: #f1f1f1 !important; }
+html [class~="bg-zinc-700"] { background-color: var(--shape) !important; }
 
-html.light [class~="bg-black"],
-html.light [class~="bg-zinc-950"] { background-color: #f4f6f8 !important; }
-html.light [class~="bg-zinc-900"],
-html.light [class*="bg-zinc-900/"]:not([class*=":bg-zinc-900/"]) { background-color: #ffffff !important; }
-html.light [class~="bg-zinc-800"],
-html.light [class*="bg-zinc-800/"]:not([class*=":bg-zinc-800/"]) { background-color: #e7eaee !important; }
-html.light [class~="bg-zinc-700"] { background-color: #d5dae1 !important; }
+/* Textos */
+html [class~="text-zinc-50"],
+html [class~="text-zinc-100"],
+html [class~="text-zinc-200"] { color: var(--title) !important; }
+html [class~="text-zinc-300"],
+html [class~="text-zinc-400"] { color: var(--description) !important; }
+html [class~="text-zinc-500"],
+html [class~="text-zinc-600"] { color: #6b6b76 !important; }
 
-html.light [class~="text-zinc-50"],
-html.light [class~="text-zinc-100"],
-html.light [class~="text-zinc-200"] { color: #0f172a !important; }
-html.light [class~="text-zinc-300"],
-html.light [class~="text-zinc-400"] { color: #475569 !important; }
-html.light [class~="text-zinc-500"],
-html.light [class~="text-zinc-600"] { color: #64748b !important; }
+/* Bordas */
+html [class*="border-zinc-"]:not([class*=":border-zinc-"]) { border-color: var(--line) !important; }
 
-html.light [class*="border-zinc-"]:not([class*=":border-zinc-"]) { border-color: #d4d8de !important; }
-html.light input,
-html.light select,
-html.light textarea { color: #0f172a; }
-html.light input::placeholder,
-html.light textarea::placeholder { color: #94a3b8; }
+/* Cor primária: o azul-céu (sky) das telas passa a ser o azul do Relatus */
+html [class~="bg-sky-500"],
+html [class~="bg-sky-600"],
+html [class~="bg-blue-600"] { background-color: var(--primary) !important; color: #fff; }
+html [class~="hover:bg-sky-500"]:hover,
+html [class~="hover:bg-sky-600"]:hover,
+html [class~="hover:bg-blue-500"]:hover { background-color: var(--primary-dark) !important; }
+html [class~="text-sky-300"],
+html [class~="text-sky-400"],
+html [class~="text-sky-500"],
+html [class~="text-blue-400"] { color: var(--primary) !important; }
+html [class~="hover:text-sky-300"]:hover,
+html [class~="hover:text-sky-400"]:hover { color: var(--primary-dark) !important; }
+html [class*="border-sky-"]:not([class*=":border-sky-"]) { border-color: var(--primary-light) !important; }
+html [class*="bg-sky-500/"],
+html [class*="bg-sky-600/"] { background-color: #00518c2b !important; }
+html [class~="from-sky-400"] { --tw-gradient-from: #00518c var(--tw-gradient-from-position) !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important; }
+html [class~="to-blue-500"],
+html [class~="to-blue-600"] { --tw-gradient-to: #003d67 var(--tw-gradient-to-position) !important; }
+
+/* Cores de estado do Relatus */
+html [class~="text-red-400"],
+html [class~="text-rose-400"] { color: var(--error) !important; }
+html [class~="text-emerald-300"],
+html [class~="text-emerald-400"] { color: var(--success) !important; }
+html [class~="text-amber-400"],
+html [class~="text-yellow-400"] { color: #c77700 !important; }
+
+/* Campos de formulário */
+html input, html select, html textarea { color: var(--text); }
+html input::placeholder, html textarea::placeholder { color: #9a9aa5; }
+html input:focus, html select:focus, html textarea:focus { outline: none; border-color: var(--primary) !important; box-shadow: 0 0 0 2px #00518c2b; }
+
+/* Cartões e modais: cantos e sombra discretos como no Relatus */
+html .rounded-xl, html .rounded-2xl { border-radius: 6px; }
+html .shadow-2xl, html .shadow-xl, html .shadow-lg { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); }
+
+/* Rolagem fina */
+html ::-webkit-scrollbar { width: 6px; height: 6px; }
+html ::-webkit-scrollbar-track { background: #f4f4f4; }
+html ::-webkit-scrollbar-thumb { background: #dad7d7; }

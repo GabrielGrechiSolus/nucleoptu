@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../AuthContext';
+import Header from './Header';
 import { auth, db } from '../../firebase';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -13,27 +14,19 @@ import {
   LogOut,
   Bell,
   Users,
-  FileText,
   Link as LinkIcon,
   HelpCircle,
   User,
   Network,
-  Calendar,
   Kanban,
-  Ticket,
-  BookOpen,
-  PieChart,
   Menu,
   X,
   ChevronLeft,
   ChevronRight,
   Sparkles,
   Search,
-  Moon,
-  Sun,
   Command,
   ArrowUpRight,
-  Layers,
   FolderSearch,
 } from 'lucide-react';
 
@@ -193,20 +186,20 @@ const NavigationItem: React.FC<{
       href={item.href}
       onClick={onClick}
       className={`
-        group relative flex items-center gap-3 px-3 py-2.5 rounded-xl
+        group relative flex items-center gap-3 px-3 py-2.5 rounded-md
         transition-all duration-300 ease-out cursor-pointer
         ${isCollapsed ? 'justify-center' : 'justify-start'}
         ${
           isActive
-            ? `bg-gradient-to-r ${item.gradient} ${item.color} shadow-lg shadow-current/5`
-            : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
+            ? 'bg-[#00518C]/10 text-[#00518C] font-semibold'
+            : 'text-[#454343] hover:text-[#00518C] hover:bg-[#00518C]/5'
         }
       `}
       title={isCollapsed ? item.label : undefined}
     >
       {/* Active Indicator */}
       {isActive && (
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-current shadow-lg shadow-current/50" />
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-[#00518C]" />
       )}
 
       {/* Icon Container */}
@@ -215,15 +208,11 @@ const NavigationItem: React.FC<{
           size={20}
           className={`
             shrink-0 transition-all duration-300
-            group-hover:scale-110 group-hover:rotate-3
+            
             ${isActive ? 'scale-110' : ''}
           `}
         />
 
-        {/* Icon Glow */}
-        {isActive && (
-          <div className="absolute inset-0 rounded-full blur-xl opacity-30 bg-current animate-pulse" />
-        )}
       </div>
 
       {/* Label */}
@@ -284,25 +273,7 @@ const Sidebar: React.FC = () => {
   const [unreadNotices, setUnreadNotices] = useState(0);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(true);
 
-  // Tema: lê a preferência salva e aplica a classe 'light' no <html>
-  useEffect(() => {
-    try {
-      const escuro = localStorage.getItem('theme') !== 'light';
-      setIsDarkMode(escuro);
-      document.documentElement.classList.toggle('light', !escuro);
-    } catch {}
-  }, []);
-
-  const alternarTema = useCallback(() => {
-    const proximoEscuro = !isDarkMode;
-    setIsDarkMode(proximoEscuro);
-    document.documentElement.classList.toggle('light', !proximoEscuro);
-    try {
-      localStorage.setItem('theme', proximoEscuro ? 'dark' : 'light');
-    } catch {}
-  }, [isDarkMode]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
@@ -535,18 +506,6 @@ const Sidebar: React.FC = () => {
 
       {/* Footer - Configurações e Logout */}
       <div className="p-3 border-t border-zinc-800/50 space-y-2">
-        {/* Alternar tema claro/escuro */}
-        <button
-          onClick={alternarTema}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/30 transition-all duration-200 ${
-            isCollapsed ? 'justify-center' : 'justify-start'
-          }`}
-          title={isCollapsed ? (isDarkMode ? 'Mudar para tema claro' : 'Mudar para tema escuro') : undefined}
-        >
-          {isDarkMode ? <Moon size={18} /> : <Sun size={18} />}
-          {!isCollapsed && <span className="text-sm font-medium">{isDarkMode ? 'Tema Escuro' : 'Tema Claro'}</span>}
-        </button>
-
         {/* Logout */}
         <button
           onClick={handleLogout}
@@ -574,6 +533,7 @@ const Sidebar: React.FC = () => {
 
   return (
     <>
+      <Header />
       {/* ===== CSS Animações ===== */}
       <style jsx global>{`
         @keyframes ledPulse {
@@ -689,10 +649,10 @@ const Sidebar: React.FC = () => {
 
       {/* ===== Desktop Sidebar ===== */}
       <aside
+        style={{ borderTop: '6px solid', borderImage: 'linear-gradient(90deg, #0053BC 0%, #00234F 100%) 1' }}
         className={`
-          hidden lg:flex flex-col h-screen sticky top-0 shrink-0
-          bg-gradient-to-b from-zinc-900 via-zinc-950 to-zinc-900
-          border-r border-zinc-800/50 shadow-2xl
+          hidden lg:flex flex-col h-full sticky top-0 shrink-0
+          bg-white border-r border-[#ebebf0] shadow-md
           transition-all duration-300 ease-in-out
           ${isCollapsed ? 'w-[72px]' : 'w-72'}
           relative z-30
