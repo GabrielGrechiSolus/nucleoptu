@@ -570,24 +570,6 @@ const HomePage = () => {
       bgColor: 'bg-amber-500/10'
     },
     {
-      id: 'tickets',
-      title: 'Chamados',
-      description: 'Abra e acompanhe solicitações',
-      icon: Ticket,
-      href: '/tickets',
-      color: 'from-blue-500 to-indigo-500',
-      bgColor: 'bg-blue-500/10'
-    },
-    {
-      id: 'studies',
-      title: 'Estudos',
-      description: 'Materiais e aprendizado colaborativo',
-      icon: BookOpen,
-      href: '/studies',
-      color: 'from-emerald-500 to-teal-500',
-      bgColor: 'bg-emerald-500/10'
-    },
-    {
       id: 'links',
       title: 'Links Úteis',
       description: 'Recursos compartilhados pela equipe',
@@ -595,15 +577,6 @@ const HomePage = () => {
       href: '/links',
       color: 'from-cyan-500 to-sky-500',
       bgColor: 'bg-cyan-500/10'
-    },
-    {
-      id: 'meetings',
-      title: 'Reuniões',
-      description: 'Agendamento e participação',
-      icon: Calendar,
-      href: '/meetings',
-      color: 'from-indigo-500 to-violet-500',
-      bgColor: 'bg-indigo-500/10'
     },
     {
       id: 'pdi',

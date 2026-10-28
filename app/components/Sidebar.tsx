@@ -34,6 +34,7 @@ import {
   Command,
   ArrowUpRight,
   Layers,
+  FolderSearch,
 } from 'lucide-react';
 
 // ===== Tipos =====
@@ -63,25 +64,11 @@ const NAV_ITEMS: NavItem[] = [
     gradient: 'from-sky-500/20 to-sky-600/10',
   },
   {
-    href: '/tickets',
-    label: 'Chamados',
-    icon: Ticket,
-    color: 'text-blue-400',
-    gradient: 'from-blue-500/20 to-blue-600/10',
-  },
-  {
     href: '/help-friends',
     label: 'Help Friends',
     icon: Sparkles,
     color: 'text-amber-400',
     gradient: 'from-amber-500/20 to-amber-600/10',
-  },
-  {
-    href: '/studies',
-    label: 'Estudos',
-    icon: BookOpen,
-    color: 'text-emerald-400',
-    gradient: 'from-emerald-500/20 to-emerald-600/10',
   },
   {
     href: '/reports',
@@ -98,11 +85,11 @@ const NAV_ITEMS: NavItem[] = [
     gradient: 'from-rose-500/20 to-rose-600/10',
   },
   {
-    href: '/meetings',
-    label: 'Reuniões',
-    icon: Calendar,
-    color: 'text-indigo-400',
-    gradient: 'from-indigo-500/20 to-indigo-600/10',
+    href: '/chamados',
+    label: 'Contexto de chamados',
+    icon: FolderSearch,
+    color: 'text-teal-400',
+    gradient: 'from-teal-500/20 to-teal-600/10',
   },
   {
     href: '/links',
@@ -118,23 +105,9 @@ const NAV_ITEMS: NavItem[] = [
     color: 'text-pink-400',
     gradient: 'from-pink-500/20 to-pink-600/10',
   },
-  {
-    href: '/solutions-questions',
-    label: 'Soluções e Perguntas',
-    icon: HelpCircle,
-    color: 'text-orange-400',
-    gradient: 'from-orange-500/20 to-orange-600/10',
-  },
 ];
 
 const ADMIN_ITEMS: NavItem[] = [
-  {
-    href: '/db-registry',
-    label: 'DB Registry',
-    icon: Layers,
-    color: 'text-gray-300',
-    gradient: 'from-gray-500/10 to-gray-600/5',
-  },
   {
     href: '/users',
     label: 'Usuários',
@@ -319,6 +292,24 @@ const Sidebar: React.FC = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
+
+  // Tema: lê a preferência salva e aplica a classe 'light' no <html>
+  useEffect(() => {
+    try {
+      const escuro = localStorage.getItem('theme') !== 'light';
+      setIsDarkMode(escuro);
+      document.documentElement.classList.toggle('light', !escuro);
+    } catch {}
+  }, []);
+
+  const alternarTema = useCallback(() => {
+    const proximoEscuro = !isDarkMode;
+    setIsDarkMode(proximoEscuro);
+    document.documentElement.classList.toggle('light', !proximoEscuro);
+    try {
+      localStorage.setItem('theme', proximoEscuro ? 'dark' : 'light');
+    } catch {}
+  }, [isDarkMode]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
@@ -551,16 +542,16 @@ const Sidebar: React.FC = () => {
 
       {/* Footer - Configurações e Logout */}
       <div className="p-3 border-t border-zinc-800/50 space-y-2">
-        {/* Toggle Modo Escuro (Decorativo) */}
+        {/* Alternar tema claro/escuro */}
         <button
-          onClick={() => setIsDarkMode(!isDarkMode)}
+          onClick={alternarTema}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/30 transition-all duration-200 ${
             isCollapsed ? 'justify-center' : 'justify-start'
           }`}
-          title={isCollapsed ? 'Alternar tema' : undefined}
+          title={isCollapsed ? (isDarkMode ? 'Mudar para tema claro' : 'Mudar para tema escuro') : undefined}
         >
           {isDarkMode ? <Moon size={18} /> : <Sun size={18} />}
-          {!isCollapsed && <span className="text-sm font-medium">Tema Escuro</span>}
+          {!isCollapsed && <span className="text-sm font-medium">{isDarkMode ? 'Tema Escuro' : 'Tema Claro'}</span>}
         </button>
 
         {/* Logout */}

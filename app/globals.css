@@ -36,3 +36,31 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Tema claro: as páginas usam classes escuras fixas (zinc/black); estas regras as remapeiam
+   quando <html> tem a classe "light" (alternada pelo botão de tema do menu lateral). */
+html.light { color-scheme: light; }
+html.light body { background: #f4f6f8; color: #0f172a; }
+
+html.light [class~="bg-black"],
+html.light [class~="bg-zinc-950"] { background-color: #f4f6f8 !important; }
+html.light [class~="bg-zinc-900"],
+html.light [class*="bg-zinc-900/"]:not([class*=":bg-zinc-900/"]) { background-color: #ffffff !important; }
+html.light [class~="bg-zinc-800"],
+html.light [class*="bg-zinc-800/"]:not([class*=":bg-zinc-800/"]) { background-color: #e7eaee !important; }
+html.light [class~="bg-zinc-700"] { background-color: #d5dae1 !important; }
+
+html.light [class~="text-zinc-50"],
+html.light [class~="text-zinc-100"],
+html.light [class~="text-zinc-200"] { color: #0f172a !important; }
+html.light [class~="text-zinc-300"],
+html.light [class~="text-zinc-400"] { color: #475569 !important; }
+html.light [class~="text-zinc-500"],
+html.light [class~="text-zinc-600"] { color: #64748b !important; }
+
+html.light [class*="border-zinc-"]:not([class*=":border-zinc-"]) { border-color: #d4d8de !important; }
+html.light input,
+html.light select,
+html.light textarea { color: #0f172a; }
+html.light input::placeholder,
+html.light textarea::placeholder { color: #94a3b8; }

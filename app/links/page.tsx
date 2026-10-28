@@ -333,7 +333,7 @@ export default function UsefulLinksPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-900 to-zinc-950 p-4 sm:p-8">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-blue-500 mb-2">
@@ -412,11 +412,11 @@ export default function UsefulLinksPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 items-stretch">
             {filteredLinks.map((link) => (
               <div
                 key={link.id}
-                className="group bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 hover:border-sky-500/50 rounded-xl p-5 transition-all hover:shadow-lg hover:shadow-sky-500/10"
+                className="group flex flex-col h-full bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 hover:border-sky-500/50 rounded-xl p-5 transition-all hover:shadow-lg hover:shadow-sky-500/10"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0">
