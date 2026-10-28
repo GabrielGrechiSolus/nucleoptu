@@ -71,13 +71,6 @@ const NAV_ITEMS: NavItem[] = [
     gradient: 'from-amber-500/20 to-amber-600/10',
   },
   {
-    href: '/reports',
-    label: 'Relatórios',
-    icon: PieChart,
-    color: 'text-purple-400',
-    gradient: 'from-purple-500/20 to-purple-600/10',
-  },
-  {
     href: '/notice-board',
     label: 'Mural',
     icon: Bell,
