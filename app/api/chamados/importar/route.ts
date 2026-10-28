@@ -6,8 +6,9 @@ import { montaChamado, numeroDaPasta, type Chamado } from '../../../chamados/par
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Lê os .md de uma pasta do disco do servidor. Só funciona com o sistema rodando na própria
-// máquina: a rota recusa qualquer host que não seja localhost.
+// Lê os .md de uma pasta do disco do servidor. É uma ferramenta de uso local: fica desligada em
+// produção (NODE_ENV=production), porque lê caminhos arbitrários do servidor e não exige login.
+// O cabeçalho Host não é usado como proteção, pois quem chama pode forjá-lo.
 const HOSTS_LOCAIS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
 
 async function lePastaChamado(dir: string): Promise<Chamado | null> {
@@ -20,9 +21,11 @@ async function lePastaChamado(dir: string): Promise<Chamado | null> {
 }
 
 export async function POST(req: Request) {
-  const host = new URL(req.url).hostname;
-  if (!HOSTS_LOCAIS.has(host)) {
-    return NextResponse.json({ erro: 'A leitura por caminho só está disponível com o sistema rodando em localhost.' }, { status: 403 });
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ erro: 'A leitura por caminho só está disponível no ambiente de desenvolvimento local.' }, { status: 403 });
+  }
+  if (!HOSTS_LOCAIS.has(new URL(req.url).hostname)) {
+    return NextResponse.json({ erro: 'A leitura por caminho só está disponível em localhost.' }, { status: 403 });
   }
 
   let caminho = '';
