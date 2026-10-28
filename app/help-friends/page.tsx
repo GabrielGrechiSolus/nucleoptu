@@ -22,8 +22,7 @@ import {
 import HelpFriendModal from './components/HelpFriendModal';
 import HelpDetailModal from './components/HelpDetailModal';
 import HelpFriendCard from './components/HelpFriendCard';
-import { HelpFriend, HelpStatus } from './types';
-import { Ticket } from '../tickets/components/TicketModal';
+import { HelpFriend, HelpStatus, Ticket } from './types';
 
 // ==================== TIPOS ====================
 

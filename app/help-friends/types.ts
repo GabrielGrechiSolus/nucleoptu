@@ -42,3 +42,10 @@ export interface HelpFriendWithTicket extends HelpFriend {
     status: 'open' | 'closed';
   };
 }
+
+// Chamado selecionável no pedido de ajuda (coleção tickets do Firestore)
+export interface Ticket {
+  id: string;
+  ticketNumber: string;
+  clientName: string;
+}

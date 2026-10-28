@@ -9,8 +9,6 @@ import { motion, AnimatePresence, Reorder } from 'framer-motion';
 // Ícones
 import {
   LayoutDashboard,
-  Users,
-  FileText,
   Link2,
   Star,
   TrendingUp,
@@ -32,9 +30,6 @@ import {
   Smile,
   ThumbsUp,
   Eye,
-  Ticket,
-  BookOpen,
-  PieChart,
   Network,
   HeadphonesIcon,
   Kanban,
