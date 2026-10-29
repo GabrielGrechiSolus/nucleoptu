@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import os from 'node:os';
 import { promisify } from 'node:util';
 
 // Utilitários das rotas de API (somente servidor).
@@ -6,26 +7,31 @@ import { promisify } from 'node:util';
 const exec = promisify(execFile);
 
 // ---------- Rede interna ----------
-// - O endereço usado no acesso precisa estar em IMPORT_HOSTS (padrão: 172.16.81.235 e localhost).
-// - Quando o IP de origem é informado (x-forwarded-for / x-real-ip), precisa começar com IMPORT_REDE_PREFIXO
-//   (padrão: 172.16.81.) ou ser o próprio computador.
+// - O endereço usado no acesso precisa ser: um IP que comece com um dos prefixos de IMPORT_REDE_PREFIXO
+//   (padrão: 172.16.81. e 172.16.82., Wi-Fi e cabo), ou um nome de IMPORT_HOSTS (padrão: localhost e o nome deste computador).
+// - Quando o IP de origem é informado (x-forwarded-for / x-real-ip), também precisa começar com um dos prefixos
+//   ou ser o próprio computador.
 // O Next.js não expõe o IP do socket nas rotas; a barreira de rede de verdade é o firewall.
-export const HOSTS_PERMITIDOS = (process.env.IMPORT_HOSTS ?? '172.16.81.235,localhost,127.0.0.1,[::1]')
+const PREFIXOS_REDE = (process.env.IMPORT_REDE_PREFIXO ?? '172.16.81.,172.16.82.')
+  .split(',')
+  .map((p) => p.trim())
+  .filter(Boolean);
+export const HOSTS_PERMITIDOS = (process.env.IMPORT_HOSTS ?? `localhost,127.0.0.1,[::1],${os.hostname()}`)
   .split(',')
   .map((h) => h.trim().toLowerCase())
   .filter(Boolean);
-const REDE_PREFIXO = process.env.IMPORT_REDE_PREFIXO ?? '172.16.81.';
 const LOCAIS = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+const naRede = (ip: string) => PREFIXOS_REDE.some((p) => ip.startsWith(p));
 
 export function origemPermitida(req: Request): { ok: boolean; motivo?: string } {
   // Endereço que a pessoa digitou (cabeçalho Host); req.url pode vir normalizado para o endereço de escuta (0.0.0.0).
   const bruto = (req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? new URL(req.url).host).toLowerCase();
   const host = bruto.startsWith('[') ? bruto.slice(0, bruto.indexOf(']') + 1) : bruto.split(':')[0];
-  if (!HOSTS_PERMITIDOS.includes(host)) {
-    return { ok: false, motivo: `Este recurso só é permitido na rede interna. Acesse por http://${HOSTS_PERMITIDOS[0]}.` };
+  if (!HOSTS_PERMITIDOS.includes(host) && !naRede(host)) {
+    return { ok: false, motivo: `Este recurso só é permitido na rede interna. Acesse pelo endereço do servidor na rede (${PREFIXOS_REDE.map((p) => `${p}x`).join(' ou ')}). Você acessou por ${host}.` };
   }
   const ip = (req.headers.get('x-forwarded-for')?.split(',')[0] ?? req.headers.get('x-real-ip') ?? '').trim();
-  if (ip && !ip.startsWith(REDE_PREFIXO) && !LOCAIS.has(ip)) {
+  if (ip && !naRede(ip) && !LOCAIS.has(ip)) {
     return { ok: false, motivo: 'Este recurso só é permitido a partir da rede interna.' };
   }
   return { ok: true };
