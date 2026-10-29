@@ -181,8 +181,8 @@ function FilaPage() {
               <div><dt className="text-xs text-zinc-500">Status</dt><dd><span className={`rounded px-2 py-0.5 text-xs ${estiloStatus[selecionado.aplicacao]}`}>{ROTULO_STATUS[selecionado.aplicacao]}</span></dd></div>
               <div><dt className="text-xs text-zinc-500">Pedido por</dt><dd>{selecionado.criadoPorNome || selecionado.criadoPorEmail}</dd></div>
               <div className="col-span-2"><dt className="text-xs text-zinc-500">Correção</dt><dd>{selecionado.contextoNumero} — {selecionado.contextoAssunto}</dd></div>
-              <div className="col-span-2"><dt className="text-xs text-zinc-500">Quem aplica (dono do PR)</dt><dd>{selecionado.donoNomes.join(', ') || 'não informado'}{selecionado.donoLogins.length ? ` (${selecionado.donoLogins.join(', ')})` : ''}</dd></div>
-              <div className="col-span-2"><dt className="text-xs text-zinc-500">PRs</dt><dd className="font-mono text-xs">{selecionado.prs.join(', ') || '—'}</dd></div>
+              <div className="col-span-2"><dt className="text-xs text-zinc-500">Quem aplica (dono do PR)</dt><dd>{selecionado.donoNomes.join(', ') || 'não informado'}{!pessoa.semGit && selecionado.donoLogins.length ? ` (${selecionado.donoLogins.join(', ')})` : ''}</dd></div>
+              {!pessoa.semGit && <div className="col-span-2"><dt className="text-xs text-zinc-500">PRs</dt><dd className="font-mono text-xs">{selecionado.prs.join(', ') || '—'}</dd></div>}
               {selecionado.observacao && <div className="col-span-2"><dt className="text-xs text-zinc-500">Observação</dt><dd>{selecionado.observacao}</dd></div>}
             </dl>
             <div className="mb-4"><BotoesAcao v={selecionado} /></div>

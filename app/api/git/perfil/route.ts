@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { ErroGithub, githubGet, githubToken, origemPermitida, verificaFirebase } from '../../_servidor';
+import { ErroGithub, githubGet, githubToken, origemPermitida, tipoDePerfil, verificaFirebase } from '../../_servidor';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -71,6 +71,11 @@ export async function GET(req: Request) {
   if (!origem.ok) return NextResponse.json({ erro: origem.motivo }, { status: 403 });
   const login_ = await verificaFirebase(req);
   if (!login_.ok) return NextResponse.json({ erro: login_.motivo }, { status: 401 });
+
+  // Perfil Sustentação não tem acesso ao Git. Sem conseguir confirmar o perfil, nega (fail closed).
+  const perfil = await tipoDePerfil(login_.uid ?? '', login_.token ?? '');
+  if (!perfil.ok) return NextResponse.json({ erro: 'Não foi possível confirmar o seu perfil agora. Tente novamente.' }, { status: 503 });
+  if (perfil.tipo === 'sustentacao') return NextResponse.json({ erro: 'O perfil Sustentação não tem acesso ao Git.' }, { status: 403 });
 
   const params = new URL(req.url).searchParams;
   const login = (params.get('login') ?? '').trim().replace(/^@/, '');

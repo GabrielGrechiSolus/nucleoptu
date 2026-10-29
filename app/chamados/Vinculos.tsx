@@ -114,7 +114,7 @@ export function Historico({ itens }: { itens: HistoricoAplicacao[] }) {
 }
 
 // Seção do detalhe do contexto: chamados que precisaram desta correção e pedido de aplicação no cliente.
-export default function Vinculos({ contexto }: { contexto: Chamado }) {
+export default function Vinculos({ contexto, semGit = false }: { contexto: Chamado; semGit?: boolean }) {
   const pessoa = usePessoa();
   const [lista, setLista] = useState<Vinculo[]>([]);
   const [erroLista, setErroLista] = useState('');
@@ -196,7 +196,7 @@ export default function Vinculos({ contexto }: { contexto: Chamado }) {
       </div>
       <p className="mb-2 text-xs text-zinc-400">
         Dono do PR (quem aplica no cliente): {donos.nomes.length ? donos.nomes.join(', ') : 'não informado'}
-        {donos.logins.length ? ` (${donos.logins.join(', ')})` : ' — sem usuário Git: qualquer pessoa pode assumir a aplicação'}.
+        {semGit ? '' : donos.logins.length ? ` (${donos.logins.join(', ')})` : ' — sem usuário Git: qualquer pessoa pode assumir a aplicação'}.
       </p>
 
       {abrindoForm && (

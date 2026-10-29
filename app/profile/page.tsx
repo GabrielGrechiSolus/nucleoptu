@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "../AuthContext";
 import Link from "next/link";
 import GitTab from "./GitTab";
+import { fotoDoGit } from "../components/fotoGit";
 import { updateProfile } from "firebase/auth";
 import { auth, db } from "../../firebase";
 import {
@@ -121,7 +122,7 @@ export default function ProfilePage() {
         setProfile({
           name: data.name || user.displayName || "",
           bio: data.bio || "",
-          avatar: data.avatar || user.photoURL || "",
+          avatar: data.gitUser ? fotoDoGit(data.gitUser, 200) : data.avatar || user.photoURL || "",
           ledColor: data.ledColor || getRandomColor(),
           email: user.email || "",
           gitUser: data.gitUser || "",
@@ -134,7 +135,7 @@ export default function ProfilePage() {
           })),
         });
         
-        const avatarUrl = data.avatar || user.photoURL || generateAvatar(data.name || user.displayName || "");
+        const avatarUrl = data.gitUser ? fotoDoGit(data.gitUser, 200) : data.avatar || user.photoURL || generateAvatar(data.name || user.displayName || "");
         setPreview(avatarUrl);
       } else {
         const defaultAvatar = generateAvatar(user.displayName || "");
@@ -225,6 +226,9 @@ export default function ProfilePage() {
       toast.error("Erro ao remover foto.");
     }
   };
+
+  // Perfil Sustentação não tem acesso ao Git: sem aba Git e sem vínculo (também enquanto o perfil carrega).
+  const semGit = loading || profile.noticeType === "sustentacao";
 
   const totalElogios = useMemo(() => 
     profile.skills.reduce((acc, s) => acc + (s.score || 0), 0),
@@ -323,6 +327,7 @@ export default function ProfilePage() {
                   <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-sky-400 to-blue-500 rounded-full" />
                 )}
               </button>
+              {!semGit && (
               <button
                 onClick={() => setActiveTab("git")}
                 className={`px-4 py-2 font-medium transition-colors relative ${
@@ -336,6 +341,7 @@ export default function ProfilePage() {
                   <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-sky-400 to-blue-500 rounded-full" />
                 )}
               </button>
+              )}
             </div>
 
             {activeTab === "profile" && (
@@ -371,6 +377,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Usuário no Git */}
+                {!semGit && (
                 <div>
                   <label className="text-sm font-medium text-zinc-300 flex items-center gap-2 mb-2" htmlFor="git-user">
                     <FileText size={16} />
@@ -388,6 +395,7 @@ export default function ProfilePage() {
                     Liga você aos PRs que você faz. É com ele que a fila de aplicação mostra o que está para você aplicar no cliente.
                   </p>
                 </div>
+                )}
 
                 {/* LED Color */}
                 <div>
@@ -465,11 +473,14 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {activeTab === "git" && user && (
+            {activeTab === "git" && user && !semGit && (
               <GitTab
                 uid={user.uid}
                 gitUser={profile.gitUser}
-                onVinculado={(login) => setProfile((prev) => ({ ...prev, gitUser: login }))}
+                onVinculado={(login) => {
+                  setProfile((prev) => ({ ...prev, gitUser: login, avatar: fotoDoGit(login, 200) }));
+                  setPreview(fotoDoGit(login, 200));
+                }}
               />
             )}
           </div>

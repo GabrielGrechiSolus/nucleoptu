@@ -5,9 +5,11 @@ import Link from 'next/link';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../AuthContext';
+import { fotoDoGit } from './fotoGit';
 
 interface PerfilHeader {
   avatar?: string;
+  gitUser?: string;
   ledColor: string;
   ledAnimation: string;
   displayName?: string;
@@ -35,6 +37,7 @@ export default function Header() {
         const d = snap.data();
         setPerfil({
           avatar: d?.avatar,
+          gitUser: d?.gitUser,
           ledColor: d?.ledColor || '#00518C',
           ledAnimation: d?.ledAnimation || 'pulse',
           displayName: d?.displayName,
@@ -48,7 +51,11 @@ export default function Header() {
 
   const nomeCompleto = perfil.displayName || user?.displayName || user?.email || '';
   const nome = nomeCompleto.split(/[ @]/)[0];
-  const foto = useMemo(() => perfil.avatar || avatarIniciais(nomeCompleto || '?'), [perfil.avatar, nomeCompleto]);
+  // Quem tem o Git vinculado usa automaticamente a foto do GitHub; senão, a foto do perfil ou as iniciais.
+  const foto = useMemo(
+    () => (perfil.gitUser ? fotoDoGit(perfil.gitUser) : perfil.avatar || avatarIniciais(nomeCompleto || '?')),
+    [perfil.gitUser, perfil.avatar, nomeCompleto],
+  );
 
   return (
     <header className="fixed left-0 right-0 top-0 z-40 flex h-[60px] items-center justify-between border-b border-[#ebebf0] bg-white pl-14 pr-5 shadow-sm lg:pl-5">

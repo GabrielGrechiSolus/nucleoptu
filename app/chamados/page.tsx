@@ -9,6 +9,9 @@ import { Chamado, lerPasta, ROTULO_SITUACAO, ROTULO_TIPO } from './parse';
 import { CAMPOS_REGRA, MODELO_REGRA } from './modelo';
 import { SortTh, sortRows, useSort } from '../components/SortableTable';
 import Vinculos from './Vinculos';
+import { filtraChamados } from './filtro';
+import { usePessoa } from '../components/usePessoa';
+import { semGitChamado } from './semgit';
 
 type Tri = 'todos' | 'sim' | 'nao';
 type Aba = 'todos' | 'em-correcao' | 'corrigidos' | 'regras';
@@ -86,7 +89,11 @@ function Md({ texto }: { texto: string }) {
 }
 
 function ChamadosPage() {
-  const [itens, setItens] = useState<Chamado[]>([]);
+  const [itensBrutos, setItens] = useState<Chamado[]>([]);
+  const pessoa = usePessoa();
+  const semGit = pessoa.semGit;
+  // Perfil Sustentação: sem links, PRs nem branches do Git (evidência, plano e análise continuam visíveis).
+  const itens = useMemo(() => (semGit ? itensBrutos.map(semGitChamado) : itensBrutos), [itensBrutos, semGit]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const [busca, setBusca] = useState('');
@@ -243,37 +250,25 @@ function ChamadosPage() {
     [itens],
   );
 
-  const filtrados = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    const lista = itens.filter((c) => {
-      if (aba === 'em-correcao' && c.situacao !== 'em-correcao') return false;
-      if (aba === 'corrigidos' && c.situacao !== 'corrigido') return false;
-      if (aba === 'regras' && c.tipo !== 'regra' && c.tipo !== 'orientacao') return false;
-      if (!passa(c.temPr, fPr) || !passa(c.temEvidencia, fEvid) || !passa(c.temPlano, fPlano) || !passa(!!c.temRegra, fRegra)) return false;
-      if (fCliente && c.cliente !== fCliente) return false;
-      if (fModulo && c.modulo !== fModulo) return false;
-      if (fAutor && !(c.autores ?? []).includes(fAutor)) return false;
-      if (fRevision && c.revision !== fRevision) return false;
-      if (!q) return true;
-      const cabecalho = [c.numero, c.id, c.cliente, c.assunto, c.resumo, c.status, c.modulo, c.caminhoTela, c.revision, ...(c.autores ?? []), ...c.prs.map((p) => p.numero), ...c.branches].join(' ').toLowerCase();
-      if (cabecalho.includes(q)) return true;
-      return noConteudo && Object.values(c.docs ?? {}).some((t) => t.toLowerCase().includes(q));
-    });
-    return sortRows(lista, sort, {
-      numero: (c) => c.id,
-      assunto: (c) => c.assunto,
-      tipo: (c) => ROTULO_TIPO[c.tipo ?? ''] === '—' ? '' : ROTULO_TIPO[c.tipo ?? ''],
-      situacao: (c) => (c.situacao ? ROTULO_SITUACAO[c.situacao] : ''),
-      modulo: (c) => c.modulo,
-      autor: (c) => (c.autores ?? []).join(', '),
-      revision: (c) => c.revision,
-      publicado: (c) => c.publicadoEm || '',
-      prs: (c) => c.prs.length,
-      evidencia: (c) => c.temEvidencia,
-      plano: (c) => c.temPlano,
-      atualizado: (c) => dataParaNumero(c.atualizadoEm),
-    });
-  }, [itens, busca, noConteudo, aba, fPr, fEvid, fPlano, fRegra, fCliente, fModulo, fRevision, sort]);
+  // Sem useMemo: a lista é pequena e assim nenhum filtro fica de fora das dependências (o filtro de autor já ficou).
+  const filtrados = sortRows(
+    filtraChamados(itens, { busca, noConteudo, aba, pr: fPr, evidencia: fEvid, plano: fPlano, regra: fRegra, cliente: fCliente, modulo: fModulo, autor: fAutor, revision: fRevision }),
+    sort,
+    {
+    numero: (c) => c.id,
+    assunto: (c) => c.assunto,
+    tipo: (c) => ROTULO_TIPO[c.tipo ?? ''] === '—' ? '' : ROTULO_TIPO[c.tipo ?? ''],
+    situacao: (c) => (c.situacao ? ROTULO_SITUACAO[c.situacao] : ''),
+    modulo: (c) => c.modulo,
+    autor: (c) => (c.autores ?? []).join(', '),
+    revision: (c) => c.revision,
+    publicado: (c) => c.publicadoEm || '',
+    prs: (c) => c.prs.length,
+    evidencia: (c) => c.temEvidencia,
+    plano: (c) => c.temPlano,
+    atualizado: (c) => dataParaNumero(c.atualizadoEm),
+    },
+  );
 
   const limpar = () => {
     setBusca('');
@@ -432,7 +427,7 @@ function ChamadosPage() {
               {revisions.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </label>
-          <FiltroTri rotulo="Tem PR" valor={fPr} onChange={setFPr} />
+          {!semGit && <FiltroTri rotulo="Tem PR" valor={fPr} onChange={setFPr} />}
           <FiltroTri rotulo="Evidência" valor={fEvid} onChange={setFEvid} />
           <FiltroTri rotulo="Plano de testes" valor={fPlano} onChange={setFPlano} />
           <FiltroTri rotulo="Tem REGRA.md" valor={fRegra} onChange={setFRegra} />
@@ -461,16 +456,16 @@ function ChamadosPage() {
               <SortTh label="Módulo" k="modulo" sort={sort} onSort={toggleSort} className="hidden lg:table-cell" />
               <SortTh label="Revision" k="revision" sort={sort} onSort={toggleSort} className="hidden sm:table-cell" />
               <SortTh label="Publicado em" k="publicado" sort={sort} onSort={toggleSort} className="hidden md:table-cell" />
-              <SortTh label="PRs" k="prs" sort={sort} onSort={toggleSort} className="hidden lg:table-cell" />
+              {!semGit && <SortTh label="PRs" k="prs" sort={sort} onSort={toggleSort} className="hidden lg:table-cell" />}
               <SortTh label="Evidência" k="evidencia" sort={sort} onSort={toggleSort} className="hidden xl:table-cell" />
               <SortTh label="Plano" k="plano" sort={sort} onSort={toggleSort} className="hidden xl:table-cell" />
             </tr>
           </thead>
           <tbody>
-            {carregando && <tr><td colSpan={11} className="px-3 py-8 text-center text-zinc-500">Carregando...</td></tr>}
+            {carregando && <tr><td colSpan={semGit ? 10 : 11} className="px-3 py-8 text-center text-zinc-500">Carregando...</td></tr>}
             {!carregando && !filtrados.length && (
               <tr>
-                <td colSpan={11} className="px-3 py-8 text-center text-zinc-500">
+                <td colSpan={semGit ? 10 : 11} className="px-3 py-8 text-center text-zinc-500">
                   {itens.length ? 'Nenhum chamado com esses filtros.' : 'Nenhum contexto importado ainda. Use “Importar contextos”.'}
                 </td>
               </tr>
@@ -490,7 +485,7 @@ function ChamadosPage() {
                 <td className="hidden px-3 py-2 text-zinc-300 lg:table-cell">{c.modulo || '—'}</td>
                 <td className="hidden px-3 py-2 text-zinc-300 sm:table-cell">{c.revision || (c.situacao === 'em-correcao' ? 'ainda não saiu' : '—')}</td>
                 <td className="hidden whitespace-nowrap px-3 py-2 text-zinc-400 md:table-cell">{formataIso(c.publicadoEm) || '—'}</td>
-                <td className="hidden px-3 py-2 lg:table-cell">
+                <td className={semGit ? 'hidden' : 'hidden px-3 py-2 lg:table-cell'}>
                   <div className="flex flex-wrap gap-1">
                     {c.prs.length ? c.prs.slice(0, 3).map((p) => (
                       <span key={p.numero} className="rounded bg-violet-500/15 px-1.5 py-0.5 text-xs text-violet-300">#{p.numero}</span>
@@ -603,10 +598,10 @@ function ChamadosPage() {
               {aberto.resumo && !aberto.temRegra && <div className="col-span-2 sm:col-span-3"><dt className="text-xs text-zinc-500">Resumo</dt><dd className="text-zinc-300">{aberto.resumo}</dd></div>}
             </dl>
 
-            {aberto.temPr && <Vinculos contexto={aberto} />}
+            {aberto.temPr && <Vinculos contexto={aberto} semGit={semGit} />}
 
             <div className="mb-4 space-y-3 text-sm">
-              <div>
+              <div className={semGit ? 'hidden' : undefined}>
                 <div className="mb-1 flex items-center gap-2 text-xs text-zinc-500"><GitPullRequest className="h-4 w-4" /> PRs</div>
                 <div className="flex flex-wrap gap-2">
                   {aberto.prs.length ? aberto.prs.map((p) =>

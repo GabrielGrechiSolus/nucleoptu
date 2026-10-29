@@ -5,6 +5,7 @@ import { collection, doc, getDocs, serverTimestamp, setDoc, writeBatch } from 'f
 import { ExternalLink, GitPullRequest, Loader2, RefreshCcw, Wand2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { auth, db } from '../../firebase';
+import { fotoDoGit } from '../components/fotoGit';
 import { SortTh, sortRows, useSort } from '../components/SortableTable';
 import type { Chamado } from '../chamados/parse';
 import { agrupaPorChamado, chamadoDoTitulo, montaContextoDePrs, type PrGithub, type UsuarioGithub } from '../chamados/github';
@@ -123,7 +124,7 @@ export default function GitTab({ uid, gitUser, onVinculado }: { uid: string; git
     const d = await buscar(alvo, dias);
     if (!d) return;
     try {
-      await setDoc(doc(db, 'profiles', uid), { gitUser: d.usuario.login }, { merge: true });
+      await setDoc(doc(db, 'profiles', uid), { gitUser: d.usuario.login, avatar: fotoDoGit(d.usuario.login, 200), avatarOrigem: 'git' }, { merge: true });
       onVinculado(d.usuario.login);
       toast.success(`Git vinculado: ${d.usuario.login}`);
     } catch (e) {

@@ -33,7 +33,7 @@ export function origemPermitida(req: Request): { ok: boolean; motivo?: string } 
 
 // ---------- Login do Firebase ----------
 // Valida o ID token enviado em "Authorization: Bearer ..." pela API pública do Firebase (sem SDK de admin).
-export async function verificaFirebase(req: Request): Promise<{ ok: boolean; email?: string; motivo?: string }> {
+export async function verificaFirebase(req: Request): Promise<{ ok: boolean; email?: string; uid?: string; token?: string; motivo?: string }> {
   const token = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '').trim();
   if (!token) return { ok: false, motivo: 'Entre no sistema para usar este recurso.' };
   const chave = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
@@ -45,11 +45,30 @@ export async function verificaFirebase(req: Request): Promise<{ ok: boolean; ema
       body: JSON.stringify({ idToken: token }),
     });
     if (!r.ok) return { ok: false, motivo: 'Login inválido ou expirado. Entre novamente.' };
-    const j = (await r.json()) as { users?: { email?: string }[] };
+    const j = (await r.json()) as { users?: { email?: string; localId?: string }[] };
     if (!j.users?.length) return { ok: false, motivo: 'Login inválido ou expirado. Entre novamente.' };
-    return { ok: true, email: j.users[0].email };
+    return { ok: true, email: j.users[0].email, uid: j.users[0].localId, token };
   } catch {
     return { ok: false, motivo: 'Não foi possível validar o login agora.' };
+  }
+}
+
+// Tipo do perfil (profiles/{uid}.noticeType) lido pela API REST do Firestore com o próprio login da pessoa,
+// então vale a mesma regra de acesso do Firestore. Sem documento de perfil, o tipo é vazio.
+export async function tipoDePerfil(uid: string, idToken: string): Promise<{ ok: boolean; tipo: string }> {
+  const projeto = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  if (!projeto || !uid) return { ok: false, tipo: '' };
+  try {
+    const r = await fetch(`https://firestore.googleapis.com/v1/projects/${projeto}/databases/(default)/documents/profiles/${encodeURIComponent(uid)}`, {
+      headers: { Authorization: `Bearer ${idToken}` },
+      cache: 'no-store',
+    });
+    if (r.status === 404) return { ok: true, tipo: '' };
+    if (!r.ok) return { ok: false, tipo: '' };
+    const j = (await r.json()) as { fields?: { noticeType?: { stringValue?: string } } };
+    return { ok: true, tipo: j.fields?.noticeType?.stringValue ?? '' };
+  } catch {
+    return { ok: false, tipo: '' };
   }
 }
 
