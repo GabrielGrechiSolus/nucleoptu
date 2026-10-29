@@ -80,6 +80,7 @@ export interface BmResumoLista {
   prazo: string;
   responsavel: string;
   url: string;
+  atualizadoEm: string; // last_modified do cartão no BM
 }
 
 export interface BmCartao extends BmResumoLista {
@@ -182,6 +183,7 @@ export function resumoDoCartao(card: BmCartaoBruto, meta: BmMeta, base: string):
     prazo: data(card.deadline),
     responsavel: card.owner_user_id ? meta.usuarios[card.owner_user_id] ?? `usuário ${card.owner_user_id}` : '—',
     url: urlDoCartao(base, card.board_id, card.card_id),
+    atualizadoEm: data(card.last_modified),
   };
 }
 
@@ -195,12 +197,9 @@ export function montaCartaoBm(
 ): BmCartao {
   const resumo = resumoDoCartao(card, meta, base);
   const campos = camposDe(card, meta);
-  const campo = (re: RegExp) => campos.find((c) => re.test(c.nome))?.valor ?? '';
-  const conclusao = campo(/texto conclus/i);
-  const prVinculado = campo(/^git pr/i);
 
   const lig = new Map(vinculados.map((v) => [v.card_id, v]));
-  return {
+  const cartao: BmCartao = {
     ...resumo,
     titulo: card.title ?? '',
     quadroId: card.board_id ?? null,
@@ -246,18 +245,9 @@ export function montaCartaoBm(
         tipoVinculo: l.link_type ?? '',
       };
     }),
-    conferencia: [
-      { item: 'Analista responsável definido', situacao: card.owner_user_id ? 'ok' : 'pendente', detalhe: card.owner_user_id ? resumo.responsavel : 'Sem responsável no card.' },
-      {
-        item: 'Texto de conclusão complementado',
-        situacao: !conclusao.trim() ? 'pendente' : conclusao.includes(MENSAGEM_PADRAO_CONCLUSAO) && conclusao.replace(MENSAGEM_PADRAO_CONCLUSAO, '').replace(/\[\]|Obrigado[\s\S]*$/gi, '').trim().length < 40 ? 'atencao' : 'ok',
-        detalhe: !conclusao.trim() ? 'Campo vazio.' : 'Preenchido; confira se vai além da mensagem padrão (problema, origem e ação).',
-      },
-      { item: 'PR informado', situacao: prVinculado || contexto.temPr ? 'ok' : 'pendente', detalhe: prVinculado ? 'Campo Git PR do card preenchido.' : contexto.temPr ? 'Há PR no contexto (o campo Git PR do card está vazio).' : 'Sem PR no card nem no contexto.' },
-      { item: 'Evidência e plano de testes', situacao: campo(/^qa - document/i) || contexto.temEvidencia ? 'ok' : 'pendente', detalhe: campo(/^qa - document/i) ? 'Campo QA - Documentação preenchido.' : contexto.temEvidencia ? 'Há evidência no contexto.' : 'Sem evidência nem documentação de QA.' },
-      { item: 'Sem bloqueio', situacao: card.is_blocked ? 'atencao' : 'ok', detalhe: card.is_blocked ? motivo(card.block_reason) || 'Card bloqueado.' : 'Não está bloqueado.' },
-    ],
+    conferencia: [],
   };
+  return { ...cartao, conferencia: conferenciaDeCartao(cartao, contexto) };
 }
 
 // Visão sem Git (perfil Sustentação): esconde campos e links do Git nos textos do cartão.
@@ -272,4 +262,32 @@ export function cartaoSemGit(c: BmCartao, ocultaGit: (t: string) => string): BmC
     anexos: c.anexos.filter((a) => !/github\.com/i.test(a.link)),
     conferencia: c.conferencia.map((i) => (i.item === 'PR informado' ? { ...i, detalhe: i.situacao === 'ok' ? 'Informado.' : 'Pendente.' } : i)),
   };
+}
+
+// Conferência do card (itens do processo BM/Relatus). Recalculada a cada exibição: PR e evidência vêm do contexto atual.
+export function conferenciaDeCartao(
+  c: Pick<BmCartao, 'responsavel' | 'campos' | 'bloqueado' | 'motivoBloqueio'>,
+  contexto: { temPr: boolean; temEvidencia: boolean },
+  semGit = false,
+): BmCartao['conferencia'] {
+  const campo = (re: RegExp) => c.campos.find((x) => re.test(x.nome))?.valor ?? '';
+  const conclusao = campo(/texto conclus/i);
+  const prVinculado = campo(/^git pr/i);
+  const semResp = !c.responsavel || c.responsavel === '—';
+  const prOk = !!prVinculado || contexto.temPr;
+  return [
+    { item: 'Analista responsável definido', situacao: semResp ? 'pendente' : 'ok', detalhe: semResp ? 'Sem responsável no card.' : c.responsavel },
+    {
+      item: 'Texto de conclusão complementado',
+      situacao: !conclusao.trim() ? 'pendente' : conclusao.includes(MENSAGEM_PADRAO_CONCLUSAO) && conclusao.replace(MENSAGEM_PADRAO_CONCLUSAO, '').replace(/\[\]|Obrigado[\s\S]*$/gi, '').trim().length < 40 ? 'atencao' : 'ok',
+      detalhe: !conclusao.trim() ? 'Campo vazio.' : 'Preenchido; confira se vai além da mensagem padrão (problema, origem e ação).',
+    },
+    {
+      item: 'PR informado',
+      situacao: prOk ? 'ok' : 'pendente',
+      detalhe: semGit ? (prOk ? 'Informado.' : 'Pendente.') : prVinculado ? 'Campo Git PR do card preenchido.' : contexto.temPr ? 'Há PR no contexto (o campo Git PR do card está vazio).' : 'Sem PR no card nem no contexto.',
+    },
+    { item: 'Evidência e plano de testes', situacao: campo(/^qa - document/i) || contexto.temEvidencia ? 'ok' : 'pendente', detalhe: campo(/^qa - document/i) ? 'Campo QA - Documentação preenchido.' : contexto.temEvidencia ? 'Há evidência no contexto.' : 'Sem evidência nem documentação de QA.' },
+    { item: 'Sem bloqueio', situacao: c.bloqueado ? 'atencao' : 'ok', detalhe: c.bloqueado ? c.motivoBloqueio || 'Card bloqueado.' : 'Não está bloqueado.' },
+  ];
 }

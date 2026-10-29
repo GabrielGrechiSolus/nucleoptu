@@ -4,15 +4,18 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import withAuth from '../components/withAuth';
 import { collection, doc, getDocs, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
-import { FolderSearch, Search, Upload, RefreshCcw, X, ExternalLink, GitPullRequest, FlaskConical, ClipboardList, FileText, Copy } from 'lucide-react';
+import { FolderSearch, Search, Upload, RefreshCcw, X, FileText, Copy } from 'lucide-react';
 import { Chamado, lerPasta, ROTULO_SITUACAO, ROTULO_TIPO } from './parse';
 import { CAMPOS_REGRA, MODELO_REGRA } from './modelo';
 import { SortTh, sortRows, useSort } from '../components/SortableTable';
-import Vinculos from './Vinculos';
 import { filtraChamados } from './filtro';
 import { usePessoa } from '../components/usePessoa';
 import { semGitChamado } from './semgit';
-import BmPainel, { BmColuna, soDigitos, useBmLista } from './BmPainel';
+import { BmColuna } from './BmPainel';
+import { chamadosDaPessoa, soDigitos, type RegistroBm } from './bmRegistro';
+import { lerRegistrosBm, sincronizaBm } from './bmSync';
+import { lerChaveBm } from './bmChave';
+import DetalheChamado from './DetalheChamado';
 
 type Tri = 'todos' | 'sim' | 'nao';
 type Aba = 'todos' | 'em-correcao' | 'corrigidos' | 'regras';
@@ -96,7 +99,54 @@ function ChamadosPage() {
   // Perfil Sustentação: sem links, PRs nem branches do Git (evidência, plano e análise continuam visíveis).
   const itens = useMemo(() => (semGit ? itensBrutos.map(semGitChamado) : itensBrutos), [itensBrutos, semGit]);
   const [carregando, setCarregando] = useState(true);
-  const bm = useBmLista(itensBrutos.map((c) => c.numero));
+  // Dados do BM gravados no banco (coleção chamados_bm): todos leem; só quem tem a chave do BM sincroniza.
+  const [registros, setRegistros] = useState<Record<string, RegistroBm>>({});
+  const [temChave, setTemChave] = useState(false);
+  const [escopoBm, setEscopoBm] = useState<'meus' | 'todos'>('meus');
+  const [progressoBm, setProgressoBm] = useState<{ feito: number; total: number } | null>(null);
+  const [msgBm, setMsgBm] = useState('');
+  const [atualizandoUm, setAtualizandoUm] = useState(false);
+  const pararBm = useRef(false);
+
+  useEffect(() => {
+    const ler = () => setTemChave(!!lerChaveBm());
+    ler();
+    window.addEventListener('nucleoptu-bm-chave', ler);
+    return () => window.removeEventListener('nucleoptu-bm-chave', ler);
+  }, []);
+
+  useEffect(() => {
+    lerRegistrosBm()
+      .then(setRegistros)
+      .catch((e) => {
+        console.error(e);
+        const codigo = (e as { code?: string })?.code ?? 'erro desconhecido';
+        setMsgBm(`Não foi possível ler os dados do BM gravados no banco (${codigo}).${codigo === 'permission-denied' ? ' Libere a leitura e a escrita da coleção chamados_bm nas regras do Firestore.' : ''}`);
+      });
+  }, []);
+
+  const sincronizarBm = async (lista: Chamado[], forcar: boolean) => {
+    if (!lista.length) {
+      setMsgBm(escopoBm === 'meus' ? 'Nenhum chamado seu na lista (confira o usuário Git no perfil) ou escolha “Todos”.' : 'Nenhum chamado para sincronizar.');
+      return;
+    }
+    pararBm.current = false;
+    setMsgBm('');
+    setProgressoBm({ feito: 0, total: lista.length });
+    const r = await sincronizaBm({
+      chamados: lista,
+      registros,
+      por: auth.currentUser?.email ?? '',
+      forcar,
+      onProgresso: (feito, total, parcial) => {
+        setProgressoBm({ feito, total });
+        setRegistros({ ...parcial });
+      },
+      deveParar: () => pararBm.current,
+    });
+    setProgressoBm(null);
+    setMsgBm(`BM sincronizado: ${r.atualizados} atualizado(s), ${r.iguais} sem mudança, ${r.semCartao} sem cartão no BM${r.erros ? `, ${r.erros} com erro` : ''}${r.parado ? ' (interrompido)' : ''}.${r.aviso ? ` ${r.aviso}` : ''}`);
+  };
   const [erro, setErro] = useState('');
   const [busca, setBusca] = useState('');
   const [noConteudo, setNoConteudo] = useState(false);
@@ -110,7 +160,6 @@ function ChamadosPage() {
   const [fAutor, setFAutor] = useState('');
   const [fRevision, setFRevision] = useState('');
   const [aberto, setAberto] = useState<Chamado | null>(null);
-  const [docAberto, setDocAberto] = useState('');
   const [previa, setPrevia] = useState<Chamado[] | null>(null);
   const [gravando, setGravando] = useState(false);
   const [substituir, setSubstituir] = useState(false);
@@ -268,7 +317,7 @@ function ChamadosPage() {
     prs: (c) => c.prs.length,
     evidencia: (c) => c.temEvidencia,
     plano: (c) => c.temPlano,
-    bm: (c) => bm.cartoes[soDigitos(c.numero)]?.coluna ?? '',
+    bm: (c) => registros[soDigitos(c.numero)]?.resumo?.coluna ?? '',
     atualizado: (c) => dataParaNumero(c.atualizadoEm),
     },
   );
@@ -288,7 +337,6 @@ function ChamadosPage() {
 
   const abrir = (c: Chamado) => {
     setAberto(c);
-    setDocAberto(Object.keys(c.docs ?? {})[0] ?? '');
   };
 
   const copiarModelo = async () => {
@@ -440,6 +488,24 @@ function ChamadosPage() {
             <input type="checkbox" checked={noConteudo} onChange={(e) => setNoConteudo(e.target.checked)} />
             Pesquisar também dentro dos documentos (mais lento)
           </label>
+          {temChave && !semGit && (
+            <span className="flex flex-wrap items-center gap-2">
+              <select value={escopoBm} onChange={(e) => setEscopoBm(e.target.value as 'meus' | 'todos')} className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-100" disabled={!!progressoBm}>
+                <option value="meus">Meus chamados</option>
+                <option value="todos">Todos os chamados</option>
+              </select>
+              {progressoBm ? (
+                <>
+                  <span>BM: {progressoBm.feito}/{progressoBm.total}</span>
+                  <button onClick={() => { pararBm.current = true; }} className="rounded border border-zinc-700 px-2 py-1 text-xs hover:bg-zinc-800">Parar</button>
+                </>
+              ) : (
+                <button onClick={() => sincronizarBm(escopoBm === 'meus' ? chamadosDaPessoa(itens, pessoa.gitUser) : itens, false)} className="inline-flex items-center gap-1 rounded border border-zinc-700 px-2 py-1 text-xs hover:bg-zinc-800">
+                  <RefreshCcw className="h-3.5 w-3.5" /> Atualizar do BM
+                </button>
+              )}
+            </span>
+          )}
           <span>
             {filtrados.length} de {itens.length} chamado(s)
             <button onClick={limpar} className="ml-2 text-sky-400 hover:underline">limpar filtros</button>
@@ -447,7 +513,7 @@ function ChamadosPage() {
         </div>
       </section>
 
-      {bm.erro && <p className="mb-2 text-xs text-amber-300">Businessmap: {bm.erro}</p>}
+      {msgBm && <p className="mb-2 text-xs text-amber-300">Businessmap: {msgBm}</p>}
       <section className="overflow-x-auto rounded-lg border border-zinc-800">
         <table className="w-full text-left text-sm">
           <thead className="text-xs text-zinc-400">
@@ -486,7 +552,7 @@ function ChamadosPage() {
                 <td className="px-3 py-2">
                   {c.situacao ? <span className={`rounded px-1.5 py-0.5 text-xs ${estiloSituacao[c.situacao]}`}>{ROTULO_SITUACAO[c.situacao]}</span> : <span className="text-zinc-600">—</span>}
                 </td>
-                <td className="hidden px-3 py-2 md:table-cell"><BmColuna r={bm.cartoes[soDigitos(c.numero)]} /></td>
+                <td className="hidden px-3 py-2 md:table-cell"><BmColuna r={registros[soDigitos(c.numero)]?.resumo} /></td>
                 <td className="hidden px-3 py-2 text-zinc-300 sm:table-cell">{(c.autores ?? []).join(', ') || '—'}</td>
                 <td className="hidden px-3 py-2 text-zinc-300 lg:table-cell">{c.modulo || '—'}</td>
                 <td className="hidden px-3 py-2 text-zinc-300 sm:table-cell">{c.revision || (c.situacao === 'em-correcao' ? 'ainda não saiu' : '—')}</td>
@@ -581,74 +647,21 @@ function ChamadosPage() {
       )}
 
       {aberto && (
-        <div className="fixed inset-0 z-40 flex justify-end bg-black/60" onClick={() => setAberto(null)}>
-          <aside className="h-full w-full max-w-3xl overflow-y-auto border-l border-zinc-700 bg-zinc-950 p-4 sm:p-5" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div>
-                <div className="font-mono text-sky-300">{aberto.numero}</div>
-                <h2 className="text-xl font-semibold">{aberto.assunto}</h2>
-                <p className="text-sm text-zinc-400">{aberto.cliente || '—'}</p>
-              </div>
-              <button onClick={() => setAberto(null)} className="rounded p-1 hover:bg-zinc-800"><X className="h-5 w-5" /></button>
-            </div>
-
-            <dl className="mb-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-              <div><dt className="text-xs text-zinc-500">Quem fez o PR</dt><dd>{(aberto.autores ?? []).join(', ') || '—'}</dd></div>
-              <div><dt className="text-xs text-zinc-500">Tipo</dt><dd>{ROTULO_TIPO[aberto.tipo ?? '']}</dd></div>
-              <div><dt className="text-xs text-zinc-500">Situação</dt><dd>{aberto.situacao ? ROTULO_SITUACAO[aberto.situacao] : aberto.status || '—'}</dd></div>
-              <div><dt className="text-xs text-zinc-500">Módulo</dt><dd>{aberto.modulo || '—'}</dd></div>
-              <div><dt className="text-xs text-zinc-500">Revision</dt><dd>{aberto.revision || (aberto.situacao === 'em-correcao' ? 'ainda não saiu' : '—')}</dd></div>
-              <div><dt className="text-xs text-zinc-500">Publicado em</dt><dd>{formataIso(aberto.publicadoEm) || '—'}</dd></div>
-              <div><dt className="text-xs text-zinc-500">Atualizado</dt><dd>{aberto.atualizadoEm || '—'}</dd></div>
-              {aberto.caminhoTela && <div className="col-span-2 sm:col-span-3"><dt className="text-xs text-zinc-500">Onde conferir na tela</dt><dd>{aberto.caminhoTela}</dd></div>}
-              {aberto.resumo && !aberto.temRegra && <div className="col-span-2 sm:col-span-3"><dt className="text-xs text-zinc-500">Resumo</dt><dd className="text-zinc-300">{aberto.resumo}</dd></div>}
-            </dl>
-
-            {aberto.temPr && <Vinculos contexto={aberto} semGit={semGit} />}
-
-            <BmPainel chamado={aberto} resumo={bm.cartoes[soDigitos(aberto.numero)]} configurado={bm.configurado} />
-
-            <div className="mb-4 space-y-3 text-sm">
-              <div className={semGit ? 'hidden' : undefined}>
-                <div className="mb-1 flex items-center gap-2 text-xs text-zinc-500"><GitPullRequest className="h-4 w-4" /> PRs</div>
-                <div className="flex flex-wrap gap-2">
-                  {aberto.prs.length ? aberto.prs.map((p) =>
-                    p.url ? (
-                      <a key={p.numero} href={p.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 rounded bg-violet-500/15 px-2 py-1 text-violet-300 hover:underline">
-                        {p.repo} #{p.numero} <ExternalLink className="h-3 w-3" />
-                      </a>
-                    ) : <span key={p.numero} className="rounded bg-zinc-800 px-2 py-1 text-zinc-300">#{p.numero} (citado)</span>,
-                  ) : <span className="text-zinc-600">Nenhum PR citado.</span>}
-                </div>
-              </div>
-              <div>
-                <div className="mb-1 flex items-center gap-2 text-xs text-zinc-500"><FlaskConical className="h-4 w-4" /> Evidência de testes</div>
-                {aberto.evidencias.length ? aberto.evidencias.map((l) => (
-                  <a key={l.url} href={l.url} target="_blank" rel="noreferrer" className="mr-3 inline-flex items-center gap-1 text-sky-400 hover:underline">{l.texto} <ExternalLink className="h-3 w-3" /></a>
-                )) : <span className="text-zinc-600">{aberto.temEvidencia ? 'Há arquivo de evidência nas pastas, sem link.' : 'Sem link de evidência.'}</span>}
-              </div>
-              <div>
-                <div className="mb-1 flex items-center gap-2 text-xs text-zinc-500"><ClipboardList className="h-4 w-4" /> Plano de testes</div>
-                {aberto.planosTeste.length ? aberto.planosTeste.map((l) => (
-                  <a key={l.url} href={l.url} target="_blank" rel="noreferrer" className="mr-3 inline-flex items-center gap-1 text-sky-400 hover:underline">{l.texto} <ExternalLink className="h-3 w-3" /></a>
-                )) : <span className="text-zinc-600">{aberto.temPlano ? 'Há plano de testes nos documentos, sem link.' : 'Sem plano de testes registrado.'}</span>}
-              </div>
-            </div>
-
-            <div className="mb-2 flex flex-wrap gap-1 border-b border-zinc-800">
-              {Object.keys(aberto.docs ?? {}).map((n) => (
-                <button key={n} onClick={() => setDocAberto(n)} className={`rounded-t px-3 py-1.5 text-xs ${docAberto === n ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'}`}>
-                  {n === 'REGRA.md' ? 'Regra de negócio' : n.replace(/\.md$/i, '')}
-                </button>
-              ))}
-            </div>
-            {docAberto === 'REGRA.md' ? (
-              <div className="rounded bg-zinc-900 p-4"><Md texto={aberto.docs?.[docAberto] ?? ''} /></div>
-            ) : (
-              <pre className="whitespace-pre-wrap break-words rounded bg-zinc-900 p-3 text-xs leading-relaxed text-zinc-200">{aberto.docs?.[docAberto] ?? ''}</pre>
-            )}
-          </aside>
-        </div>
+        <DetalheChamado
+          key={aberto.id}
+          c={aberto}
+          semGit={semGit}
+          registro={registros[soDigitos(aberto.numero)]}
+          temChave={temChave}
+          atualizando={atualizandoUm}
+          onAtualizar={async () => {
+            setAtualizandoUm(true);
+            await sincronizarBm([aberto], true);
+            setAtualizandoUm(false);
+          }}
+          onClose={() => setAberto(null)}
+          Md={Md}
+        />
       )}
     </div>
   );

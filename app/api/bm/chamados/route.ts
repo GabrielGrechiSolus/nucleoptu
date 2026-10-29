@@ -9,10 +9,10 @@ export async function POST(req: Request) {
   if (!login.ok) return NextResponse.json({ erro: login.motivo }, { status: 401 });
   const chave = chaveDaRequisicao(req);
   if (!bmConfigurado(chave)) return NextResponse.json({ configurado: false, cartoes: {} });
-  const corpo = (await req.json().catch(() => ({}))) as { chamados?: unknown };
+  const corpo = (await req.json().catch(() => ({}))) as { chamados?: unknown; fresco?: unknown };
   const numeros = (Array.isArray(corpo.chamados) ? corpo.chamados : []).map(String).slice(0, 400);
   try {
-    const brutos = await cartoesPorChamados(chave, numeros);
+    const brutos = await cartoesPorChamados(chave, numeros, corpo.fresco === true);
     const meta = await metaParaCartoes(chave, brutos);
     const cartoes: Record<string, BmResumoLista> = {};
     for (const c of brutos) if (c.custom_id) cartoes[String(c.custom_id)] = resumoDoCartao(c, meta, BM_BASE);

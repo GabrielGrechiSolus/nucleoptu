@@ -139,16 +139,16 @@ export async function metaParaCartoes(bm: string, cartoes: BmCartaoBruto[]): Pro
 }
 
 // ---------- cartões ----------
-const CAMPOS_LISTA = 'card_id,custom_id,board_id,workflow_id,title,owner_user_id,column_id,lane_id,section,deadline,is_blocked';
+const CAMPOS_LISTA = 'card_id,custom_id,board_id,workflow_id,title,owner_user_id,column_id,lane_id,section,deadline,is_blocked,last_modified';
 
 // Busca em lote pelos números dos chamados (custom_id), 40 por chamada; cache de 5 minutos por lote.
-export async function cartoesPorChamados(bm: string, numeros: string[]): Promise<BmCartaoBruto[]> {
+export async function cartoesPorChamados(bm: string, numeros: string[], fresco = false): Promise<BmCartaoBruto[]> {
   const unicos = [...new Set(numeros.map((n) => n.replace(/\D/g, '')).filter((n) => n.length >= 5))];
   const out: BmCartaoBruto[] = [];
   for (let i = 0; i < unicos.length; i += 40) {
     const lote = unicos.slice(i, i + 40);
     const chave = `lote-${lote.join(',')}`;
-    out.push(...(await comCache(bm, chave, 300_000, async () => (await bmGet<BmCartaoBruto[]>(bm, '/cards', { custom_ids: lote.join(','), fields: CAMPOS_LISTA })) ?? [])));
+    out.push(...(await comCache(bm, chave, fresco ? 0 : 300_000, async () => (await bmGet<BmCartaoBruto[]>(bm, '/cards', { custom_ids: lote.join(','), fields: CAMPOS_LISTA })) ?? [])));
   }
   return out;
 }
@@ -160,8 +160,8 @@ export interface DetalheBruto {
 }
 
 // Detalhe de um cartão (campos personalizados, subtarefas, anexos, vínculos) e seus comentários; cache de 2 minutos.
-export async function detalheDoCartao(bm: string, cardId: number): Promise<DetalheBruto> {
-  return comCache(bm, `detalhe-${cardId}`, 120_000, async () => {
+export async function detalheDoCartao(bm: string, cardId: number, fresco = false): Promise<DetalheBruto> {
+  return comCache(bm, `detalhe-${cardId}`, fresco ? 0 : 120_000, async () => {
     const card = await bmGet<BmCartaoBruto & { links?: { linked_card_id?: number; card_id?: number; link_type?: string }[] }>(bm, `/cards/${cardId}`, { expand: 'custom_fields,subtasks,links,attachments' });
     let comentarios: BmComentarioBruto[] = [];
     try {
