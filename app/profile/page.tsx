@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "../AuthContext";
 import Link from "next/link";
-import { PostItem, Post } from "../components/PostItem";
+import GitTab from "./GitTab";
 import { updateProfile } from "firebase/auth";
 import { auth, db } from "../../firebase";
 import {
@@ -52,6 +52,7 @@ interface UserProfile {
   avatar: string;
   ledColor: string;
   email: string;
+  gitUser: string; // usuário no GitHub; liga o usuário aos PRs (fila de aplicação)
   noticeType: "todos" | "analise" | "desenvolvimento" | "lideranca" | "sustentacao";
   skills: Skill[];
   updatedAt?: Date;
@@ -76,14 +77,13 @@ export default function ProfilePage() {
     avatar: "",
     ledColor: "#00ff00",
     email: "",
+    gitUser: "",
     noticeType: "todos",
     skills: [],
   });
   const [preview, setPreview] = useState("/profile.jpg");
   const [modalOpen, setModalOpen] = useState(false);
-  const [repostedPosts, setRepostedPosts] = useState<Post[]>([]);
-  const [loadingReposts, setLoadingReposts] = useState(true);
-  const [activeTab, setActiveTab] = useState<"profile" | "reposts">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "git">("profile");
 
   // Generate random color
   const getRandomColor = useCallback(() => {
@@ -124,6 +124,7 @@ export default function ProfilePage() {
           avatar: data.avatar || user.photoURL || "",
           ledColor: data.ledColor || getRandomColor(),
           email: user.email || "",
+          gitUser: data.gitUser || "",
           noticeType: data.noticeType || "todos",
           skills: (data.skills || []).map((s: any) => ({
             name: s.name,
@@ -153,35 +154,11 @@ export default function ProfilePage() {
     }
   }, [user, getRandomColor, generateAvatar]);
 
-  // Fetch reposted posts
-  const fetchRepostedPosts = useCallback(async () => {
-    if (!user) return;
-    setLoadingReposts(true);
-    try {
-      const q = query(
-        collection(db, "posts"),
-        where("repostedBy", "array-contains", user.uid),
-        orderBy("createdAt", "desc")
-      );
-      const querySnapshot = await getDocs(q);
-      const posts = querySnapshot.docs.map(
-        (doc) => ({ id: doc.id, ...doc.data() } as Post)
-      );
-      setRepostedPosts(posts);
-    } catch (error) {
-      console.error("Error fetching reposted posts:", error);
-      toast.error("Erro ao carregar posts repostados");
-    } finally {
-      setLoadingReposts(false);
-    }
-  }, [user]);
-
   useEffect(() => {
     if (user) {
       fetchUserProfile();
-      fetchRepostedPosts();
     }
-  }, [user, fetchUserProfile, fetchRepostedPosts]);
+  }, [user, fetchUserProfile]);
 
   // Handle photo URL change
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -211,6 +188,7 @@ export default function ProfilePage() {
         avatar: profile.avatar || preview,
         ledColor: profile.ledColor,
         email: user.email,
+        gitUser: profile.gitUser.trim().replace(/^@/, ""),
         noticeType: profile.noticeType,
         skills: profile.skills,
         updatedAt: new Date(),
@@ -245,28 +223,6 @@ export default function ProfilePage() {
     } catch (error) {
       console.error(error);
       toast.error("Erro ao remover foto.");
-    }
-  };
-
-  // Handle post action (unrepost)
-  const handlePostAction = async (postId: string) => {
-    if (!user) return;
-    
-    try {
-      const postRef = doc(db, "posts", postId);
-      const postDoc = await getDoc(postRef);
-      
-      if (postDoc.exists()) {
-        const currentRepostedBy = postDoc.data().repostedBy || [];
-        const updatedRepostedBy = currentRepostedBy.filter((uid: string) => uid !== user.uid);
-        
-        await updateDoc(postRef, { repostedBy: updatedRepostedBy });
-        setRepostedPosts(prev => prev.filter(post => post.id !== postId));
-        toast.success("Repost removido!");
-      }
-    } catch (error) {
-      console.error("Error removing repost:", error);
-      toast.error("Erro ao remover repost");
     }
   };
 
@@ -368,15 +324,15 @@ export default function ProfilePage() {
                 )}
               </button>
               <button
-                onClick={() => setActiveTab("reposts")}
+                onClick={() => setActiveTab("git")}
                 className={`px-4 py-2 font-medium transition-colors relative ${
-                  activeTab === "reposts"
+                  activeTab === "git"
                     ? "text-sky-400"
                     : "text-zinc-400 hover:text-zinc-300"
                 }`}
               >
-                Posts Repostados
-                {activeTab === "reposts" && (
+                Git
+                {activeTab === "git" && (
                   <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-sky-400 to-blue-500 rounded-full" />
                 )}
               </button>
@@ -412,6 +368,25 @@ export default function ProfilePage() {
                     onChange={(e) => setProfile(prev => ({ ...prev, bio: e.target.value }))}
                     placeholder="Conte um pouco sobre você..."
                   />
+                </div>
+
+                {/* Usuário no Git */}
+                <div>
+                  <label className="text-sm font-medium text-zinc-300 flex items-center gap-2 mb-2" htmlFor="git-user">
+                    <FileText size={16} />
+                    Usuário no Git (GitHub)
+                  </label>
+                  <input
+                    id="git-user"
+                    type="text"
+                    className="w-full p-3 bg-zinc-800/50 border border-zinc-700 rounded-lg focus:border-sky-500 focus:outline-none transition-colors"
+                    value={profile.gitUser}
+                    onChange={(e) => setProfile(prev => ({ ...prev, gitUser: e.target.value }))}
+                    placeholder="Ex.: GabrielGrechiSolus"
+                  />
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Liga você aos PRs que você faz. É com ele que a fila de aplicação mostra o que está para você aplicar no cliente.
+                  </p>
                 </div>
 
                 {/* LED Color */}
@@ -490,43 +465,12 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {activeTab === "reposts" && (
-              <div className="bg-zinc-900/50 backdrop-blur-sm rounded-xl border border-zinc-800 p-6">
-                <h2 className="text-xl font-bold text-zinc-100 mb-4 flex items-center gap-2">
-                  <Users size={20} className="text-sky-400" />
-                  Posts Repostados
-                </h2>
-                
-                {loadingReposts ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="animate-spin text-sky-500" size={24} />
-                  </div>
-                ) : repostedPosts.length > 0 ? (
-                  <div className="space-y-4">
-                    {repostedPosts.map((post) => (
-                      <PostItem
-                        key={post.id}
-                        post={post}
-                        currentUser={user}
-                        onDelete={() => handlePostAction(post.id)}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <div className="text-zinc-500 mb-4">
-                      <ThumbsUp size={48} className="mx-auto opacity-50" />
-                    </div>
-                    <p className="text-zinc-400">Você ainda não repostou nada.</p>
-                    <Link
-                      href="/feed"
-                      className="inline-block mt-4 text-sky-400 hover:text-sky-300 transition-colors"
-                    >
-                      Explorar posts →
-                    </Link>
-                  </div>
-                )}
-              </div>
+            {activeTab === "git" && user && (
+              <GitTab
+                uid={user.uid}
+                gitUser={profile.gitUser}
+                onVinculado={(login) => setProfile((prev) => ({ ...prev, gitUser: login }))}
+              />
             )}
           </div>
         </div>
