@@ -603,182 +603,157 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
         <input ref={fileInputRef} type="file" accept="application/json" onChange={handleImportFile} className="hidden" />
       </div>
 
-      {/* Lista de Avisos com Animação */}
-      <div className="grid gap-4">
-        <AnimatePresence>
-          {filtered.slice(0, visibleCount).map((item, index) => {
-            const isRead = item.readBy?.includes(user?.email || "");
-            const importance = importanceConfig[item.importance || "medium"];
-            const isHovered = hoveredNotice === item.id;
-            
-            return (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, x: -100 }}
-                transition={{ delay: index * 0.05 }}
-                onClick={() => openNoticeDetails(item)}
-                onMouseEnter={() => setHoveredNotice(item.id)}
-                onMouseLeave={() => setHoveredNotice(null)}
-                className={`
-                  relative border rounded-xl p-4 transition-all cursor-pointer overflow-hidden
-                  ${!item.active ? "opacity-50 bg-zinc-900/40 border-zinc-800" : "bg-zinc-900 border-zinc-800 hover:border-zinc-700"}
-                  ${!isRead && item.active ? "border-l-4 border-l-sky-500" : ""}
-                `}
-                role="button"
-              >
-                {/* LED Indicator for unread */}
-                {!isRead && item.active && (
-                  <div className="absolute top-4 right-4">
-                    <div className="relative">
-                      <div className="w-2 h-2 bg-sky-500 rounded-full animate-pulse" />
-                      <div className="absolute inset-0 w-2 h-2 bg-sky-500 rounded-full animate-ping opacity-75" />
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {/* Type Badge com LED */}
-                      <div className={`bg-gradient-to-r ${typeConfig[item.type || "texto"].bgGradient} px-2 py-1 rounded-lg flex items-center gap-1`}>
-                        {typeConfig[item.type || "texto"].icon}
-                        <span className="text-xs text-white uppercase">{item.type}</span>
-                      </div>
-                      
-                      {/* Importance Badge com LED */}
-                      <div className={`${importance.bgColor} ${importance.borderColor} border px-2 py-1 rounded-lg flex items-center gap-1`}>
-                        {importance.icon}
-                        <span className={`text-xs ${importance.color}`}>{importance.label}</span>
-                      </div>
-                      
-                      {/* Target Badge */}
-                      <div className="bg-zinc-800 px-2 py-1 rounded-lg flex items-center gap-1">
-                        {targetConfig[item.target || "todos"].icon}
-                        <span className={`text-xs ${targetConfig[item.target || "todos"].color}`}>
-                          {targetConfig[item.target || "todos"].label}
-                        </span>
-                      </div>
-                      
-                      {!item.active && (
-                        <div className="bg-gray-500/20 px-2 py-1 rounded-lg flex items-center gap-1">
-                          <Slash className="w-3 h-3 text-gray-400" />
-                          <span className="text-xs text-gray-400">Inativo</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                      {item.title}
-                    </h2>
-                    
-                    {item.description && (
-                      <p className="text-sm text-zinc-300 line-clamp-2">{item.description}</p>
+      {/* Lista de Avisos em grade */}
+      <div className="overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-900">
+        <table className="w-full text-left text-sm">
+          <thead className="text-xs uppercase text-zinc-400">
+            <tr>
+              <th className="w-8 px-3 py-2" />
+              <th className="px-3 py-2">Aviso</th>
+              <th className="px-3 py-2">Tipo</th>
+              <th className="px-3 py-2">Público</th>
+              <th className="px-3 py-2">Importância</th>
+              <th className="px-3 py-2">Criado por</th>
+              <th className="px-3 py-2">Data</th>
+              <th className="px-3 py-2 text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.slice(0, visibleCount).map((item) => {
+              const isRead = item.readBy?.includes(user?.email || "");
+              const importance = importanceConfig[item.importance || "medium"];
+              const tipo = typeConfig[item.type || "texto"];
+              const alvo = targetConfig[item.target || "todos"];
+              return (
+                <tr
+                  key={item.id}
+                  onClick={() => openNoticeDetails(item)}
+                  className={`cursor-pointer border-t border-zinc-800 hover:bg-zinc-800/40 ${!item.active ? "opacity-50" : ""}`}
+                >
+                  <td className="px-3 py-2">
+                    {!isRead && item.active && (
+                      <span title="Não lido" className="block h-2 w-2 rounded-full bg-sky-500" />
                     )}
-                    
-                    <div className="flex flex-wrap gap-3 items-center text-xs text-zinc-500">
-                      <div className="flex items-center gap-1">
-                        <User className="w-3 h-3" />
-                        <span>{item.creatorEmail.split('@')[0]}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        <span title={formatDate(item.createdAt)}>{getRelativeTime(item.createdAt)}</span>
-                      </div>
+                  </td>
+                  <td className="max-w-[420px] px-3 py-2">
+                    <div className={`truncate ${!isRead && item.active ? "font-semibold" : "font-medium"} text-zinc-100`}>
+                      {item.title}
+                      {!item.active && <span className="ml-2 text-xs text-zinc-400">(inativo)</span>}
+                    </div>
+                    {item.description && <div className="truncate text-xs text-zinc-400">{item.description}</div>}
+                  </td>
+                  <td className="px-3 py-2">
+                    <span className="inline-flex items-center gap-1 text-xs uppercase text-zinc-400">
+                      {tipo.icon}
+                      {item.type || "texto"}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2">
+                    <span className={`inline-flex items-center gap-1 text-xs ${alvo.color}`}>
+                      {alvo.icon}
+                      {alvo.label}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2">
+                    <span className={`inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs ${importance.bgColor} ${importance.borderColor} ${importance.color}`}>
+                      {importance.icon}
+                      {importance.label}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-zinc-400">{item.creatorEmail.split("@")[0]}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-zinc-400" title={formatDate(item.createdAt)}>
+                    {getRelativeTime(item.createdAt)}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center justify-end gap-1">
                       {item.link && (
                         <button
-                          onClick={(e) => { e.stopPropagation(); window.open(item.link, '_blank'); }}
-                          className="flex items-center gap-1 text-sky-400 hover:text-sky-300 transition"
+                          onClick={(e) => { e.stopPropagation(); window.open(item.link, "_blank"); }}
+                          className="rounded bg-zinc-800/50 p-2 text-sky-400 hover:bg-zinc-700/50"
+                          title="Abrir link"
                         >
-                          <Globe className="w-3 h-3" />
-                          <span>Abrir link</span>
+                          <Globe className="h-4 w-4" />
                         </button>
                       )}
-                    </div>
-                  </div>
-
-                  {/* Ações */}
-                  <div className="flex items-center gap-1">
-                    {!isRead && item.active && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleMarkAsRead(item); }}
-                        className="p-2 rounded-lg bg-green-500/20 text-green-400 hover:bg-green-500/30 transition-all"
-                        title="Marcar como lido"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                      </button>
-                    )}
-
-                    {isRead && item.active && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleMarkAsUnread(item); }}
-                        className="p-2 rounded-lg bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 transition-all"
-                        title="Marcar como não lido"
-                      >
-                        <Bell className="w-4 h-4" />
-                      </button>
-                    )}
-
-                    {item.creatorEmail === user?.email && (
-                      <>
-                        {item.active ? (
-                          <>
-                            <button
-                              onClick={(e) => { e.stopPropagation();
-                                setEditId(item.id);
-                                setEditTitle(item.title);
-                                setEditDescription(item.description || "");
-                                setEditLink(item.link || "");
-                                setEditType(item.type || "texto");
-                                setEditImportance(item.importance || "medium");
-                                setEditTarget(item.target || "todos");
-                                setIsEditing(true);
-                              }}
-                              className="p-2 rounded-lg bg-sky-500/20 text-sky-400 hover:bg-sky-500/30 transition-all"
-                              title="Editar"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
+                      {!isRead && item.active && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleMarkAsRead(item); }}
+                          className="rounded bg-green-500/20 p-2 text-green-400 hover:bg-green-500/30"
+                          title="Marcar como lido"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                        </button>
+                      )}
+                      {isRead && item.active && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleMarkAsUnread(item); }}
+                          className="rounded bg-yellow-500/20 p-2 text-yellow-400 hover:bg-yellow-500/30"
+                          title="Marcar como não lido"
+                        >
+                          <Bell className="h-4 w-4" />
+                        </button>
+                      )}
+                      {item.creatorEmail === user?.email && (
+                        <>
+                          {item.active ? (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditId(item.id);
+                                  setEditTitle(item.title);
+                                  setEditDescription(item.description || "");
+                                  setEditLink(item.link || "");
+                                  setEditType(item.type || "texto");
+                                  setEditImportance(item.importance || "medium");
+                                  setEditTarget(item.target || "todos");
+                                  setIsEditing(true);
+                                }}
+                                className="rounded bg-sky-500/20 p-2 text-sky-400 hover:bg-sky-500/30"
+                                title="Editar"
+                              >
+                                <Edit3 className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleToggleActive(item); }}
+                                className="rounded bg-yellow-500/20 p-2 text-yellow-400 hover:bg-yellow-500/30"
+                                title="Inativar"
+                              >
+                                <Slash className="h-4 w-4" />
+                              </button>
+                            </>
+                          ) : (
                             <button
                               onClick={(e) => { e.stopPropagation(); handleToggleActive(item); }}
-                              className="p-2 rounded-lg bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 transition-all"
-                              title="Inativar"
+                              className="rounded bg-green-500/20 p-2 text-green-400 hover:bg-green-500/30"
+                              title="Reativar"
                             >
-                              <Slash className="w-4 h-4" />
+                              <RefreshCcw className="h-4 w-4" />
                             </button>
-                          </>
-                        ) : (
+                          )}
                           <button
-                            onClick={(e) => { e.stopPropagation(); handleToggleActive(item); }}
-                            className="p-2 rounded-lg bg-green-500/20 text-green-400 hover:bg-green-500/30 transition-all"
-                            title="Reativar"
+                            onClick={(e) => { e.stopPropagation(); confirmDelete(item.id); }}
+                            className="rounded bg-red-500/20 p-2 text-red-400 hover:bg-red-500/30"
+                            title="Excluir"
                           >
-                            <RefreshCcw className="w-4 h-4" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
-                        )}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); confirmDelete(item.id); }}
-                          className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all"
-                          title="Excluir"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleOpenReadModal(item.readBy); }}
-                          className="p-2 rounded-lg bg-zinc-700/50 text-zinc-400 hover:bg-zinc-700 transition-all"
-                          title="Ver quem leu"
-                        >
-                          <Users className="w-4 h-4" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleOpenReadModal(item.readBy); }}
+                            className="rounded bg-zinc-700/50 p-2 text-zinc-400 hover:bg-zinc-700"
+                            title="Ver quem leu"
+                          >
+                            <Users className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       {/* Botão Mostrar Mais */}

@@ -9,7 +9,7 @@ import {
   AlertCircle, CheckCircle, Info, BookOpen, FileJson, FileCode, FileText, Archive,
   Database, HardDrive, Cpu, Cloud, Users, UsersRound, Settings, RefreshCw,
   Printer, QrCode, Share2, Bookmark, BookmarkPlus, Star, StarOff, Filter,
-  Columns, LayoutGrid, List, Clock, Calendar, Bell, BellOff, MessageSquare,
+  Columns, Clock, Calendar, Bell, BellOff, MessageSquare,
   Mail, Phone, MapPin, Briefcase, Building2, Building, CreditCard, Wallet,
   Folder, FolderOpen, FolderTree, File, FileSpreadsheet, FileImage,
   Scissors, CopyCheck, Clipboard, ClipboardCheck, ClipboardList, ClipboardX,
@@ -355,7 +355,6 @@ export default function ClientConnectionsPage() {
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterFavorite, setFilterFavorite] = useState(false);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<"name" | "date" | "status">("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
@@ -1014,22 +1013,6 @@ export default function ClientConnectionsPage() {
                 Favoritos
               </button>
 
-              <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1">
-                <button
-                  onClick={() => setViewMode("grid")}
-                  className={`p-2 rounded ${viewMode === "grid" ? "bg-zinc-700 text-white" : "text-zinc-400 hover:text-white"
-                    }`}
-                >
-                  <LayoutGrid size={18} />
-                </button>
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={`p-2 rounded ${viewMode === "list" ? "bg-zinc-700 text-white" : "text-zinc-400 hover:text-white"
-                    }`}
-                >
-                  <List size={18} />
-                </button>
-              </div>
             </div>
           </div>
 
@@ -1092,227 +1075,84 @@ export default function ClientConnectionsPage() {
               Novo Cliente
             </button>
           </div>
-        ) : viewMode === "grid" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <AnimatePresence>
-              {filteredConnections.map((connection) => (
-                <motion.div
-                  key={connection.id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 hover:border-sky-500/50 transition-all cursor-pointer group"
-                  onClick={() => {
-                    setSelectedConnection(connection);
-                    setDetailsModalOpen(true);
-                  }}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                        {connection.clientName.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-white truncate">
-                          {connection.clientName}
-                        </h3>
-                        {connection.clientCode && (
-                          <p className="text-xs text-zinc-500 truncate">
-                            {connection.clientCode}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(connection.id);
-                        }}
-                        className={`p-1.5 rounded transition-colors ${favorites.has(connection.id)
-                          ? "text-yellow-400 hover:text-yellow-300"
-                          : "text-zinc-400 hover:text-zinc-300"
-                          }`}
-                      >
-                        <Star size={16} fill={favorites.has(connection.id) ? "currentColor" : "none"} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openModal(connection);
-                        }}
-                        className="p-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
-                      >
-                        <Edit3 size={14} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openDeleteModal(connection);
-                        }}
-                        className="p-1.5 rounded bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 transition-colors"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <StatusBadge status={connection.status} />
-                      <span className="text-xs px-2 py-0.5 bg-zinc-800 rounded-full text-zinc-300">
-                        {connection.category}
-                      </span>
-                      {connection.tags.slice(0, 2).map(tag => (
-                        <span
-                          key={tag}
-                          className="text-xs px-2 py-0.5 bg-zinc-800 rounded-full text-zinc-400"
-                        >
-                          #{tag}
-                        </span>
-                      ))}
-                      {connection.tags.length > 2 && (
-                        <span className="text-xs px-2 py-0.5 bg-zinc-800 rounded-full text-zinc-400">
-                          +{connection.tags.length - 2}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-1 text-xs text-zinc-400">
-                      <div className="flex items-center gap-1">
-                        <Network className="w-3 h-3" />
-                        {connection.vpns.length}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Server className="w-3 h-3" />
-                        {connection.dockerServers.length}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Monitor className="w-3 h-3" />
-                        {connection.terminalServices.length}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Eye className="w-3 h-3" />
-                        {connection.anydesks.length}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <EyeOff className="w-3 h-3" />
-                        {connection.teamviewers.length}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Database className="w-3 h-3" />
-                        {connection.databases?.length || 0}
-                      </div>
-                    </div>
-
-                    {connection.description && (
-                      <p className="text-xs text-zinc-500 line-clamp-2">
-                        {connection.description}
-                      </p>
-                    )}
-
-                    <div className="flex items-center justify-between text-xs text-zinc-600 mt-2 pt-2 border-t border-zinc-800">
-                      <span>Atualizado {formatRelativeTime(connection.updatedAt)}</span>
-                      <span className="flex items-center gap-1">
-                        <Clock size={12} />
-                        v{connection.version}
-                      </span>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
         ) : (
-          <div className="space-y-2">
-            {filteredConnections.map((connection) => (
-              <motion.div
-                key={connection.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 hover:border-sky-500/50 transition-all cursor-pointer group"
-                onClick={() => {
-                  setSelectedConnection(connection);
-                  setDetailsModalOpen(true);
-                }}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                      {connection.clientName.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-white">
-                          {connection.clientName}
-                        </h3>
-                        {connection.clientCode && (
-                          <span className="text-xs text-zinc-500">
-                            {connection.clientCode}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-1 text-xs text-zinc-400">
-                        <StatusBadge status={connection.status} />
-                        <span>{connection.category}</span>
-                        <span>•</span>
-                        <span>{formatRelativeTime(connection.updatedAt)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 text-sm text-zinc-400">
-                      <span className="flex items-center gap-1">
-                        <Network size={14} />
-                        {connection.vpns.length}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Server size={14} />
-                        {connection.dockerServers.length}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Eye size={14} />
-                        {connection.anydesks.length}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-900">
+            <table className="w-full text-left text-sm">
+              <thead className="text-xs uppercase text-zinc-400">
+                <tr>
+                  <th className="w-10 px-3 py-2" />
+                  <th className="px-3 py-2">Cliente</th>
+                  <th className="px-3 py-2">Categoria</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2 text-center">VPNs</th>
+                  <th className="px-3 py-2 text-center">Servidores</th>
+                  <th className="px-3 py-2 text-center">AnyDesk</th>
+                  <th className="px-3 py-2">Atualizado</th>
+                  <th className="w-24 px-3 py-2 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredConnections.map((connection) => (
+                  <tr
+                    key={connection.id}
+                    className="cursor-pointer border-t border-zinc-800 hover:bg-zinc-800/40"
+                    onClick={() => {
+                      setSelectedConnection(connection);
+                      setDetailsModalOpen(true);
+                    }}
+                  >
+                    <td className="px-3 py-2">
                       <button
+                        title={favorites.has(connection.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleFavorite(connection.id);
                         }}
-                        className={`p-1.5 rounded transition-colors ${favorites.has(connection.id)
-                          ? "text-yellow-400 hover:text-yellow-300"
-                          : "text-zinc-400 hover:text-zinc-300"
-                          }`}
+                        className={favorites.has(connection.id) ? "text-yellow-400" : "text-zinc-400 hover:text-zinc-200"}
                       >
                         <Star size={16} fill={favorites.has(connection.id) ? "currentColor" : "none"} />
                       </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openModal(connection);
-                        }}
-                        className="p-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
-                      >
-                        <Edit3 size={14} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openDeleteModal(connection);
-                        }}
-                        className="p-1.5 rounded bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 transition-colors"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="font-medium text-zinc-100">{connection.clientName}</div>
+                      {connection.clientCode && <div className="text-xs text-zinc-500">{connection.clientCode}</div>}
+                    </td>
+                    <td className="px-3 py-2 text-zinc-400">{connection.category}</td>
+                    <td className="px-3 py-2">
+                      <StatusBadge status={connection.status} />
+                    </td>
+                    <td className="px-3 py-2 text-center text-zinc-400">{connection.vpns.length}</td>
+                    <td className="px-3 py-2 text-center text-zinc-400">{connection.dockerServers.length}</td>
+                    <td className="px-3 py-2 text-center text-zinc-400">{connection.anydesks.length}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-zinc-400">{formatRelativeTime(connection.updatedAt)}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex justify-end gap-1">
+                        <button
+                          title="Editar"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openModal(connection);
+                          }}
+                          className="rounded bg-zinc-800 p-2 text-zinc-400 hover:text-blue-400"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                        <button
+                          title="Excluir"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDeleteModal(connection);
+                          }}
+                          className="rounded bg-zinc-800 p-2 text-zinc-400 hover:text-red-400"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 

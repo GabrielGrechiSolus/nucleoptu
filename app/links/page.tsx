@@ -412,100 +412,106 @@ export default function UsefulLinksPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 items-stretch">
-            {filteredLinks.map((link) => (
-              <div
-                key={link.id}
-                className="group flex flex-col h-full bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 hover:border-sky-500/50 rounded-xl p-5 transition-all hover:shadow-lg hover:shadow-sky-500/10"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1 min-w-0">
-                    <a
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-lg font-semibold text-sky-400 hover:text-sky-300 flex items-center gap-2 group-hover:underline"
-                    >
-                      <ExternalLink size={18} className="flex-shrink-0" />
-                      <span className="truncate">{link.title}</span>
-                    </a>
-                  </div>
-
-                  <div className="flex gap-1 ml-2">
-                    <button
-                      title={link.favoritedBy.includes(user?.uid || "") ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-                      onClick={() => toggleFavorite(link)}
-                      className={`p-2 rounded-lg transition-all ${link.favoritedBy.includes(user?.uid || "")
-                          ? "bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30"
-                          : "bg-zinc-800/50 text-zinc-400 hover:bg-zinc-700/50 hover:text-zinc-200"
-                        }`}
-                    >
-                      <Star size={16} fill={link.favoritedBy.includes(user?.uid || "") ? "currentColor" : "none"} />
-                    </button>
-
-                    {link.creatorUid === user?.uid && (
-                      <>
+          <div className="overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-900">
+            <table className="w-full text-left text-sm">
+              <thead className="text-xs uppercase text-zinc-400">
+                <tr>
+                  <th className="w-10 px-3 py-2" />
+                  <th className="px-3 py-2">Título</th>
+                  <th className="px-3 py-2">Tipo</th>
+                  <th className="px-3 py-2">Endereço</th>
+                  <th className="px-3 py-2">Criado por</th>
+                  <th className="px-3 py-2 text-center">Curtidas</th>
+                  <th className="px-3 py-2 text-center">Favoritos</th>
+                  <th className="w-24 px-3 py-2 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLinks.map((link) => {
+                  const favorito = link.favoritedBy.includes(user?.uid || "");
+                  const curtiu = link.likedBy.includes(user?.uid || "");
+                  const naoCurtiu = link.dislikedBy.includes(user?.uid || "");
+                  let endereco = link.url;
+                  try {
+                    endereco = new URL(link.url).hostname;
+                  } catch {}
+                  return (
+                    <tr key={link.id} className="border-t border-zinc-800 hover:bg-zinc-800/40">
+                      <td className="px-3 py-2">
                         <button
-                          onClick={() => openModal(link)}
-                          className="p-2 rounded-lg bg-zinc-800/50 text-zinc-400 hover:bg-blue-500/20 hover:text-blue-400 transition-all"
-                          title="Editar"
+                          title={favorito ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                          onClick={() => toggleFavorite(link)}
+                          className={favorito ? "text-yellow-400" : "text-zinc-400 hover:text-zinc-200"}
                         >
-                          <Edit2 size={16} />
+                          <Star size={16} fill={favorito ? "currentColor" : "none"} />
                         </button>
-                        <button
-                          onClick={() => handleDelete(link)}
-                          className="p-2 rounded-lg bg-zinc-800/50 text-zinc-400 hover:bg-red-500/20 hover:text-red-400 transition-all"
-                          title="Deletar"
+                      </td>
+                      <td className="max-w-[320px] px-3 py-2">
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 font-medium text-sky-400 hover:underline"
                         >
-                          <Trash2 size={16} />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 mb-3">
-                  <span className={`text-xs px-2 py-1 rounded-full border ${typeColors[link.type]}`}>
-                    {LINK_TYPES.find(t => t.value === link.type)?.label || link.type}
-                  </span>
-                  <span className="text-xs text-zinc-500">
-                    por {link.creatorName}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <button
-                    title={`Curtido por: ${link.likedBy.map(getUserName).join(", ") || "ninguém"}`}
-                    onClick={() => handleLikeDislike(link, "like")}
-                    className={`flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all ${link.likedBy.includes(user?.uid || "")
-                        ? "bg-green-500/20 text-green-400"
-                        : "bg-zinc-800/50 text-zinc-400 hover:bg-zinc-700/50"
-                      }`}
-                  >
-                    <ThumbsUp size={14} />
-                    <span className="text-sm font-medium">{link.likedBy.length}</span>
-                  </button>
-
-                  <button
-                    title={`Não curtido por: ${link.dislikedBy.map(getUserName).join(", ") || "ninguém"}`}
-                    onClick={() => handleLikeDislike(link, "dislike")}
-                    className={`flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all ${link.dislikedBy.includes(user?.uid || "")
-                        ? "bg-red-500/20 text-red-400"
-                        : "bg-zinc-800/50 text-zinc-400 hover:bg-zinc-700/50"
-                      }`}
-                  >
-                    <ThumbsDown size={14} />
-                    <span className="text-sm font-medium">{link.dislikedBy.length}</span>
-                  </button>
-
-                  <div className="flex-1" />
-
-                  <span className="text-xs text-zinc-600">
-                    {link.favoritedBy.length} favoritos
-                  </span>
-                </div>
-              </div>
-            ))}
+                          <ExternalLink size={14} className="flex-shrink-0" />
+                          <span className="truncate">{link.title}</span>
+                        </a>
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className={`text-xs px-2 py-1 rounded-full border ${typeColors[link.type]}`}>
+                          {LINK_TYPES.find((t) => t.value === link.type)?.label || link.type}
+                        </span>
+                      </td>
+                      <td className="max-w-[220px] truncate px-3 py-2 text-zinc-400" title={link.url}>
+                        {endereco}
+                      </td>
+                      <td className="px-3 py-2 text-zinc-400">{link.creatorName}</td>
+                      <td className="px-3 py-2">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            title={`Curtido por: ${link.likedBy.map(getUserName).join(", ") || "ninguém"}`}
+                            onClick={() => handleLikeDislike(link, "like")}
+                            className={`flex items-center gap-1 rounded px-2 py-1 ${curtiu ? "bg-green-500/20 text-green-400" : "bg-zinc-800/50 text-zinc-400 hover:bg-zinc-700/50"}`}
+                          >
+                            <ThumbsUp size={14} />
+                            <span className="text-sm font-medium">{link.likedBy.length}</span>
+                          </button>
+                          <button
+                            title={`Não curtido por: ${link.dislikedBy.map(getUserName).join(", ") || "ninguém"}`}
+                            onClick={() => handleLikeDislike(link, "dislike")}
+                            className={`flex items-center gap-1 rounded px-2 py-1 ${naoCurtiu ? "bg-red-500/20 text-red-400" : "bg-zinc-800/50 text-zinc-400 hover:bg-zinc-700/50"}`}
+                          >
+                            <ThumbsDown size={14} />
+                            <span className="text-sm font-medium">{link.dislikedBy.length}</span>
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-center text-zinc-400">{link.favoritedBy.length}</td>
+                      <td className="px-3 py-2">
+                        {link.creatorUid === user?.uid && (
+                          <div className="flex justify-end gap-1">
+                            <button
+                              onClick={() => openModal(link)}
+                              className="rounded bg-zinc-800/50 p-2 text-zinc-400 hover:text-blue-400"
+                              title="Editar"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(link)}
+                              className="rounded bg-zinc-800/50 p-2 text-zinc-400 hover:text-red-400"
+                              title="Deletar"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
