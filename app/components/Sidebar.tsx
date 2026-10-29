@@ -27,7 +27,10 @@ import {
   Search,
   ArrowUpRight,
   FolderSearch,
+  ListChecks,
 } from 'lucide-react';
+import { usePessoa } from './usePessoa';
+import { pendenciasPara, type Vinculo } from '../chamados/aplicacao';
 
 // ===== Tipos =====
 interface NavItem {
@@ -61,6 +64,13 @@ const NAV_ITEMS: NavItem[] = [
     icon: FolderSearch,
     color: 'text-teal-400',
     gradient: 'from-teal-500/20 to-teal-600/10',
+  },
+  {
+    href: '/fila',
+    label: 'Fila de aplicação',
+    icon: ListChecks,
+    color: 'text-sky-400',
+    gradient: 'from-sky-500/20 to-sky-600/10',
   },
   {
     href: '/links',
@@ -192,6 +202,9 @@ const Sidebar: React.FC = () => {
 
   // ===== Estados =====
   const [unreadNotices, setUnreadNotices] = useState(0);
+  const [pendFila, setPendFila] = useState(0); // pedidos da fila de aplicação que dependem de você
+  const pessoa = usePessoa();
+  const contadorDe = (href: string) => (href === '/notice-board' ? unreadNotices : href === '/fila' ? pendFila : 0);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -199,6 +212,20 @@ const Sidebar: React.FC = () => {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   // ===== Efeitos =====
+
+  // Pedidos de aplicação: para o dono do PR (aberto/aplicando) e para quem pediu (aplicado)
+  useEffect(() => {
+    if (!pessoa.uid) return;
+    const q = query(collection(db, 'vinculos'), where('aplicacao', 'in', ['aberto', 'aplicando', 'aplicado']));
+    return onSnapshot(
+      q,
+      (snap) => {
+        const itens = snap.docs.map((d) => ({ ...(d.data() as Vinculo), id: d.id }));
+        setPendFila(pendenciasPara(itens, { uid: pessoa.uid, gitUser: pessoa.gitUser }).total);
+      },
+      () => setPendFila(0),
+    );
+  }, [pessoa.uid, pessoa.gitUser]);
 
   // Buscar avisos não lidos
   useEffect(() => {
@@ -303,7 +330,7 @@ const Sidebar: React.FC = () => {
                 item={item}
                 isActive={pathname === item.href}
                 isCollapsed={isCollapsed}
-                badge={item.href === '/notice-board' ? unreadNotices : undefined}
+                badge={contadorDe(item.href) || undefined}
               />
             ))}
           </nav>
@@ -536,9 +563,9 @@ const Sidebar: React.FC = () => {
               >
                 <div className="relative">
                   <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                  {item.href === '/notice-board' && unreadNotices > 0 && (
+                  {contadorDe(item.href) > 0 && (
                     <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center shadow-lg shadow-red-500/25">
-                      {unreadNotices > 9 ? '9+' : unreadNotices}
+                      {contadorDe(item.href) > 9 ? '9+' : contadorDe(item.href)}
                     </span>
                   )}
                 </div>

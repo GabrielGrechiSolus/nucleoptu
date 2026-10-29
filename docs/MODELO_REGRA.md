@@ -14,6 +14,7 @@ chamado: 000.000
 cliente: Nome do cliente
 assunto: Resumo do que o cliente via, em uma linha
 autor: Nome de quem fez o PR
+autorLogin: usuarioGit
 tipo: correcao
 situacao: em-correcao
 modulo: PTU A500
@@ -50,6 +51,7 @@ pode consultar da próxima vez, sem depender do desenvolvimento.
 | `cliente` | `texto` | Cliente que abriu o chamado. |
 | `assunto` | `texto` | Resumo em uma linha. |
 | `autor` | `Nome, Nome` | Quem fez o PR (nome de quem desenvolveu). Mais de um, separados por vírgula. |
+| `autorLogin` | `usuarioGit, usuarioGit` | Usuário no GitHub de quem fez o PR. Liga o PR ao dono na fila de aplicação (cada pessoa informa o seu no Perfil). |
 | `tipo` | `correcao | melhoria | regra | orientacao` | correcao: corrigiu o sistema. melhoria: nova funcionalidade (feature). regra: era uma regra do sistema difícil de achar (regra escondida). orientacao: dúvida resolvida sem mudar o sistema. |
 | `situacao` | `em-correcao | corrigido | encerrado` | em-correcao: o dev está trabalhando. corrigido: já publicada (merge feito). encerrado: sem alteração de sistema. |
 | `modulo` | `texto` | Módulo ou funcionalidade, como a regra conhece (ex.: PTU A500, Reembolso). |

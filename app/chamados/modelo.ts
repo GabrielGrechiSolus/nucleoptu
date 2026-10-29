@@ -6,6 +6,7 @@ chamado: 000.000
 cliente: Nome do cliente
 assunto: Resumo do que o cliente via, em uma linha
 autor: Nome de quem fez o PR
+autorLogin: usuarioGit
 tipo: correcao
 situacao: em-correcao
 modulo: PTU A500
@@ -39,6 +40,7 @@ export const CAMPOS_REGRA: { campo: string; valores: string; descricao: string }
   { campo: 'cliente', valores: 'texto', descricao: 'Cliente que abriu o chamado.' },
   { campo: 'assunto', valores: 'texto', descricao: 'Resumo em uma linha.' },
   { campo: 'autor', valores: 'Nome, Nome', descricao: 'Quem fez o PR (nome de quem desenvolveu). Mais de um, separados por vírgula.' },
+  { campo: 'autorLogin', valores: 'usuarioGit, usuarioGit', descricao: 'Usuário no GitHub de quem fez o PR. Liga o PR ao dono na fila de aplicação (cada pessoa informa o seu no Perfil).' },
   { campo: 'tipo', valores: 'correcao | melhoria | regra | orientacao', descricao: 'correcao: corrigiu o sistema. melhoria: nova funcionalidade (feature). regra: era uma regra do sistema difícil de achar (regra escondida). orientacao: dúvida resolvida sem mudar o sistema.' },
   { campo: 'situacao', valores: 'em-correcao | corrigido | encerrado', descricao: 'em-correcao: o dev está trabalhando. corrigido: já publicada (merge feito). encerrado: sem alteração de sistema.' },
   { campo: 'modulo', valores: 'texto', descricao: 'Módulo ou funcionalidade, como a regra conhece (ex.: PTU A500, Reembolso).' },

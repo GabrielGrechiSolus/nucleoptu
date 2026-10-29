@@ -8,6 +8,7 @@ import { FolderSearch, Search, Upload, RefreshCcw, X, ExternalLink, GitPullReque
 import { Chamado, lerPasta, ROTULO_SITUACAO, ROTULO_TIPO } from './parse';
 import { CAMPOS_REGRA, MODELO_REGRA } from './modelo';
 import { SortTh, sortRows, useSort } from '../components/SortableTable';
+import Vinculos from './Vinculos';
 
 type Tri = 'todos' | 'sim' | 'nao';
 type Aba = 'todos' | 'em-correcao' | 'corrigidos' | 'regras';
@@ -601,6 +602,8 @@ function ChamadosPage() {
               {aberto.caminhoTela && <div className="col-span-2 sm:col-span-3"><dt className="text-xs text-zinc-500">Onde conferir na tela</dt><dd>{aberto.caminhoTela}</dd></div>}
               {aberto.resumo && !aberto.temRegra && <div className="col-span-2 sm:col-span-3"><dt className="text-xs text-zinc-500">Resumo</dt><dd className="text-zinc-300">{aberto.resumo}</dd></div>}
             </dl>
+
+            {aberto.temPr && <Vinculos contexto={aberto} />}
 
             <div className="mb-4 space-y-3 text-sm">
               <div>

@@ -37,6 +37,7 @@ export interface Chamado {
   publicadoEm: string; // AAAA-MM-DD
   temRegra: boolean;
   autores: string[]; // quem fez o(s) PR(s), do campo autor do REGRA.md
+  autoresLogin: string[]; // usuários no Git de quem fez o(s) PR(s) (campo autorLogin); liga o PR ao usuário na fila de aplicação
   docs: Record<string, string>;
 }
 
@@ -227,6 +228,7 @@ export function montaChamado(pasta: string, arquivos: Record<string, string>): C
     publicadoEm: /^\d{4}-\d{2}-\d{2}$/.test(meta.publicadoEm ?? '') ? meta.publicadoEm : '',
     temRegra: 'REGRA.md' in arquivos,
     autores: (meta.autor ?? '').split(',').map((a) => a.trim()).filter(Boolean),
+    autoresLogin: (meta.autorLogin ?? '').split(',').map((a) => a.trim().replace(/^@/, '')).filter(Boolean),
     docs,
   };
 }
