@@ -25,7 +25,6 @@ import {
   ChevronRight,
   Sparkles,
   Search,
-  Command,
   ArrowUpRight,
   FolderSearch,
 } from 'lucide-react';
@@ -38,13 +37,6 @@ interface NavItem {
   color: string;
   gradient: string;
   badge?: number;
-}
-
-interface UserProfile {
-  avatar?: string;
-  ledColor?: string;
-  ledAnimation?: 'pulse' | 'glow' | 'wave' | 'none';
-  displayName?: string;
 }
 
 // ===== Constantes =====
@@ -104,65 +96,6 @@ const ADMIN_ITEMS: NavItem[] = [
 ];
 
 // ===== Componentes Auxiliares =====
-
-// Avatar com LED integrado
-const AvatarWithLED: React.FC<{
-  src: string;
-  alt: string;
-  ledColor: string;
-  ledAnimation: string;
-  size?: 'sm' | 'md' | 'lg';
-}> = ({ src, alt, ledColor, ledAnimation, size = 'md' }) => {
-  const sizeClasses = {
-    sm: 'w-8 h-8',
-    md: 'w-10 h-10',
-    lg: 'w-12 h-12',
-  };
-
-  const getAnimationClass = () => {
-    switch (ledAnimation) {
-      case 'glow':
-        return 'animate-led-glow';
-      case 'wave':
-        return 'animate-led-wave';
-      case 'pulse':
-      default:
-        return 'animate-led-pulse';
-    }
-  };
-
-  return (
-    <div className="relative inline-flex shrink-0">
-      {/* LED Ring */}
-      <div
-        className={`absolute -inset-1 rounded-full opacity-70 blur-sm ${getAnimationClass()}`}
-        style={{ backgroundColor: ledAnimation === 'none' ? 'transparent' : ledColor }}
-      />
-
-      {/* Avatar Container */}
-      <div
-        className={`relative ${sizeClasses[size]} rounded-full p-[2px] bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-sm`}
-      >
-        <img
-          src={src}
-          alt={alt}
-          className="w-full h-full rounded-full object-cover ring-1 ring-white/10"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src = `data:image/svg+xml,${encodeURIComponent(
-              `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><rect width="128" height="128" fill="#333"/><text x="50%" y="50%" font-size="64" dy=".35em" text-anchor="middle" fill="#fff" font-family="Arial">${alt.charAt(0).toUpperCase()}</text></svg>`
-            )}`;
-          }}
-        />
-      </div>
-
-      {/* Status Online */}
-      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-zinc-900">
-        <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
-      </div>
-    </div>
-  );
-};
 
 // Item de navegação individual
 const NavigationItem: React.FC<{
@@ -258,11 +191,6 @@ const Sidebar: React.FC = () => {
   const router = useRouter();
 
   // ===== Estados =====
-  const [profile, setProfile] = useState<UserProfile>({
-    avatar: '/profile.jpg',
-    ledColor: '#3b82f6',
-    ledAnimation: 'pulse',
-  });
   const [unreadNotices, setUnreadNotices] = useState(0);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -286,54 +214,6 @@ const Sidebar: React.FC = () => {
 
     return () => unsubscribe();
   }, [user]);
-
-  // Gerar avatar SVG
-  const generateAvatar = useCallback((name: string) => {
-    const initial = name.charAt(0).toUpperCase() || '?';
-    const hue = Math.random() * 360;
-    const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-        <defs>
-          <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="hsl(${hue},70%,55%)"/>
-            <stop offset="100%" stop-color="hsl(${hue + 40},70%,45%)"/>
-          </linearGradient>
-        </defs>
-        <rect width="128" height="128" fill="url(#g)"/>
-        <text x="50%" y="50%" font-size="64" dy=".35em" text-anchor="middle" fill="white" font-family="system-ui" font-weight="bold">${initial}</text>
-      </svg>
-    `;
-    return `data:image/svg+xml;base64,${btoa(svg)}`;
-  }, []);
-
-  // Buscar perfil do usuário
-  useEffect(() => {
-    if (!user) return;
-
-    const fetchProfile = async () => {
-      try {
-        const docSnap = await getDoc(doc(db, 'profiles', user.uid));
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setProfile({
-            avatar: data?.avatar || generateAvatar(user.displayName || user.email || 'User'),
-            ledColor: data?.ledColor || '#3b82f6',
-            ledAnimation: data?.ledAnimation || 'pulse',
-            displayName: data?.displayName,
-          });
-        } else {
-          setProfile((prev) => ({
-            ...prev,
-            avatar: generateAvatar(user.displayName || user.email || 'User'),
-          }));
-        }
-      } catch (error) {
-        console.error('Erro ao carregar perfil:', error);
-      }
-    };
-
-    fetchProfile();
-  }, [user, generateAvatar]);
 
   // Fechar menu mobile ao navegar
   useEffect(() => {
@@ -379,49 +259,8 @@ const Sidebar: React.FC = () => {
   // ===== Renderização =====
   const sidebarContent = (
     <>
-      {/* Header - Logo e Perfil */}
+      {/* Busca no menu */}
       <div className="p-4 border-b border-zinc-800/50">
-        {/* Logo/Brand */}
-        {!isCollapsed && (
-          <div className="mb-4 flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-lg shadow-sky-500/25">
-              <Command size={18} className="text-white" />
-            </div>
-            <span className="font-bold text-lg bg-gradient-to-r from-sky-400 to-blue-500 bg-clip-text text-transparent">
-              Nexus
-            </span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 font-medium">
-              BETA
-            </span>
-          </div>
-        )}
-
-        {/* Perfil do Usuário */}
-        <Link
-          href="/profile"
-          className={`flex items-center gap-3 p-2 rounded-xl hover:bg-zinc-800/30 transition-all duration-200 group ${
-            isCollapsed ? 'justify-center' : ''
-          }`}
-          title={isCollapsed ? user?.displayName || 'Perfil' : undefined}
-        >
-          <AvatarWithLED
-            src={profile.avatar || '/profile.jpg'}
-            alt={user?.displayName || 'User'}
-            ledColor={profile.ledColor || '#3b82f6'}
-            ledAnimation={profile.ledAnimation || 'pulse'}
-            size={isCollapsed ? 'sm' : 'md'}
-          />
-
-          {!isCollapsed && (
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold text-sm text-zinc-100 truncate group-hover:text-sky-400 transition-colors">
-                {profile.displayName || user?.displayName || user?.email?.split('@')[0]}
-              </p>
-              <p className="text-[11px] text-zinc-500 truncate">{user?.email}</p>
-            </div>
-          )}
-        </Link>
-
         {/* Barra de Pesquisa */}
         {!isCollapsed && (
           <div className="mt-3 relative">

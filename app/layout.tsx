@@ -22,7 +22,7 @@
    children: React.ReactNode;
  }>) {
    return (
-     <html lang="pt-BR">
+     <html lang="pt-BR" suppressHydrationWarning>
        <body
          className={`${poppins.variable} antialiased`}
        >

@@ -102,3 +102,395 @@ html .shadow-2xl, html .shadow-xl, html .shadow-lg { box-shadow: 0 1px 4px rgba(
 html ::-webkit-scrollbar { width: 6px; height: 6px; }
 html ::-webkit-scrollbar-track { background: #f4f4f4; }
 html ::-webkit-scrollbar-thumb { background: #dad7d7; }
+
+/* ===== Componentes no padrão do web_relatus (botões, campos, busca, filtros, grade, cartões) ===== */
+
+
+/* Paletas slate, gray, neutral e stone (telas de entrada) recebem o mesmo tratamento do zinc */
+
+html [class~="bg-slate-950"] {
+  background-color: var(--background) !important;
+}
+
+html [class~="bg-slate-900"],
+html [class*="bg-slate-900/"]:not([class*=":bg-slate-900/"]) {
+  background-color: var(--surface) !important;
+}
+
+html [class~="bg-slate-800"],
+html [class*="bg-slate-800/"]:not([class*=":bg-slate-800/"]) {
+  background-color: #f1f1f1 !important;
+}
+
+html [class~="bg-slate-700"] {
+  background-color: var(--shape) !important;
+}
+
+html [class~="text-slate-50"],
+html [class~="text-slate-100"],
+html [class~="text-slate-200"] {
+  color: var(--title) !important;
+}
+
+html [class~="text-slate-300"],
+html [class~="text-slate-400"] {
+  color: var(--description) !important;
+}
+
+html [class~="text-slate-500"],
+html [class~="text-slate-600"] {
+  color: #6b6b76 !important;
+}
+
+html [class*="border-slate-"]:not([class*=":border-slate-"]) {
+  border-color: var(--line) !important;
+}
+
+html [class~="bg-gray-950"] {
+  background-color: var(--background) !important;
+}
+
+html [class~="bg-gray-900"],
+html [class*="bg-gray-900/"]:not([class*=":bg-gray-900/"]) {
+  background-color: var(--surface) !important;
+}
+
+html [class~="bg-gray-800"],
+html [class*="bg-gray-800/"]:not([class*=":bg-gray-800/"]) {
+  background-color: #f1f1f1 !important;
+}
+
+html [class~="bg-gray-700"] {
+  background-color: var(--shape) !important;
+}
+
+html [class~="text-gray-50"],
+html [class~="text-gray-100"],
+html [class~="text-gray-200"] {
+  color: var(--title) !important;
+}
+
+html [class~="text-gray-300"],
+html [class~="text-gray-400"] {
+  color: var(--description) !important;
+}
+
+html [class~="text-gray-500"],
+html [class~="text-gray-600"] {
+  color: #6b6b76 !important;
+}
+
+html [class*="border-gray-"]:not([class*=":border-gray-"]) {
+  border-color: var(--line) !important;
+}
+
+html [class~="bg-neutral-950"] {
+  background-color: var(--background) !important;
+}
+
+html [class~="bg-neutral-900"],
+html [class*="bg-neutral-900/"]:not([class*=":bg-neutral-900/"]) {
+  background-color: var(--surface) !important;
+}
+
+html [class~="bg-neutral-800"],
+html [class*="bg-neutral-800/"]:not([class*=":bg-neutral-800/"]) {
+  background-color: #f1f1f1 !important;
+}
+
+html [class~="bg-neutral-700"] {
+  background-color: var(--shape) !important;
+}
+
+html [class~="text-neutral-50"],
+html [class~="text-neutral-100"],
+html [class~="text-neutral-200"] {
+  color: var(--title) !important;
+}
+
+html [class~="text-neutral-300"],
+html [class~="text-neutral-400"] {
+  color: var(--description) !important;
+}
+
+html [class~="text-neutral-500"],
+html [class~="text-neutral-600"] {
+  color: #6b6b76 !important;
+}
+
+html [class*="border-neutral-"]:not([class*=":border-neutral-"]) {
+  border-color: var(--line) !important;
+}
+
+html [class~="bg-stone-950"] {
+  background-color: var(--background) !important;
+}
+
+html [class~="bg-stone-900"],
+html [class*="bg-stone-900/"]:not([class*=":bg-stone-900/"]) {
+  background-color: var(--surface) !important;
+}
+
+html [class~="bg-stone-800"],
+html [class*="bg-stone-800/"]:not([class*=":bg-stone-800/"]) {
+  background-color: #f1f1f1 !important;
+}
+
+html [class~="bg-stone-700"] {
+  background-color: var(--shape) !important;
+}
+
+html [class~="text-stone-50"],
+html [class~="text-stone-100"],
+html [class~="text-stone-200"] {
+  color: var(--title) !important;
+}
+
+html [class~="text-stone-300"],
+html [class~="text-stone-400"] {
+  color: var(--description) !important;
+}
+
+html [class~="text-stone-500"],
+html [class~="text-stone-600"] {
+  color: #6b6b76 !important;
+}
+
+html [class*="border-stone-"]:not([class*=":border-stone-"]) {
+  border-color: var(--line) !important;
+}
+
+
+/* Degradês escuros e brilhos viram superfícies lisas */
+
+html [class*="from-zinc-"],
+html [class*="via-zinc-"],
+html [class*="to-zinc-"],
+html [class*="from-slate-"],
+html [class*="from-gray-"],
+html [class*="from-neutral-"],
+html [class*="from-stone-"],
+html [class*="via-slate-"],
+html [class*="via-gray-"],
+html [class*="via-neutral-"],
+html [class*="via-stone-"],
+html [class*="to-slate-"],
+html [class*="to-gray-"],
+html [class*="to-neutral-"],
+html [class*="to-stone-"] {
+  background-image: none !important; background-color: var(--surface) !important;
+}
+
+html [class*="bg-zinc-950/"],
+html [class*="bg-slate-950/"],
+html [class*="bg-gray-950/"],
+html [class*="bg-neutral-950/"],
+html [class*="bg-stone-950/"] {
+  background-color: var(--surface) !important;
+}
+
+html [class*="backdrop-blur"] {
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+
+html [class*="shadow-sky"],
+html [class*="shadow-blue"],
+html [class*="shadow-red"],
+html [class*="shadow-emerald"],
+html [class*="shadow-current"],
+html [class*="shadow-black"] {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12) !important;
+}
+
+
+/* Texto branco só onde o fundo é colorido (botões, selos); no resto vira o título */
+
+html [class~="text-white"] {
+  color: var(--title);
+}
+
+html [class~="text-white"][class*="bg-sky-"],
+html [class~="text-white"][class*="bg-blue-"],
+html [class~="text-white"][class*="bg-red-"],
+html [class~="text-white"][class*="bg-rose-"],
+html [class~="text-white"][class*="bg-emerald-"],
+html [class~="text-white"][class*="bg-green-"],
+html [class~="text-white"][class*="bg-amber-"],
+html [class~="text-white"][class*="bg-violet-"],
+html [class~="text-white"][class*="bg-purple-"],
+html [class~="text-white"][class*="bg-indigo-"],
+html [class~="text-white"][class*="bg-teal-"],
+html [class~="text-white"][class*="bg-cyan-"],
+html [class~="text-white"][class*="bg-orange-"],
+html [class~="text-white"][class*="bg-pink-"],
+html button[class~="text-white"],
+html [class~="text-white"][class*="bg-gradient-to-"] {
+  color: #fff;
+}
+
+
+/* Títulos de página, como o Box.Title do Relatus */
+
+html h1 {
+  color: var(--primary) !important; font-size: 1.35rem !important; font-weight: 600 !important;
+}
+
+html h2 {
+  color: var(--title);
+}
+
+html [class~="text-transparent"] {
+  color: var(--primary) !important; -webkit-text-fill-color: var(--primary) !important; background-image: none !important;
+}
+
+
+/* Botões: primário azul (#00518C); exclusão em vermelho; sucesso em verde; alerta em laranja */
+
+html button {
+  font-weight: 500; transition: background-color 0.15s, box-shadow 0.15s;
+}
+
+html button[class*="bg-violet-"]:not([class*="/"]),
+html button[class*="bg-purple-"]:not([class*="/"]),
+html button[class*="bg-indigo-"]:not([class*="/"]),
+html button[class*="bg-teal-"]:not([class*="/"]),
+html button[class*="bg-cyan-"]:not([class*="/"]),
+html button[class*="bg-pink-"]:not([class*="/"]),
+html button[class*="bg-blue-5"]:not([class*="/"]),
+html button[class*="bg-blue-6"]:not([class*="/"]),
+html button[class*="bg-blue-7"]:not([class*="/"]) {
+  background-image: none !important; background-color: var(--primary) !important; color: #fff !important; border-radius: 4px;
+}
+
+html button[class*="bg-gradient-to-"] {
+  background-image: none !important; background-color: var(--primary) !important; color: #fff !important; border-radius: 4px;
+}
+
+html button[class*="from-red-"]:not([class*="/"]),
+html button[class*="from-rose-"]:not([class*="/"]),
+html button[class*="bg-red-5"]:not([class*="/"]),
+html button[class*="bg-red-6"]:not([class*="/"]),
+html button[class*="bg-rose-5"]:not([class*="/"]),
+html button[class*="bg-rose-6"]:not([class*="/"]) {
+  background-image: none !important; background-color: var(--error) !important; color: #fff !important; border-radius: 4px;
+}
+
+html button[class*="from-emerald-"]:not([class*="/"]),
+html button[class*="from-green-"]:not([class*="/"]),
+html button[class*="bg-emerald-5"]:not([class*="/"]),
+html button[class*="bg-emerald-6"]:not([class*="/"]),
+html button[class*="bg-green-5"]:not([class*="/"]),
+html button[class*="bg-green-6"]:not([class*="/"]) {
+  background-image: none !important; background-color: var(--success) !important; color: #fff !important; border-radius: 4px;
+}
+
+html button[class*="from-amber-"]:not([class*="/"]),
+html button[class*="from-orange-"]:not([class*="/"]),
+html button[class*="from-yellow-"]:not([class*="/"]),
+html button[class*="bg-amber-5"]:not([class*="/"]),
+html button[class*="bg-orange-5"]:not([class*="/"]) {
+  background-image: none !important; background-color: var(--alert) !important; color: #fff !important; border-radius: 4px;
+}
+
+html button[class*="bg-gradient-to-"]:not(:disabled):hover,
+html button[class*="bg-violet-"]:not(:disabled):hover,
+html button[class*="bg-purple-"]:not(:disabled):hover,
+html button[class*="bg-indigo-"]:not(:disabled):hover {
+  filter: brightness(0.92);
+}
+
+html button:disabled {
+  opacity: 0.6;
+}
+
+
+/* Campos de formulário, busca e filtros */
+
+html input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not(#sidebar-search),
+html select,
+html textarea {
+  background-color: #fcfcfc !important; border: 1px solid var(--shape) !important; border-radius: 4px !important; color: var(--text) !important; min-height: 38px;
+}
+
+html #sidebar-search {
+  background: transparent !important; border: 0 !important; box-shadow: none !important; min-height: 0;
+}
+
+html label {
+  color: var(--description);
+}
+
+html input[type="checkbox"],
+html input[type="radio"] {
+  accent-color: var(--primary);
+}
+
+
+/* Grade / tabela */
+
+html table {
+  background: var(--surface); border-collapse: collapse;
+}
+
+html thead,
+html thead tr,
+html thead th {
+  background: var(--background) !important; color: var(--title) !important; font-weight: 600;
+}
+
+html tbody tr {
+  border-color: var(--line) !important;
+}
+
+html tbody tr:hover {
+  background-color: #00518c0d !important;
+}
+
+html th,
+html td {
+  border-color: var(--line) !important;
+}
+
+html [class*="divide-zinc-"] > :not([hidden]) ~ :not([hidden]),
+html [class*="divide-slate-"] > :not([hidden]) ~ :not([hidden]),
+html [class*="divide-gray-"] > :not([hidden]) ~ :not([hidden]),
+html [class*="divide-neutral-"] > :not([hidden]) ~ :not([hidden]),
+html [class*="divide-stone-"] > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--line) !important;
+}
+
+
+/* Cartões e modais (Box do Relatus): fundo branco, borda suave e sombra discreta */
+
+html [class*="rounded-lg"][class*="border"][class*="bg-zinc-9"],
+html [class*="rounded-xl"][class*="border"][class*="bg-zinc-9"],
+html [class*="rounded-2xl"][class*="border"][class*="bg-zinc-9"],
+html [class*="rounded-lg"][class*="border"][class*="bg-slate-9"],
+html [class*="rounded-lg"][class*="border"][class*="bg-gray-9"],
+html [class*="rounded-lg"][class*="border"][class*="bg-neutral-9"],
+html [class*="rounded-lg"][class*="border"][class*="bg-stone-9"],
+html [class*="rounded-xl"][class*="border"][class*="bg-slate-9"],
+html [class*="rounded-xl"][class*="border"][class*="bg-gray-9"],
+html [class*="rounded-xl"][class*="border"][class*="bg-neutral-9"],
+html [class*="rounded-xl"][class*="border"][class*="bg-stone-9"],
+html [class*="rounded-2xl"][class*="border"][class*="bg-slate-9"],
+html [class*="rounded-2xl"][class*="border"][class*="bg-gray-9"],
+html [class*="rounded-2xl"][class*="border"][class*="bg-neutral-9"],
+html [class*="rounded-2xl"][class*="border"][class*="bg-stone-9"] {
+  background-color: var(--surface) !important; border-color: var(--line) !important; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+
+/* Links com aparência de botão (telas de entrada) e links simples */
+
+html a:is([class*="from-sky-"], [class*="from-blue-"])[class*="bg-gradient-to-"] {
+  background-image: none !important; background-color: var(--primary) !important; color: #fff !important; border-radius: 4px;
+}
+
+html a:is([class*="from-sky-"], [class*="from-blue-"])[class*="bg-gradient-to-"]:hover {
+  background-color: var(--primary-dark) !important;
+}
+
+html a:not([class]) {
+  color: var(--primary);
+}
