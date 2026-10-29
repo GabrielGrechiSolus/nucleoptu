@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import withAuth from "../components/withAuth";
+import { SortTh, sortRows, useSort } from "../components/SortableTable";
 import {
   collection,
   addDoc,
@@ -76,6 +77,7 @@ const NoticesPage = () => {
   const user = auth.currentUser;
 
   const [notices, setNotices] = useState<Notice[]>([]);
+  const { sort, toggleSort } = useSort();
   const [userType, setUserType] = useState<Notice["target"]>("todos");
 
   const [search, setSearch] = useState("");
@@ -608,18 +610,26 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
         <table className="w-full text-left text-sm">
           <thead className="text-xs uppercase text-zinc-400">
             <tr>
-              <th className="w-8 px-3 py-2" />
-              <th className="px-3 py-2">Aviso</th>
-              <th className="px-3 py-2">Tipo</th>
-              <th className="px-3 py-2">Público</th>
-              <th className="px-3 py-2">Importância</th>
-              <th className="px-3 py-2">Criado por</th>
-              <th className="px-3 py-2">Data</th>
+              <SortTh label="Lido" k="lido" sort={sort} onSort={toggleSort} className="w-14" />
+              <SortTh label="Aviso" k="aviso" sort={sort} onSort={toggleSort} />
+              <SortTh label="Tipo" k="tipo" sort={sort} onSort={toggleSort} className="hidden md:table-cell" />
+              <SortTh label="Público" k="publico" sort={sort} onSort={toggleSort} className="hidden lg:table-cell" />
+              <SortTh label="Importância" k="importancia" sort={sort} onSort={toggleSort} className="hidden sm:table-cell" />
+              <SortTh label="Criado por" k="criador" sort={sort} onSort={toggleSort} className="hidden lg:table-cell" />
+              <SortTh label="Data" k="data" sort={sort} onSort={toggleSort} className="hidden md:table-cell" />
               <th className="px-3 py-2 text-right">Ações</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.slice(0, visibleCount).map((item) => {
+            {sortRows(filtered, sort, {
+              lido: (i) => !(i.readBy?.includes(user?.email || "")) && !!i.active,
+              aviso: (i) => i.title,
+              tipo: (i) => i.type || "texto",
+              publico: (i) => targetConfig[i.target || "todos"].label,
+              importancia: (i) => ({ low: 1, medium: 2, high: 3 }[i.importance || "medium"]),
+              criador: (i) => i.creatorEmail,
+              data: (i) => i.createdAt,
+            }).slice(0, visibleCount).map((item) => {
               const isRead = item.readBy?.includes(user?.email || "");
               const importance = importanceConfig[item.importance || "medium"];
               const tipo = typeConfig[item.type || "texto"];
@@ -642,26 +652,26 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
                     </div>
                     {item.description && <div className="truncate text-xs text-zinc-400">{item.description}</div>}
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="hidden px-3 py-2 md:table-cell">
                     <span className="inline-flex items-center gap-1 text-xs uppercase text-zinc-400">
                       {tipo.icon}
                       {item.type || "texto"}
                     </span>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="hidden px-3 py-2 lg:table-cell">
                     <span className={`inline-flex items-center gap-1 text-xs ${alvo.color}`}>
                       {alvo.icon}
                       {alvo.label}
                     </span>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="hidden px-3 py-2 sm:table-cell">
                     <span className={`inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs ${importance.bgColor} ${importance.borderColor} ${importance.color}`}>
                       {importance.icon}
                       {importance.label}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-zinc-400">{item.creatorEmail.split("@")[0]}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-zinc-400" title={formatDate(item.createdAt)}>
+                  <td className="hidden px-3 py-2 text-zinc-400 lg:table-cell">{item.creatorEmail.split("@")[0]}</td>
+                  <td className="hidden whitespace-nowrap px-3 py-2 text-zinc-400 md:table-cell" title={formatDate(item.createdAt)}>
                     {getRelativeTime(item.createdAt)}
                   </td>
                   <td className="px-3 py-2">

@@ -20,11 +20,8 @@ const avatarIniciais = (nome: string) => {
   return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
 };
 
-const classeLed = (animacao: string) =>
-  animacao === 'glow' ? 'animate-led-glow' : animacao === 'wave' ? 'animate-led-wave' : 'animate-led-pulse';
-
 // Cabeçalho no padrão do web_relatus: faixa branca de 60px, logo à esquerda e usuário à direita.
-// O botão do usuário usa a foto e o LED configurados no perfil.
+// O botão do usuário usa a foto configurada no perfil (sem LED piscando).
 export default function Header() {
   const { user } = useAuth();
   const [perfil, setPerfil] = useState<PerfilHeader>({ ledColor: '#00518C', ledAnimation: 'none' });
@@ -62,12 +59,6 @@ export default function Header() {
       <div className="flex items-center gap-4">
         {nome && <span className="text-sm text-[#333333]">{nome}</span>}
         <Link href="/profile" title="Meu perfil" className="relative inline-flex shrink-0">
-          {perfil.ledAnimation !== 'none' && (
-            <span
-              className={`absolute -inset-1 rounded-full opacity-70 blur-sm ${classeLed(perfil.ledAnimation)}`}
-              style={{ backgroundColor: perfil.ledColor }}
-            />
-          )}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={foto}

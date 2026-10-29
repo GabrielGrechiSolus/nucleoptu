@@ -7,6 +7,7 @@ import { collection, query, where, getDocs, getDoc, doc, updateDoc, deleteDoc, s
 import { Dialog } from "@headlessui/react";
 import { Users, Star, Plus, ThumbsUp, ThumbsDown, ExternalLink, X, Edit2, Trash2, Search, Filter } from "lucide-react";
 import { toast } from "react-toastify";
+import { SortTh, sortRows, useSort } from "../components/SortableTable";
 
 type LinkType = "todos" | "lideranca" | "sustentacao" | "desenvolvimento" | "analise";
 
@@ -131,6 +132,8 @@ export default function UsefulLinksPage() {
       uid,
     [usersList]
   );
+
+  const { sort, toggleSort } = useSort();
 
   const filteredLinks = useMemo(() => {
     let filtered = links;
@@ -416,18 +419,26 @@ export default function UsefulLinksPage() {
             <table className="w-full text-left text-sm">
               <thead className="text-xs uppercase text-zinc-400">
                 <tr>
-                  <th className="w-10 px-3 py-2" />
-                  <th className="px-3 py-2">Título</th>
-                  <th className="px-3 py-2">Tipo</th>
-                  <th className="px-3 py-2">Endereço</th>
-                  <th className="px-3 py-2">Criado por</th>
-                  <th className="px-3 py-2 text-center">Curtidas</th>
-                  <th className="px-3 py-2 text-center">Favoritos</th>
+                  <SortTh label="★" k="fav" sort={sort} onSort={toggleSort} className="w-12" />
+                  <SortTh label="Título" k="titulo" sort={sort} onSort={toggleSort} />
+                  <SortTh label="Tipo" k="tipo" sort={sort} onSort={toggleSort} />
+                  <SortTh label="Endereço" k="endereco" sort={sort} onSort={toggleSort} className="hidden md:table-cell" />
+                  <SortTh label="Criado por" k="criador" sort={sort} onSort={toggleSort} className="hidden lg:table-cell" />
+                  <SortTh label="Curtidas" k="curtidas" sort={sort} onSort={toggleSort} align="center" />
+                  <SortTh label="Favoritos" k="favoritos" sort={sort} onSort={toggleSort} align="center" className="hidden md:table-cell" />
                   <th className="w-24 px-3 py-2 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredLinks.map((link) => {
+                {sortRows(filteredLinks, sort, {
+                  fav: (l) => l.favoritedBy.includes(user?.uid || ""),
+                  titulo: (l) => l.title,
+                  tipo: (l) => LINK_TYPES.find((t) => t.value === l.type)?.label || l.type,
+                  endereco: (l) => l.url,
+                  criador: (l) => l.creatorName,
+                  curtidas: (l) => l.likedBy.length,
+                  favoritos: (l) => l.favoritedBy.length,
+                }).map((link) => {
                   const favorito = link.favoritedBy.includes(user?.uid || "");
                   const curtiu = link.likedBy.includes(user?.uid || "");
                   const naoCurtiu = link.dislikedBy.includes(user?.uid || "");
@@ -462,10 +473,10 @@ export default function UsefulLinksPage() {
                           {LINK_TYPES.find((t) => t.value === link.type)?.label || link.type}
                         </span>
                       </td>
-                      <td className="max-w-[220px] truncate px-3 py-2 text-zinc-400" title={link.url}>
+                      <td className="hidden max-w-[220px] truncate px-3 py-2 text-zinc-400 md:table-cell" title={link.url}>
                         {endereco}
                       </td>
-                      <td className="px-3 py-2 text-zinc-400">{link.creatorName}</td>
+                      <td className="hidden px-3 py-2 text-zinc-400 lg:table-cell">{link.creatorName}</td>
                       <td className="px-3 py-2">
                         <div className="flex items-center justify-center gap-2">
                           <button
@@ -486,7 +497,7 @@ export default function UsefulLinksPage() {
                           </button>
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-center text-zinc-400">{link.favoritedBy.length}</td>
+                      <td className="hidden px-3 py-2 text-center text-zinc-400 md:table-cell">{link.favoritedBy.length}</td>
                       <td className="px-3 py-2">
                         {link.creatorUid === user?.uid && (
                           <div className="flex justify-end gap-1">

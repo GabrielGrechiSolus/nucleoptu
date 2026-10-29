@@ -23,6 +23,7 @@ import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ==================== TIPOS ====================
+import { SortTh, sortRows, useSort } from "../components/SortableTable";
 
 interface ServiceUser {
   id: string;
@@ -498,6 +499,8 @@ export default function ClientConnectionsPage() {
       toast.error("Erro ao salvar dados");
     }
   }, []);
+
+  const { sort: colSort, toggleSort: toggleColSort } = useSort();
 
   // Filtros e ordenação
   const filteredConnections = useMemo(() => {
@@ -1080,19 +1083,28 @@ export default function ClientConnectionsPage() {
             <table className="w-full text-left text-sm">
               <thead className="text-xs uppercase text-zinc-400">
                 <tr>
-                  <th className="w-10 px-3 py-2" />
-                  <th className="px-3 py-2">Cliente</th>
-                  <th className="px-3 py-2">Categoria</th>
-                  <th className="px-3 py-2">Status</th>
-                  <th className="px-3 py-2 text-center">VPNs</th>
-                  <th className="px-3 py-2 text-center">Servidores</th>
-                  <th className="px-3 py-2 text-center">AnyDesk</th>
-                  <th className="px-3 py-2">Atualizado</th>
+                  <SortTh label="★" k="fav" sort={colSort} onSort={toggleColSort} className="w-12" />
+                  <SortTh label="Cliente" k="cliente" sort={colSort} onSort={toggleColSort} />
+                  <SortTh label="Categoria" k="categoria" sort={colSort} onSort={toggleColSort} className="hidden md:table-cell" />
+                  <SortTh label="Status" k="status" sort={colSort} onSort={toggleColSort} />
+                  <SortTh label="VPNs" k="vpns" sort={colSort} onSort={toggleColSort} align="center" className="hidden lg:table-cell" />
+                  <SortTh label="Servidores" k="servidores" sort={colSort} onSort={toggleColSort} align="center" className="hidden lg:table-cell" />
+                  <SortTh label="AnyDesk" k="anydesk" sort={colSort} onSort={toggleColSort} align="center" className="hidden lg:table-cell" />
+                  <SortTh label="Atualizado" k="atualizado" sort={colSort} onSort={toggleColSort} className="hidden sm:table-cell" />
                   <th className="w-24 px-3 py-2 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredConnections.map((connection) => (
+                {sortRows(filteredConnections, colSort, {
+                  fav: (c) => favorites.has(c.id),
+                  cliente: (c) => c.clientName,
+                  categoria: (c) => c.category,
+                  status: (c) => c.status,
+                  vpns: (c) => c.vpns.length,
+                  servidores: (c) => c.dockerServers.length,
+                  anydesk: (c) => c.anydesks.length,
+                  atualizado: (c) => c.updatedAt,
+                }).map((connection) => (
                   <tr
                     key={connection.id}
                     className="cursor-pointer border-t border-zinc-800 hover:bg-zinc-800/40"
@@ -1117,14 +1129,14 @@ export default function ClientConnectionsPage() {
                       <div className="font-medium text-zinc-100">{connection.clientName}</div>
                       {connection.clientCode && <div className="text-xs text-zinc-500">{connection.clientCode}</div>}
                     </td>
-                    <td className="px-3 py-2 text-zinc-400">{connection.category}</td>
+                    <td className="hidden px-3 py-2 text-zinc-400 md:table-cell">{connection.category}</td>
                     <td className="px-3 py-2">
                       <StatusBadge status={connection.status} />
                     </td>
-                    <td className="px-3 py-2 text-center text-zinc-400">{connection.vpns.length}</td>
-                    <td className="px-3 py-2 text-center text-zinc-400">{connection.dockerServers.length}</td>
-                    <td className="px-3 py-2 text-center text-zinc-400">{connection.anydesks.length}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-zinc-400">{formatRelativeTime(connection.updatedAt)}</td>
+                    <td className="hidden px-3 py-2 text-center text-zinc-400 lg:table-cell">{connection.vpns.length}</td>
+                    <td className="hidden px-3 py-2 text-center text-zinc-400 lg:table-cell">{connection.dockerServers.length}</td>
+                    <td className="hidden px-3 py-2 text-center text-zinc-400 lg:table-cell">{connection.anydesks.length}</td>
+                    <td className="hidden whitespace-nowrap px-3 py-2 text-zinc-400 sm:table-cell">{formatRelativeTime(connection.updatedAt)}</td>
                     <td className="px-3 py-2">
                       <div className="flex justify-end gap-1">
                         <button

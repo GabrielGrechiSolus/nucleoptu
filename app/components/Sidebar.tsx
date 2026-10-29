@@ -465,7 +465,7 @@ const Sidebar: React.FC = () => {
       {/* ===== Mobile Toggle Button ===== */}
       <button
         onClick={() => setIsMobileOpen(!isMobileOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-zinc-900/90 backdrop-blur-xl rounded-xl border border-zinc-800/50 shadow-2xl hover:scale-105 transition-all duration-200"
+        className="lg:hidden fixed top-2 left-3 z-50 p-2.5 bg-zinc-900/90 backdrop-blur-xl rounded-xl border border-zinc-800/50 shadow-2xl hover:scale-105 transition-all duration-200"
         aria-label="Menu"
       >
         {isMobileOpen ? <X size={20} className="text-zinc-300" /> : <Menu size={20} className="text-zinc-300" />}
