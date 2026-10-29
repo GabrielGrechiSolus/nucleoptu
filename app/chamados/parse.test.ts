@@ -57,3 +57,58 @@ describe('parse de chamados', () => {
     expect(montaChamado('consultas', { 'LEIAME.md': 'texto' })).toBeNull();
   });
 });
+
+const REGRA = `---
+chamado: 568.098
+cliente: Unimed Pato Branco
+assunto: PTU A500 – Recebimento
+tipo: correcao
+situacao: corrigido
+modulo: PTU A500
+revision: 40127
+publicadoEm: 2026-10-27
+pr: 3965, contas#120
+evidencia: https://docs.example.com/evidencia
+planoTestes:
+---
+
+## Problema
+Importação parava com justificativa longa.
+`;
+
+describe('REGRA.md', () => {
+  it('lê o cabeçalho e preenche os campos para a regra', () => {
+    const c = montaChamado('568.098-unimed-pato-branco', { 'REGRA.md': REGRA })!;
+    expect(c.numero).toBe('568.098');
+    expect(c.cliente).toBe('Unimed Pato Branco');
+    expect(c.tipo).toBe('correcao');
+    expect(c.situacao).toBe('corrigido');
+    expect(c.status).toBe('Corrigido');
+    expect(c.revision).toBe('40127');
+    expect(c.publicadoEm).toBe('2026-10-27');
+    expect(c.temRegra).toBe(true);
+    expect(c.prs.map((p) => `${p.repo}#${p.numero}`)).toEqual(['banco#3965', 'contas#120']);
+    expect(c.evidencias[0].url).toBe('https://docs.example.com/evidencia');
+    expect(c.temPlano).toBe(false);
+    expect(Object.keys(c.docs)[0]).toBe('REGRA.md');
+    expect(c.docs['REGRA.md'].startsWith('## Problema')).toBe(true);
+  });
+
+  it('ignora valores inválidos e PR zerado do modelo', () => {
+    const c = montaChamado('568.098-x', { 'REGRA.md': REGRA.replace('tipo: correcao', 'tipo: qualquer').replace('pr: 3965, contas#120', 'pr: 0000').replace('revision: 40127', 'revision: abc') })!;
+    expect(c.tipo).toBe('');
+    expect(c.revision).toBe('');
+    expect(c.prs).toEqual([]);
+  });
+
+  it('com REGRA.md, a revision vem só do cabeçalho e não da revision do cliente citada no contexto', () => {
+    const c = montaChamado('568.098-x', { 'REGRA.md': REGRA.replace('revision: 40127', 'revision:'), 'CONTEXTO.md': 'Revision do cliente: 40124' })!;
+    expect(c.revision).toBe('');
+  });
+
+  it('chamado sem REGRA.md continua sendo lido pelo CONTEXTO.md', () => {
+    const c = montaChamado('568.361-unimed-limeira', { 'CONTEXTO.md': CONTEXTO })!;
+    expect(c.temRegra).toBe(false);
+    expect(c.tipo).toBe('');
+  });
+});
