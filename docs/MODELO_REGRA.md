@@ -13,6 +13,7 @@ Para que serve: a regra acompanha o que está em correção, o que já foi corri
 chamado: 000.000
 cliente: Nome do cliente
 assunto: Resumo do que o cliente via, em uma linha
+autor: Nome de quem fez o PR
 tipo: correcao
 situacao: em-correcao
 modulo: PTU A500
@@ -48,7 +49,8 @@ pode consultar da próxima vez, sem depender do desenvolvimento.
 | `chamado` | `000.000` | Número do chamado, com o ponto. |
 | `cliente` | `texto` | Cliente que abriu o chamado. |
 | `assunto` | `texto` | Resumo em uma linha. |
-| `tipo` | `correcao | regra | orientacao` | correcao: mudou o sistema. regra: era uma regra do sistema difícil de achar (regra escondida). orientacao: dúvida resolvida sem mudar o sistema. |
+| `autor` | `Nome, Nome` | Quem fez o PR (nome de quem desenvolveu). Mais de um, separados por vírgula. |
+| `tipo` | `correcao | melhoria | regra | orientacao` | correcao: corrigiu o sistema. melhoria: nova funcionalidade (feature). regra: era uma regra do sistema difícil de achar (regra escondida). orientacao: dúvida resolvida sem mudar o sistema. |
 | `situacao` | `em-correcao | corrigido | encerrado` | em-correcao: o dev está trabalhando. corrigido: já publicada (merge feito). encerrado: sem alteração de sistema. |
 | `modulo` | `texto` | Módulo ou funcionalidade, como a regra conhece (ex.: PTU A500, Reembolso). |
 | `caminhoTela` | `texto` | Caminho no sistema onde a regra confere o resultado. |
@@ -62,6 +64,7 @@ pode consultar da próxima vez, sem depender do desenvolvimento.
 
 - **correcao** com **em-correcao**: o desenvolvimento está trabalhando. Deixe `revision` e `publicadoEm` vazios.
 - **correcao** com **corrigido**: a correção já foi mesclada. Preencha `publicadoEm` e a `revision` em que passa a estar disponível.
+- **melhoria**: nova funcionalidade (PR de feature), com a mesma lógica de situação.
 - **regra**: o chamado era uma regra do sistema difícil de achar. Preencha a seção "Onde a regra estava escondida".
 - **orientacao**: dúvida resolvida sem mudar o sistema.
 

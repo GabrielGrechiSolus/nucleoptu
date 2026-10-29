@@ -5,6 +5,7 @@ export const MODELO_REGRA = `---
 chamado: 000.000
 cliente: Nome do cliente
 assunto: Resumo do que o cliente via, em uma linha
+autor: Nome de quem fez o PR
 tipo: correcao
 situacao: em-correcao
 modulo: PTU A500
@@ -37,7 +38,8 @@ export const CAMPOS_REGRA: { campo: string; valores: string; descricao: string }
   { campo: 'chamado', valores: '000.000', descricao: 'Número do chamado, com o ponto.' },
   { campo: 'cliente', valores: 'texto', descricao: 'Cliente que abriu o chamado.' },
   { campo: 'assunto', valores: 'texto', descricao: 'Resumo em uma linha.' },
-  { campo: 'tipo', valores: 'correcao | regra | orientacao', descricao: 'correcao: mudou o sistema. regra: era uma regra do sistema difícil de achar (regra escondida). orientacao: dúvida resolvida sem mudar o sistema.' },
+  { campo: 'autor', valores: 'Nome, Nome', descricao: 'Quem fez o PR (nome de quem desenvolveu). Mais de um, separados por vírgula.' },
+  { campo: 'tipo', valores: 'correcao | melhoria | regra | orientacao', descricao: 'correcao: corrigiu o sistema. melhoria: nova funcionalidade (feature). regra: era uma regra do sistema difícil de achar (regra escondida). orientacao: dúvida resolvida sem mudar o sistema.' },
   { campo: 'situacao', valores: 'em-correcao | corrigido | encerrado', descricao: 'em-correcao: o dev está trabalhando. corrigido: já publicada (merge feito). encerrado: sem alteração de sistema.' },
   { campo: 'modulo', valores: 'texto', descricao: 'Módulo ou funcionalidade, como a regra conhece (ex.: PTU A500, Reembolso).' },
   { campo: 'caminhoTela', valores: 'texto', descricao: 'Caminho no sistema onde a regra confere o resultado.' },

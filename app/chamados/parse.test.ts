@@ -62,6 +62,7 @@ const REGRA = `---
 chamado: 568.098
 cliente: Unimed Pato Branco
 assunto: PTU A500 – Recebimento
+autor: Rodrigo Zandoná, Denys Sousa
 tipo: correcao
 situacao: corrigido
 modulo: PTU A500
@@ -87,6 +88,7 @@ describe('REGRA.md', () => {
     expect(c.revision).toBe('40127');
     expect(c.publicadoEm).toBe('2026-10-27');
     expect(c.temRegra).toBe(true);
+    expect(c.autores).toEqual(['Rodrigo Zandoná', 'Denys Sousa']);
     expect(c.prs.map((p) => `${p.repo}#${p.numero}`)).toEqual(['banco#3965', 'contas#120']);
     expect(c.evidencias[0].url).toBe('https://docs.example.com/evidencia');
     expect(c.temPlano).toBe(false);

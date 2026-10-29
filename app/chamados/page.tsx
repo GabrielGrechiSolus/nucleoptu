@@ -97,16 +97,18 @@ function ChamadosPage() {
   const [fRegra, setFRegra] = useState<Tri>('todos');
   const [fCliente, setFCliente] = useState('');
   const [fModulo, setFModulo] = useState('');
+  const [fAutor, setFAutor] = useState('');
   const [fRevision, setFRevision] = useState('');
   const [aberto, setAberto] = useState<Chamado | null>(null);
   const [docAberto, setDocAberto] = useState('');
   const [previa, setPrevia] = useState<Chamado[] | null>(null);
   const [gravando, setGravando] = useState(false);
+  const [substituir, setSubstituir] = useState(false);
   const [msg, setMsg] = useState('');
   const [mostraModelo, setMostraModelo] = useState(false);
   const [mostraImportar, setMostraImportar] = useState(false);
   const pastaRef = useRef<HTMLInputElement>(null);
-  const [caminho, setCaminho] = useState('C:/RepositorioGit/chatgpt/chamados');
+  const [caminho, setCaminho] = useState('C:/RepositorioGit/claude/contextos_prs');
   const [lendo, setLendo] = useState(false);
   const { sort, toggleSort } = useSort({ key: 'publicado', dir: 'desc' });
 
@@ -184,7 +186,17 @@ function ChamadosPage() {
         for (const c of previa.slice(i, i + 20)) lote.set(doc(db, COLECAO, c.id), { ...c, importadoEm: serverTimestamp(), importadoPor: por });
         await lote.commit();
       }
-      setMsg(`${previa.length} chamado(s) importado(s). Quem já existia foi atualizado.`);
+      // Substituir tudo: remove da coleção os chamados que não estão na importação.
+      const sobrando = substituir ? itens.filter((i) => !previa.some((p) => p.id === i.id)) : [];
+      for (let i = 0; i < sobrando.length; i += 400) {
+        const lote = writeBatch(db);
+        for (const c of sobrando.slice(i, i + 400)) lote.delete(doc(db, COLECAO, c.id));
+        await lote.commit();
+      }
+      setMsg(
+        `${previa.length} chamado(s) importado(s). Quem já existia foi atualizado.${substituir ? ` ${sobrando.length} chamado(s) que não estavam na pasta foram removidos da lista.` : ''}`,
+      );
+      setSubstituir(false);
       setPrevia(null);
       await carregar();
     } catch (e) {
@@ -200,6 +212,7 @@ function ChamadosPage() {
 
   const clientes = useMemo(() => [...new Set(itens.map((i) => i.cliente).filter(Boolean))].sort(), [itens]);
   const modulos = useMemo(() => [...new Set(itens.map((i) => i.modulo).filter(Boolean))].sort(), [itens]);
+  const autoresLista = useMemo(() => [...new Set(itens.flatMap((i) => i.autores ?? []))].sort(), [itens]);
   const revisions = useMemo(() => [...new Set(itens.map((i) => i.revision).filter(Boolean))].sort().reverse(), [itens]);
 
   const contagem = useMemo(
@@ -221,9 +234,10 @@ function ChamadosPage() {
       if (!passa(c.temPr, fPr) || !passa(c.temEvidencia, fEvid) || !passa(c.temPlano, fPlano) || !passa(!!c.temRegra, fRegra)) return false;
       if (fCliente && c.cliente !== fCliente) return false;
       if (fModulo && c.modulo !== fModulo) return false;
+      if (fAutor && !(c.autores ?? []).includes(fAutor)) return false;
       if (fRevision && c.revision !== fRevision) return false;
       if (!q) return true;
-      const cabecalho = [c.numero, c.id, c.cliente, c.assunto, c.resumo, c.status, c.modulo, c.caminhoTela, c.revision, ...c.prs.map((p) => p.numero), ...c.branches].join(' ').toLowerCase();
+      const cabecalho = [c.numero, c.id, c.cliente, c.assunto, c.resumo, c.status, c.modulo, c.caminhoTela, c.revision, ...(c.autores ?? []), ...c.prs.map((p) => p.numero), ...c.branches].join(' ').toLowerCase();
       if (cabecalho.includes(q)) return true;
       return noConteudo && Object.values(c.docs ?? {}).some((t) => t.toLowerCase().includes(q));
     });
@@ -233,6 +247,7 @@ function ChamadosPage() {
       tipo: (c) => ROTULO_TIPO[c.tipo ?? ''] === '—' ? '' : ROTULO_TIPO[c.tipo ?? ''],
       situacao: (c) => (c.situacao ? ROTULO_SITUACAO[c.situacao] : ''),
       modulo: (c) => c.modulo,
+      autor: (c) => (c.autores ?? []).join(', '),
       revision: (c) => c.revision,
       publicado: (c) => c.publicadoEm || '',
       prs: (c) => c.prs.length,
@@ -250,6 +265,7 @@ function ChamadosPage() {
     setFRegra('todos');
     setFCliente('');
     setFModulo('');
+    setFAutor('');
     setFRevision('');
     setAba('todos');
   };
@@ -325,7 +341,7 @@ function ChamadosPage() {
                 value={caminho}
                 onChange={(e) => setCaminho(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !lendo && lerDoCaminho()}
-                placeholder="C:/RepositorioGit/chatgpt/chamados"
+                placeholder="C:/RepositorioGit/claude/contextos_prs"
                 className="min-w-[240px] flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 font-mono text-sm text-zinc-100"
               />
               <button onClick={lerDoCaminho} disabled={lendo || !caminho.trim()} className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-60">
@@ -370,6 +386,13 @@ function ChamadosPage() {
             </select>
           </label>
           <label className="flex flex-col gap-1 text-xs text-zinc-400">
+            Autor do PR
+            <select value={fAutor} onChange={(e) => setFAutor(e.target.value)} className="max-w-[180px] rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100">
+              <option value="">Todos</option>
+              {autoresLista.map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-zinc-400">
             Cliente
             <select value={fCliente} onChange={(e) => setFCliente(e.target.value)} className="max-w-[180px] rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100">
               <option value="">Todos</option>
@@ -408,6 +431,7 @@ function ChamadosPage() {
               <SortTh label="Assunto" k="assunto" sort={sort} onSort={toggleSort} />
               <SortTh label="Tipo" k="tipo" sort={sort} onSort={toggleSort} className="hidden md:table-cell" />
               <SortTh label="Situação" k="situacao" sort={sort} onSort={toggleSort} />
+              <SortTh label="Autor" k="autor" sort={sort} onSort={toggleSort} className="hidden sm:table-cell" />
               <SortTh label="Módulo" k="modulo" sort={sort} onSort={toggleSort} className="hidden lg:table-cell" />
               <SortTh label="Revision" k="revision" sort={sort} onSort={toggleSort} className="hidden sm:table-cell" />
               <SortTh label="Publicado em" k="publicado" sort={sort} onSort={toggleSort} className="hidden md:table-cell" />
@@ -417,10 +441,10 @@ function ChamadosPage() {
             </tr>
           </thead>
           <tbody>
-            {carregando && <tr><td colSpan={10} className="px-3 py-8 text-center text-zinc-500">Carregando...</td></tr>}
+            {carregando && <tr><td colSpan={11} className="px-3 py-8 text-center text-zinc-500">Carregando...</td></tr>}
             {!carregando && !filtrados.length && (
               <tr>
-                <td colSpan={10} className="px-3 py-8 text-center text-zinc-500">
+                <td colSpan={11} className="px-3 py-8 text-center text-zinc-500">
                   {itens.length ? 'Nenhum chamado com esses filtros.' : 'Nenhum contexto importado ainda. Use “Importar contextos”.'}
                 </td>
               </tr>
@@ -436,6 +460,7 @@ function ChamadosPage() {
                 <td className="px-3 py-2">
                   {c.situacao ? <span className={`rounded px-1.5 py-0.5 text-xs ${estiloSituacao[c.situacao]}`}>{ROTULO_SITUACAO[c.situacao]}</span> : <span className="text-zinc-600">—</span>}
                 </td>
+                <td className="hidden px-3 py-2 text-zinc-300 sm:table-cell">{(c.autores ?? []).join(', ') || '—'}</td>
                 <td className="hidden px-3 py-2 text-zinc-300 lg:table-cell">{c.modulo || '—'}</td>
                 <td className="hidden px-3 py-2 text-zinc-300 sm:table-cell">{c.revision || (c.situacao === 'em-correcao' ? 'ainda não saiu' : '—')}</td>
                 <td className="hidden whitespace-nowrap px-3 py-2 text-zinc-400 md:table-cell">{formataIso(c.publicadoEm) || '—'}</td>
@@ -459,7 +484,20 @@ function ChamadosPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-950 p-5">
             <h2 className="mb-1 text-lg font-semibold">Importar {previa.length} chamado(s)</h2>
-            <p className="mb-3 text-sm text-zinc-400">Chamados que já existem serão atualizados com o conteúdo atual das pastas. Nada é apagado.</p>
+            <p className="mb-3 text-sm text-zinc-400">Chamados que já existem serão atualizados com o conteúdo atual das pastas.</p>
+            <label className="mb-3 flex items-start gap-2 rounded border border-zinc-700 p-3 text-sm">
+              <input type="checkbox" className="mt-1" checked={substituir} onChange={(e) => setSubstituir(e.target.checked)} />
+              <span>
+                <strong>Substituir tudo:</strong> remover da lista os chamados que não estão nesta pasta.
+                {' '}
+                {(() => {
+                  const sobra = itens.filter((i) => !previa.some((p) => p.id === i.id)).length;
+                  return substituir
+                    ? `Serão removidos ${sobra} chamado(s) da lista do sistema (as pastas no computador não são apagadas).`
+                    : `${sobra} chamado(s) da lista não estão nesta pasta e serão mantidos.`;
+                })()}
+              </span>
+            </label>
             <ul className="mb-4 max-h-64 overflow-y-auto rounded border border-zinc-800 text-sm">
               {previa.map((c) => (
                 <li key={c.id} className="flex justify-between gap-3 border-b border-zinc-800 px-3 py-1.5 last:border-0">
@@ -469,7 +507,7 @@ function ChamadosPage() {
               ))}
             </ul>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setPrevia(null)} disabled={gravando} className="rounded-md border border-zinc-700 px-3 py-2 text-sm">Cancelar</button>
+              <button onClick={() => { setPrevia(null); setSubstituir(false); }} disabled={gravando} className="rounded-md border border-zinc-700 px-3 py-2 text-sm">Cancelar</button>
               <button onClick={gravar} disabled={gravando} className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium disabled:opacity-60">{gravando ? 'Gravando...' : 'Gravar'}</button>
             </div>
           </div>
@@ -528,6 +566,7 @@ function ChamadosPage() {
             </div>
 
             <dl className="mb-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+              <div><dt className="text-xs text-zinc-500">Quem fez o PR</dt><dd>{(aberto.autores ?? []).join(', ') || '—'}</dd></div>
               <div><dt className="text-xs text-zinc-500">Tipo</dt><dd>{ROTULO_TIPO[aberto.tipo ?? '']}</dd></div>
               <div><dt className="text-xs text-zinc-500">Situação</dt><dd>{aberto.situacao ? ROTULO_SITUACAO[aberto.situacao] : aberto.status || '—'}</dd></div>
               <div><dt className="text-xs text-zinc-500">Módulo</dt><dd>{aberto.modulo || '—'}</dd></div>

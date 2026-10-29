@@ -36,16 +36,17 @@ export interface Chamado {
   caminhoTela: string;
   publicadoEm: string; // AAAA-MM-DD
   temRegra: boolean;
+  autores: string[]; // quem fez o(s) PR(s), do campo autor do REGRA.md
   docs: Record<string, string>;
 }
 
-export type TipoChamado = 'correcao' | 'regra' | 'orientacao' | '';
+export type TipoChamado = 'correcao' | 'melhoria' | 'regra' | 'orientacao' | '';
 export type SituacaoChamado = 'em-correcao' | 'corrigido' | 'encerrado' | '';
 
-const TIPOS: TipoChamado[] = ['correcao', 'regra', 'orientacao'];
+const TIPOS: TipoChamado[] = ['correcao', 'melhoria', 'regra', 'orientacao'];
 const SITUACOES: SituacaoChamado[] = ['em-correcao', 'corrigido', 'encerrado'];
 
-export const ROTULO_TIPO: Record<string, string> = { correcao: 'Correção', regra: 'Regra escondida', orientacao: 'Orientação', '': '—' };
+export const ROTULO_TIPO: Record<string, string> = { correcao: 'Correção', melhoria: 'Melhoria', regra: 'Regra escondida', orientacao: 'Orientação', '': '—' };
 export const ROTULO_SITUACAO: Record<string, string> = { 'em-correcao': 'Em correção', corrigido: 'Corrigido', encerrado: 'Encerrado', '': '—' };
 
 // Cabeçalho entre `---` no início do arquivo: linhas "chave: valor". Retorna null se não houver.
@@ -225,6 +226,7 @@ export function montaChamado(pasta: string, arquivos: Record<string, string>): C
     caminhoTela: meta.caminhoTela ?? '',
     publicadoEm: /^\d{4}-\d{2}-\d{2}$/.test(meta.publicadoEm ?? '') ? meta.publicadoEm : '',
     temRegra: 'REGRA.md' in arquivos,
+    autores: (meta.autor ?? '').split(',').map((a) => a.trim()).filter(Boolean),
     docs,
   };
 }
