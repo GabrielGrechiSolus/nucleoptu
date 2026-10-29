@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# chaves de serviço (nunca versionar)
+/.secrets/
+*firebase-adminsdk*.json

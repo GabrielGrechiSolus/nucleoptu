@@ -108,10 +108,7 @@ const LoginScreen = () => {
                 </div>
 
                 <p className="text-sm text-zinc-500">
-                    Ainda não tem conta?{' '}
-                    <Link href="/register" className="text-sky-500 hover:text-sky-400 font-medium transition-colors duration-200">
-                        Cadastrar Agora
-                    </Link>
+                    Não tem acesso? Peça o cadastro a um administrador.
                 </p>
             </div>
         </div>

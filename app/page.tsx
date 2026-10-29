@@ -210,12 +210,6 @@ export default function HomePage() {
                 Acessar Agora
                 <ArrowRight className="ml-2 w-4 h-4" />
               </Link>
-              <Link
-                href="/register"
-                className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-slate-800/50 border border-slate-700 hover:border-slate-600 text-white font-medium transition-all"
-              >
-                Criar Conta Gratuita
-              </Link>
             </div>
           </motion.div>
         </div>
