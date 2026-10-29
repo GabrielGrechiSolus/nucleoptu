@@ -110,7 +110,24 @@ function ChamadosPage() {
   const pastaRef = useRef<HTMLInputElement>(null);
   const [caminho, setCaminho] = useState('C:/RepositorioGit/claude/contextos_prs');
   const [lendo, setLendo] = useState(false);
+  // Importação liberada só na rede interna (confirmado pelo servidor); null enquanto consulta.
+  const [importPermitido, setImportPermitido] = useState<boolean | null>(null);
+  const [importMotivo, setImportMotivo] = useState('');
   const { sort, toggleSort } = useSort({ key: 'publicado', dir: 'desc' });
+
+  useEffect(() => {
+    fetch('/api/chamados/importar')
+      .then((r) => r.json())
+      .then((j) => {
+        setImportPermitido(!!j.permitido);
+        setImportMotivo(j.motivo ?? '');
+        if (j.pasta) setCaminho(j.pasta);
+      })
+      .catch(() => {
+        setImportPermitido(false);
+        setImportMotivo('Não foi possível confirmar se a importação está liberada.');
+      });
+  }, []);
 
   useEffect(() => {
     try {
@@ -170,7 +187,7 @@ function ChamadosPage() {
       } catch {}
       setPrevia(j.chamados as Chamado[]);
     } catch {
-      setMsg('Não foi possível ler a pasta. A leitura por caminho só funciona com o sistema rodando na sua máquina.');
+      setMsg('Não foi possível ler a pasta. Confirme que está acessando pela rede interna (172.16.81.235).');
     } finally {
       setLendo(false);
     }
@@ -308,16 +325,24 @@ function ChamadosPage() {
           <button onClick={carregar} className="flex items-center gap-2 rounded-md border border-zinc-700 px-3 py-2 text-sm hover:bg-zinc-900">
             <RefreshCcw className="h-4 w-4" /> Atualizar
           </button>
-          <button onClick={() => setMostraImportar((v) => !v)} className="flex items-center gap-2 rounded-md bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500">
-            <Upload className="h-4 w-4" /> Importar contextos
-          </button>
+          {importPermitido ? (
+            <button onClick={() => setMostraImportar((v) => !v)} className="flex items-center gap-2 rounded-md bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500">
+              <Upload className="h-4 w-4" /> Importar contextos
+            </button>
+          ) : (
+            importPermitido === false && (
+              <span title={importMotivo} className="flex items-center gap-2 rounded-md border border-zinc-700 px-3 py-2 text-xs text-zinc-400">
+                <Upload className="h-4 w-4" /> Importação disponível só na rede interna (172.16.81.235)
+              </span>
+            )
+          )}
         </div>
       </header>
 
       {msg && <div className="mb-4 rounded-md border border-sky-700/50 bg-sky-900/20 px-3 py-2 text-sm text-sky-200">{msg}</div>}
       {erro && <div className="mb-4 rounded-md border border-rose-700/50 bg-rose-900/20 px-3 py-2 text-sm text-rose-200">{erro}</div>}
 
-      {mostraImportar && (
+      {mostraImportar && importPermitido && (
         <section className="mb-4 space-y-3 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
           <div>
             <div className="mb-1 text-xs text-zinc-400">Escolher a pasta no computador (a que contém as pastas dos chamados)</div>
@@ -335,7 +360,7 @@ function ChamadosPage() {
             />
           </div>
           <label className="flex flex-col gap-1 text-xs text-zinc-400">
-            Ou informar o caminho (somente com o sistema rodando na sua máquina)
+            Ou ler a pasta de contextos do servidor (somente dentro da pasta configurada no servidor)
             <div className="flex flex-wrap gap-2">
               <input
                 value={caminho}
