@@ -93,6 +93,21 @@ export async function githubToken(): Promise<string> {
   return tokenCache;
 }
 
+// Porta de entrada das rotas que usam o GitHub: login do Firebase, perfil diferente de Sustentação e token do servidor.
+export type AcessoGit = { ok: true; token: string; email: string } | { ok: false; status: number; erro: string };
+
+export async function exigeGit(req: Request): Promise<AcessoGit> {
+  const login = await verificaFirebase(req);
+  if (!login.ok) return { ok: false, status: 401, erro: login.motivo ?? 'Entre no sistema.' };
+  // Perfil Sustentação não tem acesso ao Git. Sem conseguir confirmar o perfil, nega (fail closed).
+  const perfil = await tipoDePerfil(login.uid ?? '', login.token ?? '');
+  if (!perfil.ok) return { ok: false, status: 503, erro: 'Não foi possível confirmar o seu perfil agora. Tente novamente.' };
+  if (perfil.tipo === 'sustentacao') return { ok: false, status: 403, erro: 'O perfil Sustentação não tem acesso ao Git.' };
+  const token = await githubToken();
+  if (!token) return { ok: false, status: 503, erro: 'O servidor não tem acesso ao GitHub. Configure GITHUB_TOKEN no .env.local ou entre com `gh auth login` na máquina do servidor.' };
+  return { ok: true, token, email: login.email ?? '' };
+}
+
 export class ErroGithub extends Error {
   constructor(public status: number, mensagem: string) {
     super(mensagem);

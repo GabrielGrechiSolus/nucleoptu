@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import { cert, getApps, initializeApp, type App } from 'firebase-admin/app';
 import { getAuth, type DecodedIdToken } from 'firebase-admin/auth';
 import { ehAdminBase, listaAdmins } from '../admin/validacao';
-import { origemPermitida } from './_servidor';
 
 // Administração de usuários (somente servidor). Usa o Firebase Admin SDK com uma chave de serviço:
 //   FIREBASE_SERVICE_ACCOUNT_PATH = caminho do arquivo .json da chave (fora do Git), ou
@@ -38,10 +37,8 @@ export type ResultadoAdmin =
   | { ok: true; app: App; uid: string; email: string; claims: DecodedIdToken }
   | { ok: false; status: number; erro: string };
 
-// Exige rede interna, login válido (não revogado) e perfil de administrador.
+// Exige login válido (não revogado) e perfil de administrador.
 export async function exigeAdmin(req: Request): Promise<ResultadoAdmin> {
-  const origem = origemPermitida(req);
-  if (!origem.ok) return { ok: false, status: 403, erro: origem.motivo ?? 'Fora da rede interna.' };
   const app = adminApp();
   if (!app) {
     return { ok: false, status: 503, erro: 'A administração de usuários ainda não foi configurada no servidor (chave do Firebase Admin).' };

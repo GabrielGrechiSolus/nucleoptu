@@ -34,5 +34,5 @@ Sem isso, a página mostra o aviso de configuração e os botões ficam desligad
 
 ## Segurança
 
-- As rotas `/api/admin/*` só respondem na rede interna, exigem login válido e não revogado e conferem a permissão de administrador no servidor.
+- As rotas `/api/admin/*` exigem login válido e não revogado e conferem a permissão de administrador no servidor.
 - No console do Firebase, desative a opção de **cadastro de usuários** (Authentication > Configurações > Ações do usuário) para que ninguém crie conta pela API pública. A remoção da tela de cadastro, sozinha, não impede isso.

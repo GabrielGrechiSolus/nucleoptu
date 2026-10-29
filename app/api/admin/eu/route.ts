@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { ehAdminBase } from '../../../admin/validacao';
 import { ADMINS_BASE, adminApp, adminConfigurado } from '../../_admin';
-import { origemPermitida, verificaFirebase } from '../../_servidor';
+import { verificaFirebase } from '../../_servidor';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,8 +11,6 @@ export const dynamic = 'force-dynamic';
 // A decisão de verdade é tomada de novo em cada rota de administração.
 export async function GET(req: Request) {
   const configurado = adminConfigurado();
-  const origem = origemPermitida(req);
-  if (!origem.ok) return NextResponse.json({ admin: false, configurado, motivo: origem.motivo });
   const v = await verificaFirebase(req);
   if (!v.ok) return NextResponse.json({ admin: false, configurado, motivo: v.motivo }, { status: 401 });
 

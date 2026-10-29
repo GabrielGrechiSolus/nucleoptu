@@ -75,8 +75,12 @@ export interface ResultadoContexto {
   novo: boolean;
 }
 
+// Revision em que cada PR mesclado saiu (chave repo#número), vinda da API de revisions; null = ainda não saiu.
+export type RevisoesPorPr = Record<string, number | null | undefined>;
+
 // prs: PRs da pessoa para este chamado. existente: contexto já gravado (ou null).
-export function montaContextoDePrs(numero: string, prs: PrGithub[], usuario: UsuarioGithub, existente: Chamado | null, hojeIso: string): ResultadoContexto {
+// revisoes: quando informado, define a revision do contexto; sem ele, a revision existente é preservada.
+export function montaContextoDePrs(numero: string, prs: PrGithub[], usuario: UsuarioGithub, existente: Chamado | null, hojeIso: string, revisoes?: RevisoesPorPr): ResultadoContexto {
   const ordenados = [...prs].sort((a, b) => (a.criadoEm < b.criadoEm ? -1 : 1));
   const principais = ordenados.filter((p) => p.repo !== REPO_TESTES);
   const base = principais.find((p) => p.repo === 'banco') ?? principais[0] ?? ordenados[0];
@@ -93,6 +97,19 @@ export function montaContextoDePrs(numero: string, prs: PrGithub[], usuario: Usu
   const mesclados = efetivos.filter((p) => p.estado === 'mesclado').map((p) => p.mescladoEm.slice(0, 10)).filter(Boolean);
   const publicadoNovo = mesclados.sort().pop() ?? '';
   const publicadoEm = situacao === 'corrigido' ? [publicadoNovo, existente?.publicadoEm ?? ''].sort().pop() ?? '' : '';
+
+  // Revision: a maior entre os PRs mesclados, só quando todos já saíram em alguma revision; em correção fica em branco.
+  let revision = existente?.revision ?? '';
+  if (revisoes) {
+    const mescladosPrincipais = efetivos.filter((p) => p.estado === 'mesclado');
+    if (situacao === 'em-correcao') revision = '';
+    else if (situacao === 'corrigido' && mescladosPrincipais.length) {
+      const revs = mescladosPrincipais.map((p) => revisoes[`${p.repo}#${p.numero}`]);
+      revision = revs.every((r) => typeof r === 'number') ? String(Math.max(...(revs as number[]))) : '';
+    }
+    // PRs de outras pessoas já mesclados neste chamado: a revision existente também vale
+    if (revision && outrosPrincipais.length && existente?.revision) revision = String(Math.max(Number(existente.revision), Number(revision)));
+  }
 
   const nomeAutor = usuario.nome || usuario.login;
   const autores = unicos([...(existente?.autores ?? []), nomeAutor]);
@@ -115,7 +132,7 @@ export function montaContextoDePrs(numero: string, prs: PrGithub[], usuario: Usu
     `situacao: ${situacao}`,
     `modulo: ${existente?.modulo ?? ''}`,
     `caminhoTela: ${existente?.caminhoTela ?? ''}`,
-    `revision: ${existente?.revision ?? ''}`,
+    `revision: ${revision}`,
     `publicadoEm: ${publicadoEm}`,
     `pr: ${prCampo}`,
     `evidencia: ${evidencia}`,

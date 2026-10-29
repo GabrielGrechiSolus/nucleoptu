@@ -15,7 +15,7 @@ No **Perfil > aba Git**, cada pessoa vincula o seu usuário do GitHub. O sistema
 ## Configuração do servidor
 
 - **Token do GitHub (somente leitura):** `GITHUB_TOKEN` no `.env.local` ou, na máquina que roda o servidor, o login do GitHub CLI (`gh auth login`). Organização: `GITHUB_ORG` (padrão `solussaude`).
-- **Segurança:** a rota `/api/git/perfil` exige login do Firebase (o ID token é validado na API do Firebase) e só responde na rede interna (`IMPORT_HOSTS`, `IMPORT_REDE_PREFIXO`). O token do GitHub nunca vai para o navegador.
+- **Segurança:** a rota `/api/git/perfil` exige login do Firebase (o ID token é validado na API do Firebase). O token do GitHub nunca vai para o navegador.
 - **Firestore:** a geração grava na coleção `chamados`; as regras precisam permitir escrita por usuário logado.
 
 ## Foto do Git

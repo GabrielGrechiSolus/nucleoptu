@@ -8,7 +8,7 @@ import { auth, db } from '../../firebase';
 import { fotoDoGit } from '../components/fotoGit';
 import { SortTh, sortRows, useSort } from '../components/SortableTable';
 import type { Chamado } from '../chamados/parse';
-import { agrupaPorChamado, chamadoDoTitulo, montaContextoDePrs, type PrGithub, type UsuarioGithub } from '../chamados/github';
+import { agrupaPorChamado, chamadoDoTitulo, montaContextoDePrs, type PrGithub, type RevisoesPorPr, type UsuarioGithub } from '../chamados/github';
 
 interface Dados {
   usuario: UsuarioGithub;
@@ -81,6 +81,28 @@ function TabelaPrs({ titulo, prs, vazio }: { titulo: string; prs: PrGithub[]; va
   );
 }
 
+// Pergunta ao servidor em qual revision cada PR mesclado saiu (API de revisions da Qualidade).
+async function consultaRevisoes(prs: { repo: string; numero: number }[]): Promise<{ revisoes?: RevisoesPorPr; aviso: string }> {
+  try {
+    // Os tipos do Firebase neste projeto são simplificados (types/firebase.d.ts): getIdToken existe em tempo de execução.
+    const token = await (auth.currentUser as unknown as { getIdToken(): Promise<string> } | null)?.getIdToken();
+    const revisoes: RevisoesPorPr = {};
+    for (let i = 0; i < prs.length; i += 60) {
+      const r = await fetch('/api/git/revisao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token ?? ''}` },
+        body: JSON.stringify({ prs: prs.slice(i, i + 60) }),
+      });
+      const j = (await r.json()) as { erro?: string; resultados?: Record<string, { revisao: number | null }> };
+      if (!r.ok) return { aviso: j.erro ?? 'Não foi possível consultar as revisions.' };
+      for (const [k, v] of Object.entries(j.resultados ?? {})) revisoes[k] = v.revisao;
+    }
+    return { revisoes, aviso: '' };
+  } catch {
+    return { aviso: 'Não foi possível consultar as revisions agora.' };
+  }
+}
+
 export default function GitTab({ uid, gitUser, onVinculado }: { uid: string; gitUser: string; onVinculado: (login: string) => void }) {
   const [login, setLogin] = useState(gitUser);
   const [dias, setDias] = useState(60);
@@ -107,7 +129,7 @@ export default function GitTab({ uid, gitUser, onVinculado }: { uid: string; git
       setDados(j as Dados);
       return j as Dados;
     } catch {
-      setErro('Não foi possível consultar o GitHub. Confirme que está acessando pela rede interna.');
+      setErro('Não foi possível consultar o GitHub agora. Tente novamente.');
       return null;
     } finally {
       setCarregando(false);
@@ -144,14 +166,27 @@ export default function GitTab({ uid, gitUser, onVinculado }: { uid: string; git
       const existentes = new Map(snap.docs.map((d) => [d.id, d.data() as Chamado]));
       const hoje = new Date().toISOString();
       const por = auth.currentUser?.email ?? '';
-      const itens = [...grupos].map(([numero, prs]) => montaContextoDePrs(numero, prs, dados.usuario, existentes.get(numero.replace('.', '')) ?? null, hoje));
+      // Revision de cada PR mesclado (a menor revision cuja tag publicada contém o PR).
+      const aConsultar = [...grupos.values()].flat().filter((p) => p.estado === 'mesclado' && p.repo !== 'TestesIntegracao').map((p) => ({ repo: p.repo, numero: p.numero }));
+      let revisoes: RevisoesPorPr | undefined = {};
+      let avisoRevisao = '';
+      if (aConsultar.length) {
+        setResumo(`Consultando a revision de ${aConsultar.length} PR(s) mesclado(s)...`);
+        const r = await consultaRevisoes(aConsultar);
+        revisoes = r.revisoes;
+        avisoRevisao = r.aviso;
+      }
+      const itens = [...grupos].map(([numero, prs]) => montaContextoDePrs(numero, prs, dados.usuario, existentes.get(numero.replace('.', '')) ?? null, hoje, revisoes));
       for (let i = 0; i < itens.length; i += 20) {
         const lote = writeBatch(db);
         for (const { chamado } of itens.slice(i, i + 20)) lote.set(doc(db, 'chamados', chamado.id), { ...chamado, importadoEm: serverTimestamp(), importadoPor: por, origem: 'github' });
         await lote.commit();
       }
       const novos = itens.filter((i) => i.novo).length;
-      setResumo(`${novos} contexto(s) criado(s) e ${itens.length - novos} atualizado(s).${semChamado.length ? ` ${semChamado.length} PR(s) sem número de chamado no título foram ignorados.` : ''}`);
+      const comRevision = itens.filter((i) => i.chamado.revision).length;
+      setResumo(
+        `${novos} contexto(s) criado(s) e ${itens.length - novos} atualizado(s); ${comRevision} com revision.${semChamado.length ? ` ${semChamado.length} PR(s) sem número de chamado no título foram ignorados.` : ''}${avisoRevisao ? ` Revisions não consultadas: ${avisoRevisao} (as revisions existentes foram mantidas).` : ''}`,
+      );
     } catch (e) {
       console.error(e);
       setResumo(`Não foi possível gravar os contextos (${(e as { code?: string })?.code ?? 'erro'}).`);

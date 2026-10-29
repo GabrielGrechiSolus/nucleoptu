@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { ErroGithub, githubGet, githubToken, origemPermitida, tipoDePerfil, verificaFirebase } from '../../_servidor';
+import { ErroGithub, githubGet, githubToken, tipoDePerfil, verificaFirebase } from '../../_servidor';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -67,8 +67,6 @@ async function buscaPrs(termo: string, token: string) {
 
 // Dados do usuário no GitHub e seus PRs da organização, separados em abertos e fechados (mesclados ou não).
 export async function GET(req: Request) {
-  const origem = origemPermitida(req);
-  if (!origem.ok) return NextResponse.json({ erro: origem.motivo }, { status: 403 });
   const login_ = await verificaFirebase(req);
   if (!login_.ok) return NextResponse.json({ erro: login_.motivo }, { status: 401 });
 

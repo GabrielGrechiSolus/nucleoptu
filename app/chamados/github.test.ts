@@ -77,3 +77,30 @@ describe('contextos a partir do GitHub', () => {
     expect(chamado.situacao).toBe('em-correcao');
   });
 });
+
+describe('revision a partir da API de revisions', () => {
+  const mesclado = (o: Partial<PrGithub> = {}) => pr({ estado: 'mesclado', mescladoEm: '2026-10-20T15:00:00Z', ...o });
+
+  it('PR mesclado que já saiu recebe a revision', () => {
+    const { chamado } = montaContextoDePrs('568.098', [mesclado()], usuario, null, '2026-10-29T12:00:00Z', { 'banco#3965': 40127 });
+    expect(chamado.revision).toBe('40127');
+  });
+
+  it('usa a maior revision quando há mais de um PR de código e deixa em branco se algum ainda não saiu', () => {
+    const dois = [mesclado(), mesclado({ repo: 'contas', numero: 758, titulo: 'hotfix/(568.098)-contas' })];
+    expect(montaContextoDePrs('568.098', dois, usuario, null, '2026-10-29T12:00:00Z', { 'banco#3965': 40125, 'contas#758': 40127 }).chamado.revision).toBe('40127');
+    expect(montaContextoDePrs('568.098', dois, usuario, null, '2026-10-29T12:00:00Z', { 'banco#3965': 40125, 'contas#758': null }).chamado.revision).toBe('');
+  });
+
+  it('PR em correção não tem revision, mesmo que o contexto tivesse uma antiga', () => {
+    const existente = montaChamado('568.098-x', { 'REGRA.md': '---\nchamado: 568.098\ncliente: C\nassunto: A\ntipo: correcao\nsituacao: corrigido\nrevision: 40120\n---\n\n## Problema\nT.' })!;
+    const { chamado } = montaContextoDePrs('568.098', [pr({})], usuario, existente, '2026-10-29T12:00:00Z', {});
+    expect(chamado.revision).toBe('');
+  });
+
+  it('sem consulta de revisions (rota indisponível), preserva a revision existente', () => {
+    const existente = montaChamado('568.098-x', { 'REGRA.md': '---\nchamado: 568.098\ncliente: C\nassunto: A\ntipo: correcao\nsituacao: corrigido\nrevision: 40120\n---\n\n## Problema\nT.' })!;
+    const { chamado } = montaContextoDePrs('568.098', [mesclado()], usuario, existente, '2026-10-29T12:00:00Z');
+    expect(chamado.revision).toBe('40120');
+  });
+});
