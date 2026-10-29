@@ -12,6 +12,7 @@ import Vinculos from './Vinculos';
 import { filtraChamados } from './filtro';
 import { usePessoa } from '../components/usePessoa';
 import { semGitChamado } from './semgit';
+import BmPainel, { BmColuna, soDigitos, useBmLista } from './BmPainel';
 
 type Tri = 'todos' | 'sim' | 'nao';
 type Aba = 'todos' | 'em-correcao' | 'corrigidos' | 'regras';
@@ -95,6 +96,7 @@ function ChamadosPage() {
   // Perfil Sustentação: sem links, PRs nem branches do Git (evidência, plano e análise continuam visíveis).
   const itens = useMemo(() => (semGit ? itensBrutos.map(semGitChamado) : itensBrutos), [itensBrutos, semGit]);
   const [carregando, setCarregando] = useState(true);
+  const bm = useBmLista(itensBrutos.map((c) => c.numero));
   const [erro, setErro] = useState('');
   const [busca, setBusca] = useState('');
   const [noConteudo, setNoConteudo] = useState(false);
@@ -266,6 +268,7 @@ function ChamadosPage() {
     prs: (c) => c.prs.length,
     evidencia: (c) => c.temEvidencia,
     plano: (c) => c.temPlano,
+    bm: (c) => bm.cartoes[soDigitos(c.numero)]?.coluna ?? '',
     atualizado: (c) => dataParaNumero(c.atualizadoEm),
     },
   );
@@ -444,6 +447,7 @@ function ChamadosPage() {
         </div>
       </section>
 
+      {bm.erro && <p className="mb-2 text-xs text-amber-300">Businessmap: {bm.erro}</p>}
       <section className="overflow-x-auto rounded-lg border border-zinc-800">
         <table className="w-full text-left text-sm">
           <thead className="text-xs text-zinc-400">
@@ -452,6 +456,7 @@ function ChamadosPage() {
               <SortTh label="Assunto" k="assunto" sort={sort} onSort={toggleSort} />
               <SortTh label="Tipo" k="tipo" sort={sort} onSort={toggleSort} className="hidden md:table-cell" />
               <SortTh label="Situação" k="situacao" sort={sort} onSort={toggleSort} />
+              <SortTh label="Coluna no BM" k="bm" sort={sort} onSort={toggleSort} className="hidden md:table-cell" />
               <SortTh label="Autor" k="autor" sort={sort} onSort={toggleSort} className="hidden sm:table-cell" />
               <SortTh label="Módulo" k="modulo" sort={sort} onSort={toggleSort} className="hidden lg:table-cell" />
               <SortTh label="Revision" k="revision" sort={sort} onSort={toggleSort} className="hidden sm:table-cell" />
@@ -462,10 +467,10 @@ function ChamadosPage() {
             </tr>
           </thead>
           <tbody>
-            {carregando && <tr><td colSpan={semGit ? 10 : 11} className="px-3 py-8 text-center text-zinc-500">Carregando...</td></tr>}
+            {carregando && <tr><td colSpan={semGit ? 11 : 12} className="px-3 py-8 text-center text-zinc-500">Carregando...</td></tr>}
             {!carregando && !filtrados.length && (
               <tr>
-                <td colSpan={semGit ? 10 : 11} className="px-3 py-8 text-center text-zinc-500">
+                <td colSpan={semGit ? 11 : 12} className="px-3 py-8 text-center text-zinc-500">
                   {itens.length ? 'Nenhum chamado com esses filtros.' : 'Nenhum contexto importado ainda. Use “Importar contextos”.'}
                 </td>
               </tr>
@@ -481,6 +486,7 @@ function ChamadosPage() {
                 <td className="px-3 py-2">
                   {c.situacao ? <span className={`rounded px-1.5 py-0.5 text-xs ${estiloSituacao[c.situacao]}`}>{ROTULO_SITUACAO[c.situacao]}</span> : <span className="text-zinc-600">—</span>}
                 </td>
+                <td className="hidden px-3 py-2 md:table-cell"><BmColuna r={bm.cartoes[soDigitos(c.numero)]} /></td>
                 <td className="hidden px-3 py-2 text-zinc-300 sm:table-cell">{(c.autores ?? []).join(', ') || '—'}</td>
                 <td className="hidden px-3 py-2 text-zinc-300 lg:table-cell">{c.modulo || '—'}</td>
                 <td className="hidden px-3 py-2 text-zinc-300 sm:table-cell">{c.revision || (c.situacao === 'em-correcao' ? 'ainda não saiu' : '—')}</td>
@@ -599,6 +605,8 @@ function ChamadosPage() {
             </dl>
 
             {aberto.temPr && <Vinculos contexto={aberto} semGit={semGit} />}
+
+            <BmPainel chamado={aberto} resumo={bm.cartoes[soDigitos(aberto.numero)]} configurado={bm.configurado} />
 
             <div className="mb-4 space-y-3 text-sm">
               <div className={semGit ? 'hidden' : undefined}>

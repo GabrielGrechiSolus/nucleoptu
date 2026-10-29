@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "../AuthContext";
 import Link from "next/link";
 import GitTab from "./GitTab";
+import BmTab from "./BmTab";
 import { fotoDoGit } from "../components/fotoGit";
 import { updateProfile } from "firebase/auth";
 import { auth, db } from "../../firebase";
@@ -84,7 +85,7 @@ export default function ProfilePage() {
   });
   const [preview, setPreview] = useState("/profile.jpg");
   const [modalOpen, setModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"profile" | "git">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "git" | "bm">("profile");
 
   // Generate random color
   const getRandomColor = useCallback(() => {
@@ -342,7 +343,22 @@ export default function ProfilePage() {
                 )}
               </button>
               )}
+              <button
+                onClick={() => setActiveTab("bm")}
+                className={`px-4 py-2 font-medium transition-colors relative ${
+                  activeTab === "bm"
+                    ? "text-sky-400"
+                    : "text-zinc-400 hover:text-zinc-300"
+                }`}
+              >
+                Businessmap
+                {activeTab === "bm" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-sky-400 to-blue-500 rounded-full" />
+                )}
+              </button>
             </div>
+
+            {activeTab === "bm" && <BmTab />}
 
             {activeTab === "profile" && (
               <div className="space-y-4">
