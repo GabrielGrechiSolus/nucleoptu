@@ -78,9 +78,11 @@ export interface ResultadoContexto {
 // Revision em que cada PR mesclado saiu (chave repo#número), vinda da API de revisions; null = ainda não saiu.
 export type RevisoesPorPr = Record<string, number | null | undefined>;
 
+export type PrevisoesPorPr = Record<string, number | undefined>;
+
 // prs: PRs da pessoa para este chamado. existente: contexto já gravado (ou null).
 // revisoes: quando informado, define a revision do contexto; sem ele, a revision existente é preservada.
-export function montaContextoDePrs(numero: string, prs: PrGithub[], usuario: UsuarioGithub, existente: Chamado | null, hojeIso: string, revisoes?: RevisoesPorPr): ResultadoContexto {
+export function montaContextoDePrs(numero: string, prs: PrGithub[], usuario: UsuarioGithub, existente: Chamado | null, hojeIso: string, revisoes?: RevisoesPorPr, previsoes?: PrevisoesPorPr): ResultadoContexto {
   const ordenados = [...prs].sort((a, b) => (a.criadoEm < b.criadoEm ? -1 : 1));
   const principais = ordenados.filter((p) => p.repo !== REPO_TESTES);
   const base = principais.find((p) => p.repo === 'banco') ?? principais[0] ?? ordenados[0];
@@ -111,6 +113,15 @@ export function montaContextoDePrs(numero: string, prs: PrGithub[], usuario: Usu
     if (revision && outrosPrincipais.length && existente?.revision) revision = String(Math.max(Number(existente.revision), Number(revision)));
   }
 
+  let previsaoRevision = revision ? '' : existente?.previsaoRevision ?? '';
+  if (revisoes) {
+    const aguardando = efetivos
+      .filter((p) => p.estado === 'mesclado' && typeof revisoes[`${p.repo}#${p.numero}`] !== 'number')
+      .map((p) => previsoes?.[`${p.repo}#${p.numero}`])
+      .filter((v): v is number => typeof v === 'number');
+    previsaoRevision = situacao === 'corrigido' && !revision && aguardando.length ? String(Math.max(...aguardando)) : '';
+  }
+
   const nomeAutor = usuario.nome || usuario.login;
   const autores = unicos([...(existente?.autores ?? []), nomeAutor]);
   const logins = unicos([...(existente?.autoresLogin ?? []), usuario.login]);
@@ -133,6 +144,7 @@ export function montaContextoDePrs(numero: string, prs: PrGithub[], usuario: Usu
     `modulo: ${existente?.modulo ?? ''}`,
     `caminhoTela: ${existente?.caminhoTela ?? ''}`,
     `revision: ${revision}`,
+    `previsaoRevision: ${previsaoRevision}`,
     `publicadoEm: ${publicadoEm}`,
     `pr: ${prCampo}`,
     `evidencia: ${evidencia}`,

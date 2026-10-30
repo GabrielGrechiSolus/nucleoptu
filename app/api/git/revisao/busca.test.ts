@@ -1,4 +1,4 @@
-import { comparaTags, primeiraRevisao, tagsPublicadas } from './busca';
+import { comparaTags, primeiraRevisao, tagsPublicadas, ultimaRevisao } from './busca';
 
 const linhas = [
   { NNUMETAG: '2.352.7', CREVIUPDAT: '40126', DDATATAG: '2026-10-09T10:00:00.000Z' },
@@ -47,5 +47,13 @@ describe('revision de uma correção a partir das tags publicadas', () => {
     expect(chamadas <= 8).toBe(true);
     const tarde = await primeiraRevisao(tagsPublicadas(muitas), '2026-03-01T00:00:00Z', async (tag) => comparaTags(tag, '3.60.0') >= 0);
     expect(tarde!.tag).toBe('3.60.0');
+  });
+});
+
+describe('última revision publicada', () => {
+  it('devolve a maior revision das linhas e zero quando não há nenhuma', () => {
+    expect(ultimaRevisao(linhas)).toBe(40127);
+    expect(ultimaRevisao([])).toBe(0);
+    expect(ultimaRevisao([{ CREVIUPDAT: 'x' }])).toBe(0);
   });
 });

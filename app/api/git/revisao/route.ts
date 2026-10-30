@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ErroGithub, exigeGit, githubGet } from '../../_servidor';
-import { primeiraRevisao, tagsPublicadas, type TagPublicada } from './busca';
+import { primeiraRevisao, tagsPublicadas, ultimaRevisao, type TagPublicada } from './busca';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,28 +11,35 @@ const API_REVISAO = process.env.QUALIDADE_API_REVISAO ?? 'https://desenv.solus.i
 const MAX_PRS = 80;
 const PARALELO = 3;
 
-const cache = new Map<string, { em: number; tags: TagPublicada[] }>();
+interface TagsDoRepo {
+  tags: TagPublicada[];
+  ultima: number;
+}
 
-async function tagsDoRepo(repo: string): Promise<TagPublicada[]> {
+const cache = new Map<string, { em: number; dados: TagsDoRepo }>();
+
+async function tagsDoRepo(repo: string): Promise<TagsDoRepo> {
   const guardado = cache.get(repo);
-  if (guardado && Date.now() - guardado.em < 10 * 60 * 1000) return guardado.tags;
+  if (guardado && Date.now() - guardado.em < 10 * 60 * 1000) return guardado.dados;
   const r = await fetch(`${API_REVISAO}?column=CNOMEREPO&value=${encodeURIComponent(repo)}`, { signal: AbortSignal.timeout(25000), cache: 'no-store' });
   if (!r.ok) throw new Error('API de revisions indisponível');
   const j = (await r.json()) as { NNUMETAG: string; CREVIUPDAT: string; DDATATAG?: string }[];
-  const tags = tagsPublicadas(Array.isArray(j) ? j : []);
-  cache.set(repo, { em: Date.now(), tags });
-  return tags;
+  const linhas = Array.isArray(j) ? j : [];
+  const dados = { tags: tagsPublicadas(linhas), ultima: ultimaRevisao(linhas) };
+  cache.set(repo, { em: Date.now(), dados });
+  return dados;
 }
 
 export interface ResultadoRevisao {
   revisao: number | null;
   tag?: string;
   motivo?: string;
+  ultima?: number;
 }
 
 async function revisaoDoPr(repo: string, numero: number, token: string): Promise<ResultadoRevisao> {
   try {
-    const tags = await tagsDoRepo(repo);
+    const { tags, ultima } = await tagsDoRepo(repo);
     if (!tags.length) return { revisao: null, motivo: 'Repositório sem revisions na API da Qualidade.' };
     const pr = await githubGet<{ merged_at: string | null; merge_commit_sha: string | null }>(`/repos/${ORG}/${repo}/pulls/${numero}`, token);
     if (!pr.merged_at || !pr.merge_commit_sha) return { revisao: null, motivo: 'PR ainda não mesclado.' };
@@ -47,7 +54,7 @@ async function revisaoDoPr(repo: string, numero: number, token: string): Promise
         throw e;
       }
     });
-    return achado ? { revisao: achado.revisao, tag: achado.tag } : { revisao: null, motivo: 'Ainda não saiu em nenhuma revision.' };
+    return achado ? { revisao: achado.revisao, tag: achado.tag } : { revisao: null, motivo: 'Ainda não saiu em nenhuma revision.', ultima };
   } catch (e) {
     return { revisao: null, motivo: e instanceof Error ? e.message : 'Não foi possível consultar a revision.' };
   }

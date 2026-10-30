@@ -103,4 +103,25 @@ describe('revision a partir da API de revisions', () => {
     const { chamado } = montaContextoDePrs('568.098', [mesclado()], usuario, existente, '2026-10-29T12:00:00Z');
     expect(chamado.revision).toBe('40120');
   });
+
+  it('correção mesclada que ainda não saiu recebe a previsão: a última revision publicada mais um', () => {
+    const { chamado } = montaContextoDePrs('568.098', [mesclado()], usuario, null, '2026-10-29T12:00:00Z', { 'banco#3965': null }, { 'banco#3965': 40128 });
+    expect(chamado.revision).toBe('');
+    expect(chamado.previsaoRevision).toBe('40128');
+  });
+
+  it('usa a maior previsão entre os PRs que aguardam e a limpa quando a revision sai', () => {
+    const dois = [mesclado(), mesclado({ repo: 'contas', numero: 758, titulo: 'hotfix/(568.098)-contas' })];
+    const previsto = montaContextoDePrs('568.098', dois, usuario, null, '2026-10-29T12:00:00Z', { 'banco#3965': null, 'contas#758': null }, { 'banco#3965': 40128, 'contas#758': 40130 });
+    expect(previsto.chamado.previsaoRevision).toBe('40130');
+    const saiu = montaContextoDePrs('568.098', dois, usuario, previsto.chamado, '2026-10-30T12:00:00Z', { 'banco#3965': 40128, 'contas#758': 40130 });
+    expect(saiu.chamado.revision).toBe('40130');
+    expect(saiu.chamado.previsaoRevision).toBe('');
+  });
+
+  it('chamado em correção não tem previsão e a consulta indisponível preserva a previsão existente', () => {
+    expect(montaContextoDePrs('568.098', [pr({})], usuario, null, '2026-10-29T12:00:00Z', {}, { 'banco#3965': 40128 }).chamado.previsaoRevision).toBe('');
+    const previsto = montaContextoDePrs('568.098', [mesclado()], usuario, null, '2026-10-29T12:00:00Z', { 'banco#3965': null }, { 'banco#3965': 40128 });
+    expect(montaContextoDePrs('568.098', [mesclado()], usuario, previsto.chamado, '2026-10-30T12:00:00Z').chamado.previsaoRevision).toBe('40128');
+  });
 });

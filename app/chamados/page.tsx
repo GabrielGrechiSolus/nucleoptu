@@ -555,7 +555,7 @@ function ChamadosPage() {
                 <td className="hidden px-3 py-2 md:table-cell"><BmColuna r={registros[soDigitos(c.numero)]?.resumo} /></td>
                 <td className="hidden px-3 py-2 text-zinc-300 sm:table-cell">{(c.autores ?? []).join(', ') || '—'}</td>
                 <td className="hidden px-3 py-2 text-zinc-300 lg:table-cell">{c.modulo || '—'}</td>
-                <td className="hidden px-3 py-2 text-zinc-300 sm:table-cell">{c.revision || (c.situacao === 'em-correcao' ? 'ainda não saiu' : '—')}</td>
+                <td className="hidden px-3 py-2 text-zinc-300 sm:table-cell">{c.revision || (c.situacao === 'corrigido' && c.previsaoRevision ? `previsão ${c.previsaoRevision}` : c.situacao === 'em-correcao' ? 'ainda não saiu' : '—')}</td>
                 <td className="hidden whitespace-nowrap px-3 py-2 text-zinc-400 md:table-cell">{formataIso(c.publicadoEm) || '—'}</td>
                 <td className={semGit ? 'hidden' : 'hidden px-3 py-2 lg:table-cell'}>
                   <div className="flex flex-wrap gap-1">

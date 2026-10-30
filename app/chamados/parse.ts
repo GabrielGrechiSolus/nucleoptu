@@ -20,6 +20,7 @@ export interface Chamado {
   resumo: string;
   status: string;
   revision: string;
+  previsaoRevision: string;
   atualizadoEm: string;
   prs: PrRef[];
   branches: string[];
@@ -202,6 +203,7 @@ export function montaChamado(pasta: string, arquivos: Record<string, string>): C
   const status = (limpa(contexto).match(/Status:\s*\*{0,2}([^\n]{3,140})/i)?.[1] ?? '').replace(/\*+/g, '').replace(/[.\s]+$/, '').trim();
   // Com REGRA.md a revision é a em que a correção fica disponível (só do cabeçalho); sem ele, é a do cliente citada no contexto.
   const revision = (/^\d{5}$/.test(meta.revision ?? '') ? meta.revision : '') || ('REGRA.md' in arquivos ? '' : (limpa(contexto).match(/revision[^\n\d]{0,40}(40\d{3})/i)?.[1] ?? ''));
+  const previsaoRevision = revision ? '' : /^\d{5}$/.test(meta.previsaoRevision ?? '') ? meta.previsaoRevision : '';
   const atualizadoEm = limpa(contexto).match(/Atualizad[oa](?: em)?:?\s*(\d{2}\/\d{2}\/\d{4})/i)?.[1] ?? '';
 
   return {
@@ -212,6 +214,7 @@ export function montaChamado(pasta: string, arquivos: Record<string, string>): C
     resumo: resumoDe(contexto),
     status: SITUACOES.includes(meta.situacao as SituacaoChamado) ? ROTULO_SITUACAO[meta.situacao] : status,
     revision,
+    previsaoRevision,
     atualizadoEm,
     prs,
     branches: extraiBranches(todo),

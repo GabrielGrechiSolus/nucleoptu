@@ -27,6 +27,15 @@ export function tagsPublicadas(linhas: { NNUMETAG: string; CREVIUPDAT: string | 
   return [...porTag.values()].sort((a, b) => comparaTags(a.tag, b.tag));
 }
 
+export function ultimaRevisao(linhas: { CREVIUPDAT: string | number }[]): number {
+  let ultima = 0;
+  for (const l of linhas) {
+    const r = Number(l.CREVIUPDAT);
+    if (Number.isFinite(r) && r > ultima) ultima = r;
+  }
+  return ultima;
+}
+
 export interface Achado {
   revisao: number;
   tag: string;

@@ -76,6 +76,7 @@ export default function DetalheChamado({
               <span className="font-mono text-sky-300">{c.numero}</span>
               {c.situacao && <span className={`rounded px-1.5 py-0.5 text-xs ${estiloSituacao[c.situacao]}`}>{ROTULO_SITUACAO[c.situacao]}</span>}
               {c.revision && <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-xs text-sky-300">revision {c.revision}</span>}
+              {!c.revision && c.previsaoRevision && <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs text-amber-600">previsão {c.previsaoRevision}</span>}
               <BmColuna r={registro?.resumo} />
             </div>
             <h2 className="mt-1 text-xl font-semibold">{c.assunto}</h2>
@@ -107,7 +108,7 @@ export default function DetalheChamado({
 
               <Cartao titulo="Publicação">
                 <dl className="grid grid-cols-2 gap-3">
-                  <Campo rotulo="Revision">{c.revision || (c.situacao === 'em-correcao' ? 'ainda não saiu' : '')}</Campo>
+                  <Campo rotulo="Revision">{c.revision || (c.previsaoRevision ? `ainda não saiu (previsão de liberação: ${c.previsaoRevision})` : c.situacao === 'em-correcao' ? 'ainda não saiu' : '')}</Campo>
                   <Campo rotulo="Publicado em">{formataIso(c.publicadoEm)}</Campo>
                   <Campo rotulo="Atualizado">{c.atualizadoEm}</Campo>
                 </dl>

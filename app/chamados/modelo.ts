@@ -46,6 +46,7 @@ export const CAMPOS_REGRA: { campo: string; valores: string; descricao: string }
   { campo: 'modulo', valores: 'texto', descricao: 'Módulo ou funcionalidade, como a regra conhece (ex.: PTU A500, Reembolso).' },
   { campo: 'caminhoTela', valores: 'texto', descricao: 'Caminho no sistema onde a regra confere o resultado.' },
   { campo: 'revision', valores: '40127', descricao: 'Revision em que a correção passa a estar disponível. Vazio enquanto não saiu.' },
+  { campo: 'previsaoRevision', valores: '40128', descricao: 'Previsão de liberação: a próxima revision depois da última publicada, para correções mescladas que ainda não saíram. Gerado a partir do Git.' },
   { campo: 'publicadoEm', valores: 'AAAA-MM-DD', descricao: 'Data do merge da correção. Vazio enquanto não saiu.' },
   { campo: 'pr', valores: '3928, 3858', descricao: 'Números dos PRs, separados por vírgula. Use repo#número se não for do banco (ex.: contas#120).' },
   { campo: 'evidencia', valores: 'URL', descricao: 'Link da evidência de testes.' },
