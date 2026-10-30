@@ -17,7 +17,7 @@ const withAuth = <P extends object>(WrappedComponent: React.ComponentType<P>) =>
 
         if (loading || !user) {
             return (
-                <div className="flex min-h-screen items-center justify-center bg-black">
+                <div className="flex min-h-[100dvh] items-center justify-center bg-black">
                     <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-sky-500"></div>
                 </div>
             );

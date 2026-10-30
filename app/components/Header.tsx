@@ -63,8 +63,8 @@ export default function Header() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.png" alt="Núcleo PTU" className="h-9 w-auto" />
       </Link>
-      <div className="flex items-center gap-4">
-        {nome && <span className="text-sm text-[#333333]">{nome}</span>}
+      <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+        {nome && <span className="hidden max-w-[220px] truncate text-sm text-[#333333] sm:inline">{nome}</span>}
         <Link href="/profile" title="Meu perfil" className="relative inline-flex shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img

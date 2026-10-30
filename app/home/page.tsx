@@ -600,7 +600,7 @@ const HomePage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950">
+    <div className="min-h-full bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950">
       {/* Animação de Boas-vindas */}
       <AnimatePresence>
         {showAnimation && (

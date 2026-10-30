@@ -533,3 +533,31 @@ html a:is([class*="from-sky-"], [class*="from-blue-"])[class*="bg-gradient-to-"]
 html a:not([class]) {
   color: var(--primary);
 }
+
+/* Base responsiva: rolagem, modais e tabelas */
+html, body { max-width: 100%; overflow-x: hidden; }
+html { scrollbar-width: thin; scrollbar-color: #c9c9d1 transparent; }
+html * { scrollbar-width: thin; scrollbar-color: #c9c9d1 transparent; }
+html ::-webkit-scrollbar { width: 8px; height: 8px; }
+html ::-webkit-scrollbar-track { background: transparent; }
+html ::-webkit-scrollbar-thumb { background: #c9c9d1; border-radius: 8px; }
+html ::-webkit-scrollbar-thumb:hover { background: #9a9aa6; }
+
+html [class~="fixed"][class~="inset-0"][class~="items-center"][class~="justify-center"] {
+  overflow-y: auto;
+  align-items: safe center;
+  overscroll-behavior: contain;
+}
+
+html [class*="max-h-[80vh]"],
+html [class*="max-h-[85vh]"],
+html [class*="max-h-[90vh]"],
+html [class*="max-h-[96vh]"] {
+  max-height: calc(100dvh - 1.5rem) !important;
+}
+
+html [class*="max-h-[50vh]"] { max-height: 50dvh !important; }
+
+html img, html video { max-width: 100%; height: auto; }
+html input, html select, html textarea { max-width: 100%; min-width: 0; }
+html pre { overflow-x: auto; max-width: 100%; }

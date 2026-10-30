@@ -48,7 +48,7 @@ const LoginScreen = () => {
 
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-black font-sans p-4">
+        <div className="flex min-h-[100dvh] items-center justify-center bg-black font-sans p-4">
             <div className="flex w-full max-w-md flex-col items-center gap-6 rounded-2xl p-8 shadow-xl bg-zinc-900 sm:p-10 transition-colors duration-300 border border-zinc-800">
 
                 {/* Título e Subtítulo */}
