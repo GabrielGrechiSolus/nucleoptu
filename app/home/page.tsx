@@ -690,18 +690,21 @@ const HomePage = () => {
           transition={{ delay: 0.05 }}
           className="mb-10"
         >
-          <button
+          <div
+            role="button"
+            tabIndex={0}
             onClick={() => setUnimedModalOpen(true)}
-            className="group relative w-full overflow-hidden bg-gradient-to-r from-emerald-600/20 to-teal-600/20 backdrop-blur-sm border border-emerald-500/30 rounded-2xl p-6 hover:border-emerald-500/50 transition-all"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') setUnimedModalOpen(true);
+            }}
+            className="group relative w-full cursor-pointer overflow-hidden bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 hover:border-sky-500 transition-all"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/5 to-emerald-500/0 group-hover:translate-x-full transition-transform duration-1000" />
 
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-4">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-emerald-500 rounded-full blur-xl opacity-50 animate-pulse" />
-                  <div className="relative w-14 h-14 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center">
-                    <Heart size={28} className="text-white" />
+                  <div className="relative w-14 h-14 rounded-full bg-blue-600 text-white flex items-center justify-center">
+                    <Heart size={28} />
                   </div>
                 </div>
                 <div className="text-left">
@@ -719,7 +722,7 @@ const HomePage = () => {
                 <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
-          </button>
+          </div>
         </motion.div>
       
 
@@ -759,9 +762,8 @@ const HomePage = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <div className="absolute inset-0 bg-emerald-500 rounded-full blur-md opacity-50 animate-pulse" />
-                      <div className="relative w-12 h-12 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center">
-                        <Heart size={24} className="text-white" />
+                      <div className="relative w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center">
+                        <Heart size={24} />
                       </div>
                     </div>
                     <div>
