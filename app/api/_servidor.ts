@@ -84,11 +84,15 @@ let tokenCache = '';
 export async function githubToken(): Promise<string> {
   if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
   if (tokenCache) return tokenCache;
-  try {
-    const { stdout } = await exec('gh', ['auth', 'token'], { timeout: 10000, windowsHide: true });
-    tokenCache = stdout.trim();
-  } catch {
-    tokenCache = '';
+  const candidatos = [process.env.GH_PATH, 'gh', 'C:/Program Files/GitHub CLI/gh.exe', 'C:/Program Files (x86)/GitHub CLI/gh.exe', '/usr/local/bin/gh', '/usr/bin/gh'].filter((c): c is string => !!c);
+  for (const bin of candidatos) {
+    try {
+      const { stdout } = await exec(bin, ['auth', 'token'], { timeout: 10000, windowsHide: true });
+      tokenCache = stdout.trim();
+      if (tokenCache) break;
+    } catch {
+      tokenCache = '';
+    }
   }
   return tokenCache;
 }
