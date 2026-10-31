@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ExternalLink, X } from 'lucide-react';
 import { htmlParaTexto } from '../chamados/bm';
 import type { Chamado } from '../chamados/parse';
 import type { RegistroBm } from '../chamados/bmRegistro';
-import { anexaLinksNaDescricao, avaliaCriterio, linksGitDoChamado, linksQueFaltam, propostasDeCampos, textoConclusaoComplementado, type PropostaCampo } from './automacao';
-import { aplicarProcesso, lerProcesso, simularProcesso, type EstadoProcesso, type MudancaProcesso, type RequisicaoSimulada, type ResultadoGravacao } from './clienteProcesso';
+import { anexaLinksNaDescricao, avaliaChecks, avaliaCriterio, linksGitDoChamado, linksQueFaltam, propostasDeCampos, textoConclusaoComplementado, type PropostaCampo } from './automacao';
+import { aplicarProcesso, consultaChecksGit, lerProcesso, simularProcesso, type EstadoProcesso, type MudancaProcesso, type RequisicaoSimulada, type ResultadoGravacao } from './clienteProcesso';
 
 const norma = (t: string) => t.replace(/\s+/g, ' ').trim().toLowerCase();
 
@@ -34,6 +34,7 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
   const [valores, setValores] = useState<Record<string, string>>({});
   const [campoMarcado, setCampoMarcado] = useState<Record<string, boolean>>({});
   const [criterioMarcado, setCriterioMarcado] = useState<Record<number, boolean>>({});
+  const criterioTocado = useRef<Set<number>>(new Set());
   const [linksMarcado, setLinksMarcado] = useState(false);
   const [comentario, setComentario] = useState('');
   const [comentarioMarcado, setComentarioMarcado] = useState(false);
@@ -42,6 +43,7 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
   const [simulacao, setSimulacao] = useState<RequisicaoSimulada[] | null>(null);
   const [resultados, setResultados] = useState<ResultadoGravacao[] | null>(null);
   const [trabalhando, setTrabalhando] = useState(false);
+  const [checks, setChecks] = useState<Awaited<ReturnType<typeof consultaChecksGit>> | undefined>(undefined);
 
   const propostas = useMemo<PropostaCampo[]>(() => propostasDeCampos(chamado), [chamado]);
 
@@ -59,6 +61,7 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
       setValores(v);
       setCampoMarcado(m);
       setCriterioMarcado({});
+      criterioTocado.current = new Set();
       setLinksMarcado(linksQueFaltam(e.descricaoHtml, linksGitDoChamado(chamado)).length > 0);
       setComentario('');
       setComentarioMarcado(false);
@@ -88,6 +91,14 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
     carrega();
   }, [carrega]);
 
+  useEffect(() => {
+    let ativo = true;
+    consultaChecksGit(chamado.prs.filter((p) => p.repo && p.numero).map((p) => ({ repo: p.repo as string, numero: Number(p.numero) }))).then((r) => ativo && setChecks(r));
+    return () => {
+      ativo = false;
+    };
+  }, [chamado]);
+
   const textoAtual = estado?.campos.find((c) => c.chave === 'texto')?.valorAtual ?? '';
   const textoFinal = campoMarcado.texto ? valores.texto ?? '' : textoAtual;
   const temPr = chamado.temPr;
@@ -95,17 +106,18 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
   const temPlano = chamado.planosTeste.length > 0;
   const textoConclusaoOk = textoConclusaoComplementado(textoFinal);
   const temRevision = !!chamado.revision;
+  const build = useMemo(() => (checks === undefined ? { ok: null, motivo: 'Consultando os checks do GitHub...' } : avaliaChecks(checks)), [checks]);
 
   const criterios = useMemo(
-    () => (estado?.criterios ?? []).map((c) => ({ ...c, avaliacao: avaliaCriterio(c.texto, { temPr, temEvidencia, temPlano, textoConclusaoOk, temRevision }) })),
-    [estado, temPr, temEvidencia, temPlano, textoConclusaoOk, temRevision],
+    () => (estado?.criterios ?? []).map((c) => ({ ...c, avaliacao: avaliaCriterio(c.texto, { temPr, temEvidencia, temPlano, textoConclusaoOk, temRevision, build }) })),
+    [estado, temPr, temEvidencia, temPlano, textoConclusaoOk, temRevision, build],
   );
 
   useEffect(() => {
     if (!estado) return;
     setCriterioMarcado((atual) => {
       const novo = { ...atual };
-      for (const c of criterios) if (!(c.itemId in novo)) novo[c.itemId] = !c.marcado && c.avaliacao.automatico && c.avaliacao.cumprido;
+      for (const c of criterios) if (!criterioTocado.current.has(c.itemId)) novo[c.itemId] = !c.marcado && c.avaliacao.automatico && c.avaliacao.cumprido;
       return novo;
     });
   }, [criterios, estado]);
@@ -258,7 +270,10 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
                     {criterios.map((c) => (
                       <li key={c.itemId} className="rounded border border-zinc-800 p-3 text-sm">
                         <label className="flex flex-wrap items-center gap-2">
-                          <input type="checkbox" checked={c.marcado || !!criterioMarcado[c.itemId]} disabled={c.marcado} onChange={(e) => setCriterioMarcado((a) => ({ ...a, [c.itemId]: e.target.checked }))} />
+                          <input type="checkbox" checked={c.marcado || !!criterioMarcado[c.itemId]} disabled={c.marcado} onChange={(e) => {
+                            criterioTocado.current.add(c.itemId);
+                            setCriterioMarcado((a) => ({ ...a, [c.itemId]: e.target.checked }));
+                          }} />
                           <span className="font-medium">{c.texto}</span>
                           {c.marcado ? (
                             <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs text-emerald-300">já marcado no BM</span>

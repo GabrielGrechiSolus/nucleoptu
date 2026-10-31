@@ -1,4 +1,4 @@
-import { anexaLinksNaDescricao, avaliaCriterio, campoPorNome, linksGitDoChamado, linksQueFaltam, propostasDeCampos, rascunhoTextoConclusao, textoConclusaoComplementado, textoParaHtml } from './automacao';
+import { anexaLinksNaDescricao, avaliaChecks, avaliaCriterio, campoPorNome, linksGitDoChamado, linksQueFaltam, propostasDeCampos, rascunhoTextoConclusao, textoConclusaoComplementado, textoParaHtml } from './automacao';
 
 const regra = '---\nchamado: 568.361\n---\n\n## Problema\nO A410 era recusado sem diárias e taxas.\n\n## O que foi corrigido\nO envio passa a incluir a tabela própria.\n\n## Como vai funcionar\nO bloco é enviado.\n';
 
@@ -39,6 +39,20 @@ describe('automações do processo do BM a partir do Git', () => {
     expect(anexaLinksNaDescricao(nova, links)).toBe(nova);
     expect(linksQueFaltam(nova, links)).toEqual([]);
     expect(linksQueFaltam(descricao, links).length).toBe(1);
+  });
+
+  it('confere o build pelos checks do GitHub dos PRs', () => {
+    const ok = { estado: 'sucesso' as const, total: 5, falhas: [], pendentes: [] };
+    expect(avaliaChecks({ 'banco#3984': ok })).toEqual({ ok: true, motivo: '5 check(s) do GitHub passaram em banco#3984.' });
+    expect(avaliaChecks({ 'banco#3984': ok, 'contas#1': { estado: 'falha', total: 2, falhas: ['Build'], pendentes: [] } }).ok).toBe(false);
+    expect(avaliaChecks({ 'banco#3984': { estado: 'pendente', total: 1, falhas: [], pendentes: ['Deploy'] } }).ok).toBe(false);
+    expect(avaliaChecks({ 'banco#3984': { estado: 'sem-checks', total: 0, falhas: [], pendentes: [] } }).ok).toBe(null);
+    expect(avaliaChecks({ 'banco#3984': { ...ok, erro: 'x' } }).ok).toBe(null);
+    expect(avaliaChecks(null).ok).toBe(null);
+    const ctx = { temPr: true, temEvidencia: true, temPlano: true, textoConclusaoOk: true, temRevision: true };
+    expect(avaliaCriterio('Build/compilação sem erros', { ...ctx, build: { ok: true, motivo: 'passou' } })).toEqual({ automatico: true, cumprido: true, motivo: 'passou' });
+    expect(avaliaCriterio('Build/compilação sem erros', { ...ctx, build: { ok: false, motivo: 'falhou' } }).cumprido).toBe(false);
+    expect(avaliaCriterio('Build/compilação sem erros', ctx).automatico).toBe(false);
   });
 
   it('avalia os critérios de saída da coluna pelo que o Git tem', () => {

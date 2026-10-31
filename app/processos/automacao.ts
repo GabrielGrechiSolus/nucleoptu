@@ -77,6 +77,34 @@ export interface ContextoCriterio {
   temPlano: boolean;
   textoConclusaoOk: boolean;
   temRevision: boolean;
+  build?: ResultadoBuild;
+}
+
+export interface ResultadoBuild {
+  ok: boolean | null;
+  motivo: string;
+}
+
+export interface ChecksPr {
+  estado: 'sucesso' | 'falha' | 'pendente' | 'sem-checks';
+  total: number;
+  falhas: string[];
+  pendentes: string[];
+  erro?: string;
+}
+
+export function avaliaChecks(resultados: Record<string, ChecksPr> | null): ResultadoBuild {
+  const lista = Object.entries(resultados ?? {});
+  if (!lista.length) return { ok: null, motivo: 'Sem PR para consultar os checks do GitHub.' };
+  if (lista.some(([, r]) => r.erro)) return { ok: null, motivo: 'Não foi possível consultar os checks do GitHub agora.' };
+  const falhos = lista.filter(([, r]) => r.estado === 'falha');
+  if (falhos.length) return { ok: false, motivo: `Check com falha: ${falhos.map(([k, r]) => `${k} (${r.falhas.join(', ')})`).join('; ')}.` };
+  const pendentes = lista.filter(([, r]) => r.estado === 'pendente');
+  if (pendentes.length) return { ok: false, motivo: `Checks ainda em execução: ${pendentes.map(([k]) => k).join(', ')}.` };
+  const comChecks = lista.filter(([, r]) => r.estado === 'sucesso');
+  if (!comChecks.length) return { ok: null, motivo: 'Os PRs não têm checks no GitHub para conferir.' };
+  const total = comChecks.reduce((n, [, r]) => n + r.total, 0);
+  return { ok: true, motivo: `${total} check(s) do GitHub passaram em ${comChecks.map(([k]) => k).join(', ')}.` };
 }
 
 export interface AvaliacaoCriterio {
@@ -87,6 +115,10 @@ export interface AvaliacaoCriterio {
 
 export function avaliaCriterio(texto: string, ctx: ContextoCriterio): AvaliacaoCriterio {
   const t = normaliza(texto);
+  if (/build|compila|pipeline|\bci\b|checks?\b/.test(t)) {
+    if (ctx.build && ctx.build.ok !== null) return { automatico: true, cumprido: ctx.build.ok, motivo: ctx.build.motivo };
+    return { automatico: false, cumprido: false, motivo: ctx.build?.motivo ?? 'Sem checks do GitHub para conferir: confirme manualmente.' };
+  }
   if (/evid/.test(t)) return { automatico: true, cumprido: ctx.temEvidencia, motivo: ctx.temEvidencia ? 'Há link de evidência de testes no Git.' : 'Sem link de evidência no Git.' };
   if (/plano|cenario|teste/.test(t)) return { automatico: true, cumprido: ctx.temPlano, motivo: ctx.temPlano ? 'Há plano de testes registrado.' : 'Sem plano de testes registrado.' };
   if (/\bpr\b|pull|git|commit|codigo/.test(t)) return { automatico: true, cumprido: ctx.temPr, motivo: ctx.temPr ? 'Há PR vinculado ao chamado.' : 'Sem PR vinculado.' };

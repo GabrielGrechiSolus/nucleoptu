@@ -2,6 +2,7 @@
 
 import { auth } from '../../firebase';
 import { cabecalhoBm } from '../chamados/bmChave';
+import type { ChecksPr } from './automacao';
 
 export interface CriterioProcesso {
   itemId: number;
@@ -76,6 +77,21 @@ export async function permissaoProcessos(): Promise<{ permitido: boolean; motivo
     return { permitido: !!j.permitido, motivo: j.motivo ?? '' };
   } catch {
     return { permitido: false, motivo: 'Não foi possível verificar a permissão agora.' };
+  }
+}
+
+export async function consultaChecksGit(prs: { repo: string; numero: number }[]): Promise<Record<string, ChecksPr> | null> {
+  if (!prs.length) return null;
+  try {
+    const r = await fetch('/api/git/checks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await idToken()}` },
+      body: JSON.stringify({ prs: prs.slice(0, 20) }),
+    });
+    const j = await r.json();
+    return r.ok ? (j.resultados as Record<string, ChecksPr>) : null;
+  } catch {
+    return null;
   }
 }
 
