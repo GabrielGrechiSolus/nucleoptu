@@ -44,7 +44,15 @@ export function rascunhoTextoConclusao(c: Pick<Chamado, 'docs'>): string {
   const comoFunciona = secao(regra, /^como (vai )?funciona/i);
   const blocos = [problema, correcao, comoFunciona].filter((b) => b && !/^a completar/i.test(b));
   if (!blocos.length) return '';
-  return `${blocos.join('\n\n')}\n\n${MENSAGEM_PADRAO_CONCLUSAO}`;
+  return blocos.join('\n\n');
+}
+
+export function comporTextoConclusao(atual: string, rascunho: string): string {
+  if (!rascunho) return atual;
+  if (!atual.trim()) return `${rascunho}\n\n${MENSAGEM_PADRAO_CONCLUSAO}`;
+  if (atual.includes(rascunho)) return atual;
+  if (/^\s*\[\]/.test(atual)) return atual.replace(/\[\]/, rascunho);
+  return `${rascunho}\n\n${atual}`;
 }
 
 export interface PropostaCampo {
@@ -53,14 +61,14 @@ export interface PropostaCampo {
   valor: string;
 }
 
-export function propostasDeCampos(c: Pick<Chamado, 'docs' | 'prs' | 'branches' | 'evidencias' | 'planosTeste'>): PropostaCampo[] {
+export function propostasDeCampos(c: Pick<Chamado, 'docs' | 'prs' | 'branches' | 'evidencias' | 'planosTeste'>, atuais: Partial<Record<ChaveCampo, string>> = {}): PropostaCampo[] {
   const prs = (c.prs ?? []).filter((p) => p.url);
   const linhasQa = [
     ...(c.planosTeste ?? []).map((l) => `Plano de testes: ${l.url}`),
     ...(c.evidencias ?? []).map((l) => `Evidência de testes: ${l.url}`),
   ];
   const lista: PropostaCampo[] = [
-    { chave: 'texto', rotulo: 'Texto conclusão', valor: rascunhoTextoConclusao(c) },
+    { chave: 'texto', rotulo: 'Texto conclusão', valor: comporTextoConclusao(atuais.texto ?? '', rascunhoTextoConclusao(c)) },
     { chave: 'pr', rotulo: 'Git PR', valor: prs.map((p) => p.url).join(', ') },
     { chave: 'branch', rotulo: 'Git branch', valor: (c.branches ?? []).join(', ') },
     { chave: 'repo', rotulo: 'reponame', valor: [...new Set(prs.map((p) => p.repo).filter(Boolean))].join(', ') },

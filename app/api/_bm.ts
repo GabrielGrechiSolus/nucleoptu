@@ -212,7 +212,7 @@ async function bmEscreveBruto(chave: string, metodo: MetodoEscrita, caminho: str
     } catch {
       detalhe = '';
     }
-    const msg = r.status === 401 || r.status === 403 ? 'A chave do Businessmap não tem permissão para esta alteração.' : r.status === 404 ? 'Não encontrado no Businessmap.' : `Erro do Businessmap (${r.status}).${detalhe ? ` ${detalhe}` : ''}`;
+    const msg = r.status === 401 || r.status === 403 ? `A chave do Businessmap não tem permissão para esta alteração.${detalhe ? ` Resposta do BM: ${detalhe}` : ''}` : r.status === 404 ? 'Não encontrado no Businessmap.' : `Erro do Businessmap (${r.status}).${detalhe ? ` ${detalhe}` : ''}`;
     throw new ErroBm(r.status, msg);
   }
   if (r.status === 204) return null;

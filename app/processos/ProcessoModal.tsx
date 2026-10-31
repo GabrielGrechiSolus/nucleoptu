@@ -45,13 +45,17 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
   const [trabalhando, setTrabalhando] = useState(false);
   const [checks, setChecks] = useState<Awaited<ReturnType<typeof consultaChecksGit>> | undefined>(undefined);
 
-  const propostas = useMemo<PropostaCampo[]>(() => propostasDeCampos(chamado), [chamado]);
+  const propostasDe = useCallback(
+    (e: EstadoProcesso): PropostaCampo[] => propostasDeCampos(chamado, { texto: e.campos.find((c) => c.chave === 'texto')?.valorAtual ?? '' }),
+    [chamado],
+  );
+  const propostas = useMemo<PropostaCampo[]>(() => (estado ? propostasDe(estado) : []), [estado, propostasDe]);
 
   const iniciaSelecao = useCallback(
     (e: EstadoProcesso) => {
       const v: Record<string, string> = {};
       const m: Record<string, boolean> = {};
-      for (const p of propostas) {
+      for (const p of propostasDe(e)) {
         const campo = e.campos.find((c) => c.chave === p.chave);
         v[p.chave] = p.valor;
         const sit = situacaoDoCampo(campo?.valorAtual ?? '', p.valor);
@@ -70,7 +74,7 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
       const alvo = e.colunas.find((c) => c.posicao > (atual?.posicao ?? 0) && (c.secao === 3 || /conclu/i.test(c.nome))) ?? e.colunas.find((c) => c.posicao > (atual?.posicao ?? 0));
       setDestino(alvo?.id ?? 0);
     },
-    [propostas, chamado],
+    [propostasDe, chamado],
   );
 
   const carrega = useCallback(async () => {

@@ -1,4 +1,4 @@
-import { anexaLinksNaDescricao, avaliaChecks, avaliaCriterio, campoPorNome, linksGitDoChamado, linksQueFaltam, propostasDeCampos, rascunhoTextoConclusao, textoConclusaoComplementado, textoParaHtml } from './automacao';
+import { anexaLinksNaDescricao, avaliaChecks, avaliaCriterio, campoPorNome, comporTextoConclusao, linksGitDoChamado, linksQueFaltam, propostasDeCampos, rascunhoTextoConclusao, textoConclusaoComplementado, textoParaHtml } from './automacao';
 
 const regra = '---\nchamado: 568.361\n---\n\n## Problema\nO A410 era recusado sem diárias e taxas.\n\n## O que foi corrigido\nO envio passa a incluir a tabela própria.\n\n## Como vai funcionar\nO bloco é enviado.\n';
 
@@ -7,9 +7,19 @@ describe('automações do processo do BM a partir do Git', () => {
     const t = rascunhoTextoConclusao({ docs: { 'REGRA.md': regra } });
     expect(t.startsWith('O A410 era recusado sem diárias e taxas.')).toBe(true);
     expect(t.includes('O envio passa a incluir a tabela própria.')).toBe(true);
-    expect(t.endsWith('ficando disponíveis para atualização via revision.')).toBe(true);
+    expect(t.includes('ficando disponíveis')).toBe(false);
     expect(rascunhoTextoConclusao({ docs: {} })).toBe('');
     expect(rascunhoTextoConclusao({ docs: { 'REGRA.md': '## Como vai funcionar\nA completar pelo analista.' } })).toBe('');
+  });
+
+  it('compõe o texto de conclusão preservando a mensagem padrão do BM', () => {
+    const padrao = '[]\n\nObrigado pelo retorno, estamos encerrando este chamado. As alterações/desenvolvimentos foram efetivadas, ficando disponíveis para atualização via revision.\n\nSua opinião é muito importante para nós!';
+    expect(comporTextoConclusao(padrao, 'Problema X.\n\nCorreção Y.')).toBe(padrao.replace('[]', 'Problema X.\n\nCorreção Y.'));
+    expect(comporTextoConclusao('', 'Problema X.')).toBe('Problema X.\n\nAs alterações/desenvolvimentos foram efetivadas, ficando disponíveis para atualização via revision.');
+    expect(comporTextoConclusao('Texto do analista.', 'Problema X.')).toBe('Problema X.\n\nTexto do analista.');
+    const pronto = comporTextoConclusao(padrao, 'Problema X.');
+    expect(comporTextoConclusao(pronto, 'Problema X.')).toBe(pronto);
+    expect(comporTextoConclusao(padrao, '')).toBe(padrao);
   });
 
   it('propõe só os campos que o Git sabe preencher', () => {
