@@ -207,7 +207,8 @@ const Sidebar: React.FC = () => {
   const pessoa = usePessoa();
   const eu = useAdmin();
   // Administração de usuários aparece só para administradores.
-  const adminItens: NavItem[] = eu.admin ? [{ href: '/admin/usuarios', label: 'Administração', icon: ListChecks, color: 'text-sky-400', gradient: 'from-sky-500/20 to-sky-600/10' }, ...ADMIN_ITEMS] : ADMIN_ITEMS;
+  const processosItens: NavItem[] = pessoa.gitUser.toLowerCase() === 'gabrielgrechisolus' ? [{ href: '/processos', label: 'Processos do BM', icon: ListChecks, color: 'text-emerald-400', gradient: 'from-emerald-500/20 to-emerald-600/10' }] : [];
+  const adminItens: NavItem[] = [...(eu.admin ? [{ href: '/admin/usuarios', label: 'Administração', icon: ListChecks, color: 'text-sky-400', gradient: 'from-sky-500/20 to-sky-600/10' }] : []), ...processosItens, ...ADMIN_ITEMS];
   const contadorDe = (href: string) => (href === '/notice-board' ? unreadNotices : href === '/fila' ? pendFila : 0);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);

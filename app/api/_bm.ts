@@ -188,3 +188,89 @@ export async function bmEu(chave: string): Promise<{ nome: string; email: string
   const u = await bmGet<{ realname?: string; username?: string; email?: string }>(chave, '/me');
   return { nome: u.realname || u.username || '', email: u.email ?? '' };
 }
+
+export type MetodoEscrita = 'PUT' | 'PATCH' | 'POST' | 'DELETE';
+
+async function bmEscreveBruto(chave: string, metodo: MetodoEscrita, caminho: string, corpo?: unknown, tentativa = 0): Promise<unknown> {
+  if (!chave) throw new ErroBm(503, 'Informe a sua chave do Businessmap no perfil.');
+  await reserva(estadoDe(chave).chamadas);
+  const r = await fetch(BM_BASE + caminho, {
+    method: metodo,
+    headers: { apikey: chave, Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: corpo === undefined ? undefined : JSON.stringify(corpo),
+    cache: 'no-store',
+  });
+  if (r.status === 429 && tentativa < 2) {
+    await espera(((Number(r.headers.get('retry-after')) || 20) + 1) * 1000);
+    return bmEscreveBruto(chave, metodo, caminho, corpo, tentativa + 1);
+  }
+  if (!r.ok) {
+    let detalhe = '';
+    try {
+      const j = (await r.json()) as { error?: { message?: string } };
+      detalhe = j?.error?.message ?? '';
+    } catch {
+      detalhe = '';
+    }
+    const msg = r.status === 401 || r.status === 403 ? 'A chave do Businessmap não tem permissão para esta alteração.' : r.status === 404 ? 'Não encontrado no Businessmap.' : `Erro do Businessmap (${r.status}).${detalhe ? ` ${detalhe}` : ''}`;
+    throw new ErroBm(r.status, msg);
+  }
+  if (r.status === 204) return null;
+  return r.json().catch(() => null);
+}
+
+export function bmEscreve(chave: string, metodo: MetodoEscrita, caminho: string, corpo?: unknown): Promise<unknown> {
+  const e = estadoDe(chave);
+  const p = e.fila.then(() => bmEscreveBruto(chave, metodo, caminho, corpo));
+  e.fila = p.catch(() => undefined);
+  return p;
+}
+
+export interface CampoBm {
+  id: number;
+  nome: string;
+  tipo: string;
+}
+
+export async function camposDoBm(chave: string): Promise<CampoBm[]> {
+  const g = await metaGlobal(chave);
+  return Object.entries(g.campos).map(([id, c]) => ({ id: Number(id), nome: c.nome, tipo: c.tipo }));
+}
+
+export interface ColunaBm {
+  id: number;
+  nome: string;
+  secao: number | null;
+  posicao: number;
+  workflowId: number | null;
+}
+
+export async function colunasDoQuadroBm(chave: string, boardId: number): Promise<ColunaBm[]> {
+  return comCache(chave, `colunas-lista-${boardId}`, HORA, async () => {
+    const lista = (await bmGet<Lista>(chave, `/boards/${boardId}/columns`)) ?? [];
+    return lista.map((c) => ({ id: num(c.column_id), nome: txt(c.name), secao: c.section === undefined ? null : num(c.section), posicao: num(c.position), workflowId: c.workflow_id === undefined ? null : num(c.workflow_id) }));
+  });
+}
+
+export interface ItemChecklistBm {
+  id: number;
+  texto: string;
+}
+
+export async function checklistDaColunaBm(chave: string, boardId: number, colunaId: number): Promise<ItemChecklistBm[]> {
+  return comCache(chave, `checklist-${boardId}-${colunaId}`, 300_000, async () => {
+    const lista = (await bmGet<Lista>(chave, `/boards/${boardId}/columns/${colunaId}/checklistItems`)) ?? [];
+    return lista.map((i) => ({ id: num(i.item_id), texto: txt(i.text) }));
+  });
+}
+
+export interface ItemMarcadoBm {
+  id: number;
+  comentario: string;
+  marcadoEm: string;
+}
+
+export async function checklistMarcadoBm(chave: string, cardId: number): Promise<ItemMarcadoBm[]> {
+  const lista = (await bmGet<Lista>(chave, `/cards/${cardId}/columnChecklistItems`)) ?? [];
+  return lista.map((i) => ({ id: num(i.item_id), comentario: txt(i.comment), marcadoEm: txt(i.checked_at) }));
+}

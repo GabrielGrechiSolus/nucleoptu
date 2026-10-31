@@ -112,6 +112,23 @@ export async function exigeGit(req: Request): Promise<AcessoGit> {
   return { ok: true, token, email: login.email ?? '' };
 }
 
+export async function dadosDoPerfil(uid: string, idToken: string): Promise<{ ok: boolean; tipo: string; gitUser: string }> {
+  const projeto = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  if (!projeto || !uid) return { ok: false, tipo: '', gitUser: '' };
+  try {
+    const r = await fetch(`https://firestore.googleapis.com/v1/projects/${projeto}/databases/(default)/documents/profiles/${encodeURIComponent(uid)}`, {
+      headers: { Authorization: `Bearer ${idToken}` },
+      cache: 'no-store',
+    });
+    if (r.status === 404) return { ok: true, tipo: '', gitUser: '' };
+    if (!r.ok) return { ok: false, tipo: '', gitUser: '' };
+    const j = (await r.json()) as { fields?: { noticeType?: { stringValue?: string }; gitUser?: { stringValue?: string } } };
+    return { ok: true, tipo: j.fields?.noticeType?.stringValue ?? '', gitUser: j.fields?.gitUser?.stringValue ?? '' };
+  } catch {
+    return { ok: false, tipo: '', gitUser: '' };
+  }
+}
+
 export class ErroGithub extends Error {
   constructor(public status: number, mensagem: string) {
     super(mensagem);
