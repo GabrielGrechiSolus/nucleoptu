@@ -1,4 +1,4 @@
-import { avaliaCriterio, campoPorNome, propostasDeCampos, rascunhoTextoConclusao, textoConclusaoComplementado, textoParaHtml } from './automacao';
+import { anexaLinksNaDescricao, avaliaCriterio, campoPorNome, linksGitDoChamado, linksQueFaltam, propostasDeCampos, rascunhoTextoConclusao, textoConclusaoComplementado, textoParaHtml } from './automacao';
 
 const regra = '---\nchamado: 568.361\n---\n\n## Problema\nO A410 era recusado sem diárias e taxas.\n\n## O que foi corrigido\nO envio passa a incluir a tabela própria.\n\n## Como vai funcionar\nO bloco é enviado.\n';
 
@@ -24,6 +24,21 @@ describe('automações do processo do BM a partir do Git', () => {
     expect(propostas.find((p) => p.chave === 'pr')?.valor).toBe('https://github.com/solussaude/banco/pull/3965');
     expect(propostas.find((p) => p.chave === 'qa')?.valor).toBe('Evidência de testes: https://docs/e');
     expect(propostasDeCampos({ docs: {}, prs: [], branches: [], evidencias: [], planosTeste: [] })).toEqual([]);
+    const dois = propostasDeCampos({ docs: {}, prs: [{ repo: 'banco', numero: 1, url: 'https://g/1' }, { repo: 'contas', numero: 2, url: 'https://g/2' }], branches: ['a', 'b'], evidencias: [], planosTeste: [] });
+    expect(dois.find((p) => p.chave === 'pr')?.valor).toBe('https://g/1, https://g/2');
+    expect(dois.find((p) => p.chave === 'branch')?.valor).toBe('a, b');
+    expect(dois.find((p) => p.chave === 'repo')?.valor).toBe('banco, contas');
+  });
+
+  it('anexa os links do Git no fim da descrição, abaixo dos outros links, sem repetir', () => {
+    const links = linksGitDoChamado({ prs: [{ repo: 'banco', numero: 3965, url: 'https://github.com/solussaude/banco/pull/3965' }, { repo: 'x', numero: 1 }, { repo: 'y', numero: 2, url: 'https://exemplo.com/p/2' }] });
+    expect(links).toEqual([{ texto: 'Git PR banco #3965', url: 'https://github.com/solussaude/banco/pull/3965' }]);
+    const descricao = '<p>Descrição: algo</p><p><a href="https://docs/e">Entendimento</a></p><p><a href="https://docs/a">Análise</a></p>';
+    const nova = anexaLinksNaDescricao(descricao, links);
+    expect(nova).toBe(descricao + '<p><a href="https://github.com/solussaude/banco/pull/3965">Git PR banco #3965</a></p>');
+    expect(anexaLinksNaDescricao(nova, links)).toBe(nova);
+    expect(linksQueFaltam(nova, links)).toEqual([]);
+    expect(linksQueFaltam(descricao, links).length).toBe(1);
   });
 
   it('avalia os critérios de saída da coluna pelo que o Git tem', () => {
@@ -42,5 +57,7 @@ describe('automações do processo do BM a partir do Git', () => {
     expect(textoParaHtml('a < b & c\nlinha 2\n\nsegundo')).toBe('<p>a &lt; b &amp; c<br>linha 2</p><p>segundo</p>');
     expect(campoPorNome('Git PR')?.chave).toBe('pr');
     expect(campoPorNome('Cliente')).toBe(undefined);
+    expect(campoPorNome('reponame')?.chave).toBe('repo');
+    expect(campoPorNome('Git reponame')?.chave).toBe('repo');
   });
 });

@@ -16,6 +16,7 @@ export interface CampoProcesso {
   rotulo: string;
   id: number | null;
   tipo: string;
+  disponivel: boolean;
   valorAtual: string;
 }
 
@@ -31,11 +32,14 @@ export interface EstadoProcesso {
   colunas: ColunaProcesso[];
   criterios: CriterioProcesso[];
   campos: CampoProcesso[];
+  descricao: string;
+  descricaoHtml: string;
 }
 
 export type MudancaProcesso =
   | { tipo: 'campo'; campo: string; valor: string }
   | { tipo: 'checklist'; itemId: number; comentario?: string }
+  | { tipo: 'descricao'; links: { texto: string; url: string }[] }
   | { tipo: 'comentario'; texto: string }
   | { tipo: 'mover'; colunaId: number };
 

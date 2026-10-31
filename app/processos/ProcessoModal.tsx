@@ -2,9 +2,10 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ExternalLink, X } from 'lucide-react';
+import { htmlParaTexto } from '../chamados/bm';
 import type { Chamado } from '../chamados/parse';
 import type { RegistroBm } from '../chamados/bmRegistro';
-import { avaliaCriterio, propostasDeCampos, textoConclusaoComplementado, type PropostaCampo } from './automacao';
+import { anexaLinksNaDescricao, avaliaCriterio, linksGitDoChamado, linksQueFaltam, propostasDeCampos, textoConclusaoComplementado, type PropostaCampo } from './automacao';
 import { aplicarProcesso, lerProcesso, simularProcesso, type EstadoProcesso, type MudancaProcesso, type RequisicaoSimulada, type ResultadoGravacao } from './clienteProcesso';
 
 const norma = (t: string) => t.replace(/\s+/g, ' ').trim().toLowerCase();
@@ -33,6 +34,7 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
   const [valores, setValores] = useState<Record<string, string>>({});
   const [campoMarcado, setCampoMarcado] = useState<Record<string, boolean>>({});
   const [criterioMarcado, setCriterioMarcado] = useState<Record<number, boolean>>({});
+  const [linksMarcado, setLinksMarcado] = useState(false);
   const [comentario, setComentario] = useState('');
   const [comentarioMarcado, setComentarioMarcado] = useState(false);
   const [moverMarcado, setMoverMarcado] = useState(false);
@@ -52,11 +54,12 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
         v[p.chave] = p.valor;
         const sit = situacaoDoCampo(campo?.valorAtual ?? '', p.valor);
         const padraoSomente = p.chave === 'texto' && !textoConclusaoComplementado(campo?.valorAtual ?? '');
-        m[p.chave] = !!campo?.id && (sit === 'vazio' || (sit === 'diferente' && padraoSomente));
+        m[p.chave] = !!campo?.disponivel && (sit === 'vazio' || (sit === 'diferente' && padraoSomente));
       }
       setValores(v);
       setCampoMarcado(m);
       setCriterioMarcado({});
+      setLinksMarcado(linksQueFaltam(e.descricaoHtml, linksGitDoChamado(chamado)).length > 0);
       setComentario('');
       setComentarioMarcado(false);
       setMoverMarcado(false);
@@ -64,7 +67,7 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
       const alvo = e.colunas.find((c) => c.posicao > (atual?.posicao ?? 0) && (c.secao === 3 || /conclu/i.test(c.nome))) ?? e.colunas.find((c) => c.posicao > (atual?.posicao ?? 0));
       setDestino(alvo?.id ?? 0);
     },
-    [propostas],
+    [propostas, chamado],
   );
 
   const carrega = useCallback(async () => {
@@ -107,6 +110,9 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
     });
   }, [criterios, estado]);
 
+  const linksGit = useMemo(() => linksGitDoChamado(chamado), [chamado]);
+  const linksFaltantes = useMemo(() => (estado ? linksQueFaltam(estado.descricaoHtml, linksGit) : []), [estado, linksGit]);
+  const descricaoDepois = useMemo(() => (estado ? anexaLinksNaDescricao(estado.descricaoHtml, linksGit) : ''), [estado, linksGit]);
   const faltam = criterios.filter((c) => !c.marcado && !criterioMarcado[c.itemId]);
   const podeMover = !!estado && !estado.card.bloqueado && faltam.length === 0 && destino > 0;
 
@@ -114,6 +120,7 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
     const m: MudancaProcesso[] = [];
     for (const p of propostas) if (campoMarcado[p.chave]) m.push({ tipo: 'campo', campo: p.rotulo, valor: valores[p.chave] ?? p.valor });
     for (const c of criterios) if (!c.marcado && criterioMarcado[c.itemId]) m.push({ tipo: 'checklist', itemId: c.itemId });
+    if (linksMarcado && linksFaltantes.length) m.push({ tipo: 'descricao', links: linksGit });
     if (comentarioMarcado && comentario.trim()) m.push({ tipo: 'comentario', texto: comentario.trim() });
     if (moverMarcado && podeMover) m.push({ tipo: 'mover', colunaId: destino });
     return m;
@@ -185,7 +192,7 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
             <>
               {estado.card.bloqueado && <p className="rounded border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">O cartão está bloqueado no BM: não é possível mover enquanto estiver assim.</p>}
 
-              <Bloco titulo="1. Campos preenchidos a partir do Git">
+              <Bloco titulo="1. Campos do cartão preenchidos a partir do Git">
                 <p className="mb-3 text-xs text-zinc-500">Marque o que deve ser gravado no cartão. Campos já iguais ao Git não precisam ser regravados; campos diferentes vêm desmarcados para não sobrescrever o que alguém escreveu.</p>
                 <div className="space-y-3">
                   {propostas.map((p) => {
@@ -194,9 +201,9 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
                     return (
                       <div key={p.chave} className="rounded border border-zinc-800 p-3">
                         <label className="flex flex-wrap items-center gap-2 text-sm">
-                          <input type="checkbox" checked={!!campoMarcado[p.chave]} disabled={!campo?.id} onChange={(e) => setCampoMarcado((a) => ({ ...a, [p.chave]: e.target.checked }))} />
+                          <input type="checkbox" checked={!!campoMarcado[p.chave]} disabled={!campo?.disponivel} onChange={(e) => setCampoMarcado((a) => ({ ...a, [p.chave]: e.target.checked }))} />
                           <strong>{p.rotulo}</strong>
-                          {campo?.id ? <span className={`rounded px-1.5 py-0.5 text-xs ${COR_SITUACAO[sit]}`}>{ROTULO_SITUACAO[sit]}</span> : <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-xs text-red-300">campo não existe no BM</span>}
+                          {campo?.disponivel ? <span className={`rounded px-1.5 py-0.5 text-xs ${COR_SITUACAO[sit]}`}>{ROTULO_SITUACAO[sit]}</span> : <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-xs text-red-300">{campo?.id ? 'campo não habilitado no quadro deste cartão' : 'campo não existe no BM'}</span>}
                         </label>
                         <div className="mt-2 grid gap-3 md:grid-cols-2">
                           <div>
@@ -220,7 +227,32 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
                 </div>
               </Bloco>
 
-              <Bloco titulo="2. Critérios de saída da coluna atual">
+              <Bloco titulo="2. Links do Git na descrição do cartão">
+                <p className="mb-3 text-xs text-zinc-500">Os links são acrescentados no fim do texto da aba Detalhes, abaixo dos outros links (Entendimento, Análise etc.). O texto que já existe não é alterado.</p>
+                {linksGit.length ? (
+                  <>
+                    <label className="mb-2 flex flex-wrap items-center gap-2 text-sm">
+                      <input type="checkbox" checked={linksMarcado && linksFaltantes.length > 0} disabled={!linksFaltantes.length} onChange={(e) => setLinksMarcado(e.target.checked)} />
+                      <strong>Acrescentar os links do Git</strong>
+                      {!linksFaltantes.length && <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs text-emerald-300">já constam na descrição</span>}
+                    </label>
+                    <ul className="mb-3 space-y-1 text-sm">
+                      {linksGit.map((l) => (
+                        <li key={l.url} className="flex flex-wrap items-center gap-2">
+                          <a href={l.url} target="_blank" rel="noreferrer" className="text-sky-400 hover:underline">{l.texto}</a>
+                          <span className={`rounded px-1.5 py-0.5 text-xs ${linksFaltantes.some((x) => x.url === l.url) ? 'bg-amber-500/15 text-amber-300' : 'bg-emerald-500/15 text-emerald-300'}`}>{linksFaltantes.some((x) => x.url === l.url) ? 'falta no cartão' : 'já no cartão'}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mb-1 text-xs text-zinc-500">Como ficará o fim da descrição</div>
+                    <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded bg-zinc-900 p-2 text-xs text-zinc-300">{htmlParaTexto(descricaoDepois).slice(-800)}</pre>
+                  </>
+                ) : (
+                  <p className="text-sm text-zinc-500">Este chamado não tem PR com link do GitHub.</p>
+                )}
+              </Bloco>
+
+              <Bloco titulo="3. Critérios de saída da coluna atual">
                 {criterios.length ? (
                   <ul className="space-y-2">
                     {criterios.map((c) => (
@@ -246,14 +278,14 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
               </Bloco>
 
               <div className="grid gap-4 lg:grid-cols-2">
-                <Bloco titulo="3. Comentário no cartão (opcional)">
+                <Bloco titulo="4. Comentário no cartão (opcional)">
                   <label className="mb-2 flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={comentarioMarcado} onChange={(e) => setComentarioMarcado(e.target.checked)} /> Publicar comentário
                   </label>
                   <textarea value={comentario} onChange={(e) => setComentario(e.target.value)} rows={4} placeholder="Texto do comentário" className="w-full rounded border border-zinc-700 bg-zinc-900 p-2 text-sm" />
                 </Bloco>
 
-                <Bloco titulo="4. Mover o cartão">
+                <Bloco titulo="5. Mover o cartão">
                   <label className="mb-2 flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={moverMarcado && podeMover} disabled={!podeMover} onChange={(e) => setMoverMarcado(e.target.checked)} /> Mover para a coluna
                   </label>

@@ -13,7 +13,7 @@ export const CAMPOS_AUTOMATICOS: DefinicaoCampo[] = [
   { chave: 'texto', rotulo: 'Texto conclusão', padrao: /^texto conclus/i },
   { chave: 'pr', rotulo: 'Git PR', padrao: /^git pr$/i },
   { chave: 'branch', rotulo: 'Git branch', padrao: /^git branch$/i },
-  { chave: 'repo', rotulo: 'Git reponame', padrao: /^git repo/i },
+  { chave: 'repo', rotulo: 'reponame', padrao: /^(git )?repo/i },
   { chave: 'qa', rotulo: 'QA - Documentação', padrao: /^qa - document/i },
 ];
 
@@ -61,9 +61,9 @@ export function propostasDeCampos(c: Pick<Chamado, 'docs' | 'prs' | 'branches' |
   ];
   const lista: PropostaCampo[] = [
     { chave: 'texto', rotulo: 'Texto conclusão', valor: rascunhoTextoConclusao(c) },
-    { chave: 'pr', rotulo: 'Git PR', valor: prs.map((p) => p.url).join('\n') },
-    { chave: 'branch', rotulo: 'Git branch', valor: (c.branches ?? []).join('\n') },
-    { chave: 'repo', rotulo: 'Git reponame', valor: [...new Set(prs.map((p) => p.repo).filter(Boolean))].join(', ') },
+    { chave: 'pr', rotulo: 'Git PR', valor: prs.map((p) => p.url).join(', ') },
+    { chave: 'branch', rotulo: 'Git branch', valor: (c.branches ?? []).join(', ') },
+    { chave: 'repo', rotulo: 'reponame', valor: [...new Set(prs.map((p) => p.repo).filter(Boolean))].join(', ') },
     { chave: 'qa', rotulo: 'QA - Documentação', valor: linhasQa.join('\n') },
   ];
   return lista.filter((p) => p.valor.trim());
@@ -100,4 +100,25 @@ export function textoConclusaoComplementado(valor: string): boolean {
   if (!v) return false;
   const resto = v.replace(MENSAGEM_PADRAO_CONCLUSAO, '').replace(/\[\]|Obrigado[\s\S]*$/gi, '').trim();
   return resto.length >= 40;
+}
+
+export interface LinkGit {
+  texto: string;
+  url: string;
+}
+
+export const linksGitDoChamado = (c: Pick<Chamado, 'prs'>): LinkGit[] =>
+  (c.prs ?? [])
+    .filter((p) => p.url && /^https:\/\/github\.com\//i.test(p.url))
+    .map((p) => ({ texto: `Git PR ${p.repo ? `${p.repo} ` : ''}#${p.numero}`, url: p.url as string }));
+
+const escapaHtml = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+export const linksQueFaltam = (descricaoHtml: string, links: LinkGit[]) => links.filter((l) => !descricaoHtml.includes(l.url) && !descricaoHtml.includes(escapaHtml(l.url)));
+
+export function anexaLinksNaDescricao(descricaoHtml: string, links: LinkGit[]): string {
+  const novos = linksQueFaltam(descricaoHtml, links);
+  if (!novos.length) return descricaoHtml;
+  const bloco = novos.map((l) => `<p><a href="${escapaHtml(l.url)}">${escapaHtml(l.texto)}</a></p>`).join('');
+  return descricaoHtml + bloco;
 }

@@ -274,3 +274,11 @@ export async function checklistMarcadoBm(chave: string, cardId: number): Promise
   const lista = (await bmGet<Lista>(chave, `/cards/${cardId}/columnChecklistItems`)) ?? [];
   return lista.map((i) => ({ id: num(i.item_id), comentario: txt(i.comment), marcadoEm: txt(i.checked_at) }));
 }
+
+export async function camposDoQuadroBm(chave: string, boardId: number): Promise<Set<number>> {
+  const ids = await comCache(chave, `campos-quadro-${boardId}`, HORA, async () => {
+    const lista = (await bmGet<Lista>(chave, `/boards/${boardId}/customFields`)) ?? [];
+    return lista.map((c) => num(c.field_id));
+  });
+  return new Set(ids);
+}
