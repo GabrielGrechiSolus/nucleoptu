@@ -32,8 +32,8 @@
   --alert: #ffa626;
 }
 
-html { color-scheme: light; }
-html body {
+html:not(.dark) { color-scheme: light; }
+html:not(.dark) body {
   background: var(--background);
   color: var(--text);
   font-family: var(--font-poppins), Poppins, Arial, sans-serif;
@@ -41,374 +41,374 @@ html body {
 html input, html select, html textarea, html button { font-family: inherit; }
 
 /* Superfícies */
-html [class~="bg-black"],
-html [class~="bg-zinc-950"] { background-color: var(--background) !important; }
-html [class~="bg-zinc-900"],
-html [class*="bg-zinc-900/"]:not([class*=":bg-zinc-900/"]) { background-color: var(--surface) !important; }
-html [class~="bg-zinc-800"],
-html [class*="bg-zinc-800/"]:not([class*=":bg-zinc-800/"]) { background-color: #f1f1f1 !important; }
-html [class~="bg-zinc-700"] { background-color: var(--shape) !important; }
+html:not(.dark) [class~="bg-black"],
+html:not(.dark) [class~="bg-zinc-950"] { background-color: var(--background) !important; }
+html:not(.dark) [class~="bg-zinc-900"],
+html:not(.dark) [class*="bg-zinc-900/"]:not([class*=":bg-zinc-900/"]) { background-color: var(--surface) !important; }
+html:not(.dark) [class~="bg-zinc-800"],
+html:not(.dark) [class*="bg-zinc-800/"]:not([class*=":bg-zinc-800/"]) { background-color: #f1f1f1 !important; }
+html:not(.dark) [class~="bg-zinc-700"] { background-color: var(--shape) !important; }
 
 /* Textos */
-html [class~="text-zinc-50"],
-html [class~="text-zinc-100"],
-html [class~="text-zinc-200"] { color: var(--title) !important; }
-html [class~="text-zinc-300"],
-html [class~="text-zinc-400"] { color: var(--description) !important; }
-html [class~="text-zinc-500"],
-html [class~="text-zinc-600"] { color: #6b6b76 !important; }
+html:not(.dark) [class~="text-zinc-50"],
+html:not(.dark) [class~="text-zinc-100"],
+html:not(.dark) [class~="text-zinc-200"] { color: var(--title) !important; }
+html:not(.dark) [class~="text-zinc-300"],
+html:not(.dark) [class~="text-zinc-400"] { color: var(--description) !important; }
+html:not(.dark) [class~="text-zinc-500"],
+html:not(.dark) [class~="text-zinc-600"] { color: #6b6b76 !important; }
 
 /* Bordas */
-html [class*="border-zinc-"]:not([class*=":border-zinc-"]) { border-color: var(--line) !important; }
+html:not(.dark) [class*="border-zinc-"]:not([class*=":border-zinc-"]) { border-color: var(--line) !important; }
 
 /* Cor primária: o azul-céu (sky) das telas passa a ser o azul do Relatus */
-html [class~="bg-sky-500"],
-html [class~="bg-sky-600"],
-html [class~="bg-blue-600"] { background-color: var(--primary) !important; color: #fff; }
-html [class~="hover:bg-sky-500"]:hover,
-html [class~="hover:bg-sky-600"]:hover,
-html [class~="hover:bg-blue-500"]:hover { background-color: var(--primary-dark) !important; }
-html [class~="text-sky-300"],
-html [class~="text-sky-400"],
-html [class~="text-sky-500"],
-html [class~="text-blue-400"] { color: var(--primary) !important; }
-html [class~="hover:text-sky-300"]:hover,
-html [class~="hover:text-sky-400"]:hover { color: var(--primary-dark) !important; }
-html [class*="border-sky-"]:not([class*=":border-sky-"]) { border-color: var(--primary-light) !important; }
-html [class*="bg-sky-500/"],
-html [class*="bg-sky-600/"] { background-color: #00518c2b !important; }
-html [class~="from-sky-400"] { --tw-gradient-from: #00518c var(--tw-gradient-from-position) !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important; }
-html [class~="to-blue-500"],
-html [class~="to-blue-600"] { --tw-gradient-to: #003d67 var(--tw-gradient-to-position) !important; }
+html:not(.dark) [class~="bg-sky-500"],
+html:not(.dark) [class~="bg-sky-600"],
+html:not(.dark) [class~="bg-blue-600"] { background-color: var(--primary) !important; color: #fff; }
+html:not(.dark) [class~="hover:bg-sky-500"]:hover,
+html:not(.dark) [class~="hover:bg-sky-600"]:hover,
+html:not(.dark) [class~="hover:bg-blue-500"]:hover { background-color: var(--primary-dark) !important; }
+html:not(.dark) [class~="text-sky-300"],
+html:not(.dark) [class~="text-sky-400"],
+html:not(.dark) [class~="text-sky-500"],
+html:not(.dark) [class~="text-blue-400"] { color: var(--primary) !important; }
+html:not(.dark) [class~="hover:text-sky-300"]:hover,
+html:not(.dark) [class~="hover:text-sky-400"]:hover { color: var(--primary-dark) !important; }
+html:not(.dark) [class*="border-sky-"]:not([class*=":border-sky-"]) { border-color: var(--primary-light) !important; }
+html:not(.dark) [class*="bg-sky-500/"],
+html:not(.dark) [class*="bg-sky-600/"] { background-color: #00518c2b !important; }
+html:not(.dark) [class~="from-sky-400"] { --tw-gradient-from: #00518c var(--tw-gradient-from-position) !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important; }
+html:not(.dark) [class~="to-blue-500"],
+html:not(.dark) [class~="to-blue-600"] { --tw-gradient-to: #003d67 var(--tw-gradient-to-position) !important; }
 
 /* Cores de estado do Relatus */
-html [class~="text-red-400"],
-html [class~="text-rose-400"] { color: var(--error) !important; }
-html [class~="text-emerald-300"],
-html [class~="text-emerald-400"] { color: var(--success) !important; }
-html [class~="text-amber-400"],
-html [class~="text-yellow-400"] { color: #c77700 !important; }
+html:not(.dark) [class~="text-red-400"],
+html:not(.dark) [class~="text-rose-400"] { color: var(--error) !important; }
+html:not(.dark) [class~="text-emerald-300"],
+html:not(.dark) [class~="text-emerald-400"] { color: var(--success) !important; }
+html:not(.dark) [class~="text-amber-400"],
+html:not(.dark) [class~="text-yellow-400"] { color: #c77700 !important; }
 
 /* Campos de formulário */
-html input, html select, html textarea { color: var(--text); }
-html input::placeholder, html textarea::placeholder { color: #9a9aa5; }
-html input:focus, html select:focus, html textarea:focus { outline: none; border-color: var(--primary) !important; box-shadow: 0 0 0 2px #00518c2b; }
+html:not(.dark) input, html:not(.dark) select, html:not(.dark) textarea { color: var(--text); }
+html:not(.dark) input::placeholder, html:not(.dark) textarea::placeholder { color: #9a9aa5; }
+html:not(.dark) input:focus, html:not(.dark) select:focus, html:not(.dark) textarea:focus { outline: none; border-color: var(--primary) !important; box-shadow: 0 0 0 2px #00518c2b; }
 
 /* Cartões e modais: cantos e sombra discretos como no Relatus */
 html .rounded-xl, html .rounded-2xl { border-radius: 6px; }
 html .shadow-2xl, html .shadow-xl, html .shadow-lg { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); }
 
 /* Rolagem fina */
-html ::-webkit-scrollbar { width: 6px; height: 6px; }
-html ::-webkit-scrollbar-track { background: #f4f4f4; }
-html ::-webkit-scrollbar-thumb { background: #dad7d7; }
+html:not(.dark) ::-webkit-scrollbar { width: 6px; height: 6px; }
+html:not(.dark) ::-webkit-scrollbar-track { background: #f4f4f4; }
+html:not(.dark) ::-webkit-scrollbar-thumb { background: #dad7d7; }
 
 /* ===== Componentes no padrão do web_relatus (botões, campos, busca, filtros, grade, cartões) ===== */
 
 
 /* Paletas slate, gray, neutral e stone (telas de entrada) recebem o mesmo tratamento do zinc */
 
-html [class~="bg-slate-950"] {
+html:not(.dark) [class~="bg-slate-950"] {
   background-color: var(--background) !important;
 }
 
-html [class~="bg-slate-900"],
-html [class*="bg-slate-900/"]:not([class*=":bg-slate-900/"]) {
+html:not(.dark) [class~="bg-slate-900"],
+html:not(.dark) [class*="bg-slate-900/"]:not([class*=":bg-slate-900/"]) {
   background-color: var(--surface) !important;
 }
 
-html [class~="bg-slate-800"],
-html [class*="bg-slate-800/"]:not([class*=":bg-slate-800/"]) {
+html:not(.dark) [class~="bg-slate-800"],
+html:not(.dark) [class*="bg-slate-800/"]:not([class*=":bg-slate-800/"]) {
   background-color: #f1f1f1 !important;
 }
 
-html [class~="bg-slate-700"] {
+html:not(.dark) [class~="bg-slate-700"] {
   background-color: var(--shape) !important;
 }
 
-html [class~="text-slate-50"],
-html [class~="text-slate-100"],
-html [class~="text-slate-200"] {
+html:not(.dark) [class~="text-slate-50"],
+html:not(.dark) [class~="text-slate-100"],
+html:not(.dark) [class~="text-slate-200"] {
   color: var(--title) !important;
 }
 
-html [class~="text-slate-300"],
-html [class~="text-slate-400"] {
+html:not(.dark) [class~="text-slate-300"],
+html:not(.dark) [class~="text-slate-400"] {
   color: var(--description) !important;
 }
 
-html [class~="text-slate-500"],
-html [class~="text-slate-600"] {
+html:not(.dark) [class~="text-slate-500"],
+html:not(.dark) [class~="text-slate-600"] {
   color: #6b6b76 !important;
 }
 
-html [class*="border-slate-"]:not([class*=":border-slate-"]) {
+html:not(.dark) [class*="border-slate-"]:not([class*=":border-slate-"]) {
   border-color: var(--line) !important;
 }
 
-html [class~="bg-gray-950"] {
+html:not(.dark) [class~="bg-gray-950"] {
   background-color: var(--background) !important;
 }
 
-html [class~="bg-gray-900"],
-html [class*="bg-gray-900/"]:not([class*=":bg-gray-900/"]) {
+html:not(.dark) [class~="bg-gray-900"],
+html:not(.dark) [class*="bg-gray-900/"]:not([class*=":bg-gray-900/"]) {
   background-color: var(--surface) !important;
 }
 
-html [class~="bg-gray-800"],
-html [class*="bg-gray-800/"]:not([class*=":bg-gray-800/"]) {
+html:not(.dark) [class~="bg-gray-800"],
+html:not(.dark) [class*="bg-gray-800/"]:not([class*=":bg-gray-800/"]) {
   background-color: #f1f1f1 !important;
 }
 
-html [class~="bg-gray-700"] {
+html:not(.dark) [class~="bg-gray-700"] {
   background-color: var(--shape) !important;
 }
 
-html [class~="text-gray-50"],
-html [class~="text-gray-100"],
-html [class~="text-gray-200"] {
+html:not(.dark) [class~="text-gray-50"],
+html:not(.dark) [class~="text-gray-100"],
+html:not(.dark) [class~="text-gray-200"] {
   color: var(--title) !important;
 }
 
-html [class~="text-gray-300"],
-html [class~="text-gray-400"] {
+html:not(.dark) [class~="text-gray-300"],
+html:not(.dark) [class~="text-gray-400"] {
   color: var(--description) !important;
 }
 
-html [class~="text-gray-500"],
-html [class~="text-gray-600"] {
+html:not(.dark) [class~="text-gray-500"],
+html:not(.dark) [class~="text-gray-600"] {
   color: #6b6b76 !important;
 }
 
-html [class*="border-gray-"]:not([class*=":border-gray-"]) {
+html:not(.dark) [class*="border-gray-"]:not([class*=":border-gray-"]) {
   border-color: var(--line) !important;
 }
 
-html [class~="bg-neutral-950"] {
+html:not(.dark) [class~="bg-neutral-950"] {
   background-color: var(--background) !important;
 }
 
-html [class~="bg-neutral-900"],
-html [class*="bg-neutral-900/"]:not([class*=":bg-neutral-900/"]) {
+html:not(.dark) [class~="bg-neutral-900"],
+html:not(.dark) [class*="bg-neutral-900/"]:not([class*=":bg-neutral-900/"]) {
   background-color: var(--surface) !important;
 }
 
-html [class~="bg-neutral-800"],
-html [class*="bg-neutral-800/"]:not([class*=":bg-neutral-800/"]) {
+html:not(.dark) [class~="bg-neutral-800"],
+html:not(.dark) [class*="bg-neutral-800/"]:not([class*=":bg-neutral-800/"]) {
   background-color: #f1f1f1 !important;
 }
 
-html [class~="bg-neutral-700"] {
+html:not(.dark) [class~="bg-neutral-700"] {
   background-color: var(--shape) !important;
 }
 
-html [class~="text-neutral-50"],
-html [class~="text-neutral-100"],
-html [class~="text-neutral-200"] {
+html:not(.dark) [class~="text-neutral-50"],
+html:not(.dark) [class~="text-neutral-100"],
+html:not(.dark) [class~="text-neutral-200"] {
   color: var(--title) !important;
 }
 
-html [class~="text-neutral-300"],
-html [class~="text-neutral-400"] {
+html:not(.dark) [class~="text-neutral-300"],
+html:not(.dark) [class~="text-neutral-400"] {
   color: var(--description) !important;
 }
 
-html [class~="text-neutral-500"],
-html [class~="text-neutral-600"] {
+html:not(.dark) [class~="text-neutral-500"],
+html:not(.dark) [class~="text-neutral-600"] {
   color: #6b6b76 !important;
 }
 
-html [class*="border-neutral-"]:not([class*=":border-neutral-"]) {
+html:not(.dark) [class*="border-neutral-"]:not([class*=":border-neutral-"]) {
   border-color: var(--line) !important;
 }
 
-html [class~="bg-stone-950"] {
+html:not(.dark) [class~="bg-stone-950"] {
   background-color: var(--background) !important;
 }
 
-html [class~="bg-stone-900"],
-html [class*="bg-stone-900/"]:not([class*=":bg-stone-900/"]) {
+html:not(.dark) [class~="bg-stone-900"],
+html:not(.dark) [class*="bg-stone-900/"]:not([class*=":bg-stone-900/"]) {
   background-color: var(--surface) !important;
 }
 
-html [class~="bg-stone-800"],
-html [class*="bg-stone-800/"]:not([class*=":bg-stone-800/"]) {
+html:not(.dark) [class~="bg-stone-800"],
+html:not(.dark) [class*="bg-stone-800/"]:not([class*=":bg-stone-800/"]) {
   background-color: #f1f1f1 !important;
 }
 
-html [class~="bg-stone-700"] {
+html:not(.dark) [class~="bg-stone-700"] {
   background-color: var(--shape) !important;
 }
 
-html [class~="text-stone-50"],
-html [class~="text-stone-100"],
-html [class~="text-stone-200"] {
+html:not(.dark) [class~="text-stone-50"],
+html:not(.dark) [class~="text-stone-100"],
+html:not(.dark) [class~="text-stone-200"] {
   color: var(--title) !important;
 }
 
-html [class~="text-stone-300"],
-html [class~="text-stone-400"] {
+html:not(.dark) [class~="text-stone-300"],
+html:not(.dark) [class~="text-stone-400"] {
   color: var(--description) !important;
 }
 
-html [class~="text-stone-500"],
-html [class~="text-stone-600"] {
+html:not(.dark) [class~="text-stone-500"],
+html:not(.dark) [class~="text-stone-600"] {
   color: #6b6b76 !important;
 }
 
-html [class*="border-stone-"]:not([class*=":border-stone-"]) {
+html:not(.dark) [class*="border-stone-"]:not([class*=":border-stone-"]) {
   border-color: var(--line) !important;
 }
 
 
 /* Degradês escuros e brilhos viram superfícies lisas */
 
-html [class*="from-zinc-"],
-html [class*="via-zinc-"],
-html [class*="to-zinc-"],
-html [class*="from-slate-"],
-html [class*="from-gray-"],
-html [class*="from-neutral-"],
-html [class*="from-stone-"],
-html [class*="via-slate-"],
-html [class*="via-gray-"],
-html [class*="via-neutral-"],
-html [class*="via-stone-"],
-html [class*="to-slate-"],
-html [class*="to-gray-"],
-html [class*="to-neutral-"],
-html [class*="to-stone-"] {
+html:not(.dark) [class*="from-zinc-"],
+html:not(.dark) [class*="via-zinc-"],
+html:not(.dark) [class*="to-zinc-"],
+html:not(.dark) [class*="from-slate-"],
+html:not(.dark) [class*="from-gray-"],
+html:not(.dark) [class*="from-neutral-"],
+html:not(.dark) [class*="from-stone-"],
+html:not(.dark) [class*="via-slate-"],
+html:not(.dark) [class*="via-gray-"],
+html:not(.dark) [class*="via-neutral-"],
+html:not(.dark) [class*="via-stone-"],
+html:not(.dark) [class*="to-slate-"],
+html:not(.dark) [class*="to-gray-"],
+html:not(.dark) [class*="to-neutral-"],
+html:not(.dark) [class*="to-stone-"] {
   background-image: none !important; background-color: var(--surface) !important;
 }
 
-html [class*="bg-zinc-950/"],
-html [class*="bg-slate-950/"],
-html [class*="bg-gray-950/"],
-html [class*="bg-neutral-950/"],
-html [class*="bg-stone-950/"] {
+html:not(.dark) [class*="bg-zinc-950/"],
+html:not(.dark) [class*="bg-slate-950/"],
+html:not(.dark) [class*="bg-gray-950/"],
+html:not(.dark) [class*="bg-neutral-950/"],
+html:not(.dark) [class*="bg-stone-950/"] {
   background-color: var(--surface) !important;
 }
 
-html [class*="backdrop-blur"] {
+html:not(.dark) [class*="backdrop-blur"] {
   -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
 }
 
-html [class*="shadow-sky"],
-html [class*="shadow-blue"],
-html [class*="shadow-red"],
-html [class*="shadow-emerald"],
-html [class*="shadow-current"],
-html [class*="shadow-black"] {
+html:not(.dark) [class*="shadow-sky"],
+html:not(.dark) [class*="shadow-blue"],
+html:not(.dark) [class*="shadow-red"],
+html:not(.dark) [class*="shadow-emerald"],
+html:not(.dark) [class*="shadow-current"],
+html:not(.dark) [class*="shadow-black"] {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12) !important;
 }
 
 
 /* Texto branco só onde o fundo é colorido (botões, selos); no resto vira o título */
 
-html [class~="text-white"] {
+html:not(.dark) [class~="text-white"] {
   color: var(--title);
 }
 
-html [class~="text-white"][class*="bg-sky-"],
-html [class~="text-white"][class*="bg-blue-"],
-html [class~="text-white"][class*="bg-red-"],
-html [class~="text-white"][class*="bg-rose-"],
-html [class~="text-white"][class*="bg-emerald-"],
-html [class~="text-white"][class*="bg-green-"],
-html [class~="text-white"][class*="bg-amber-"],
-html [class~="text-white"][class*="bg-violet-"],
-html [class~="text-white"][class*="bg-purple-"],
-html [class~="text-white"][class*="bg-indigo-"],
-html [class~="text-white"][class*="bg-teal-"],
-html [class~="text-white"][class*="bg-cyan-"],
-html [class~="text-white"][class*="bg-orange-"],
-html [class~="text-white"][class*="bg-pink-"],
-html button[class~="text-white"],
-html [class~="text-white"][class*="bg-gradient-to-"] {
+html:not(.dark) [class~="text-white"][class*="bg-sky-"],
+html:not(.dark) [class~="text-white"][class*="bg-blue-"],
+html:not(.dark) [class~="text-white"][class*="bg-red-"],
+html:not(.dark) [class~="text-white"][class*="bg-rose-"],
+html:not(.dark) [class~="text-white"][class*="bg-emerald-"],
+html:not(.dark) [class~="text-white"][class*="bg-green-"],
+html:not(.dark) [class~="text-white"][class*="bg-amber-"],
+html:not(.dark) [class~="text-white"][class*="bg-violet-"],
+html:not(.dark) [class~="text-white"][class*="bg-purple-"],
+html:not(.dark) [class~="text-white"][class*="bg-indigo-"],
+html:not(.dark) [class~="text-white"][class*="bg-teal-"],
+html:not(.dark) [class~="text-white"][class*="bg-cyan-"],
+html:not(.dark) [class~="text-white"][class*="bg-orange-"],
+html:not(.dark) [class~="text-white"][class*="bg-pink-"],
+html:not(.dark) button[class~="text-white"],
+html:not(.dark) [class~="text-white"][class*="bg-gradient-to-"] {
   color: #fff;
 }
 
 
 /* Títulos de página, como o Box.Title do Relatus */
 
-html h1 {
+html:not(.dark) h1 {
   color: var(--primary) !important; font-size: 1.35rem !important; font-weight: 600 !important;
 }
 
-html h2 {
+html:not(.dark) h2 {
   color: var(--title);
 }
 
-html [class~="text-transparent"] {
+html:not(.dark) [class~="text-transparent"] {
   color: var(--primary) !important; -webkit-text-fill-color: var(--primary) !important; background-image: none !important;
 }
 
 
 /* Botões: primário azul (#00518C); exclusão em vermelho; sucesso em verde; alerta em laranja */
 
-html button {
+html:not(.dark) button {
   font-weight: 500; transition: background-color 0.15s, box-shadow 0.15s;
 }
 
-html button[class*="bg-violet-"]:not([class*="/"]),
-html button[class*="bg-purple-"]:not([class*="/"]),
-html button[class*="bg-indigo-"]:not([class*="/"]),
-html button[class*="bg-teal-"]:not([class*="/"]),
-html button[class*="bg-cyan-"]:not([class*="/"]),
-html button[class*="bg-pink-"]:not([class*="/"]),
-html button[class*="bg-blue-5"]:not([class*="/"]),
-html button[class*="bg-blue-6"]:not([class*="/"]),
-html button[class*="bg-blue-7"]:not([class*="/"]) {
+html:not(.dark) button[class*="bg-violet-"]:not([class*="/"]),
+html:not(.dark) button[class*="bg-purple-"]:not([class*="/"]),
+html:not(.dark) button[class*="bg-indigo-"]:not([class*="/"]),
+html:not(.dark) button[class*="bg-teal-"]:not([class*="/"]),
+html:not(.dark) button[class*="bg-cyan-"]:not([class*="/"]),
+html:not(.dark) button[class*="bg-pink-"]:not([class*="/"]),
+html:not(.dark) button[class*="bg-blue-5"]:not([class*="/"]),
+html:not(.dark) button[class*="bg-blue-6"]:not([class*="/"]),
+html:not(.dark) button[class*="bg-blue-7"]:not([class*="/"]) {
   background-image: none !important; background-color: var(--primary) !important; color: #fff !important; border-radius: 4px;
 }
 
-html button[class*="bg-gradient-to-"] {
+html:not(.dark) button[class*="bg-gradient-to-"] {
   background-image: none !important; background-color: var(--primary) !important; color: #fff !important; border-radius: 4px;
 }
 
-html button[class*="from-red-"]:not([class*="/"]),
-html button[class*="from-rose-"]:not([class*="/"]),
-html button[class*="bg-red-5"]:not([class*="/"]),
-html button[class*="bg-red-6"]:not([class*="/"]),
-html button[class*="bg-rose-5"]:not([class*="/"]),
-html button[class*="bg-rose-6"]:not([class*="/"]) {
+html:not(.dark) button[class*="from-red-"]:not([class*="/"]),
+html:not(.dark) button[class*="from-rose-"]:not([class*="/"]),
+html:not(.dark) button[class*="bg-red-5"]:not([class*="/"]),
+html:not(.dark) button[class*="bg-red-6"]:not([class*="/"]),
+html:not(.dark) button[class*="bg-rose-5"]:not([class*="/"]),
+html:not(.dark) button[class*="bg-rose-6"]:not([class*="/"]) {
   background-image: none !important; background-color: var(--error) !important; color: #fff !important; border-radius: 4px;
 }
 
-html button[class*="from-emerald-"]:not([class*="/"]),
-html button[class*="from-green-"]:not([class*="/"]),
-html button[class*="bg-emerald-5"]:not([class*="/"]),
-html button[class*="bg-emerald-6"]:not([class*="/"]),
-html button[class*="bg-green-5"]:not([class*="/"]),
-html button[class*="bg-green-6"]:not([class*="/"]) {
+html:not(.dark) button[class*="from-emerald-"]:not([class*="/"]),
+html:not(.dark) button[class*="from-green-"]:not([class*="/"]),
+html:not(.dark) button[class*="bg-emerald-5"]:not([class*="/"]),
+html:not(.dark) button[class*="bg-emerald-6"]:not([class*="/"]),
+html:not(.dark) button[class*="bg-green-5"]:not([class*="/"]),
+html:not(.dark) button[class*="bg-green-6"]:not([class*="/"]) {
   background-image: none !important; background-color: var(--success) !important; color: #fff !important; border-radius: 4px;
 }
 
-html button[class*="from-amber-"]:not([class*="/"]),
-html button[class*="from-orange-"]:not([class*="/"]),
-html button[class*="from-yellow-"]:not([class*="/"]),
-html button[class*="bg-amber-5"]:not([class*="/"]),
-html button[class*="bg-orange-5"]:not([class*="/"]) {
+html:not(.dark) button[class*="from-amber-"]:not([class*="/"]),
+html:not(.dark) button[class*="from-orange-"]:not([class*="/"]),
+html:not(.dark) button[class*="from-yellow-"]:not([class*="/"]),
+html:not(.dark) button[class*="bg-amber-5"]:not([class*="/"]),
+html:not(.dark) button[class*="bg-orange-5"]:not([class*="/"]) {
   background-image: none !important; background-color: var(--alert) !important; color: #fff !important; border-radius: 4px;
 }
 
-html button[class*="bg-gradient-to-"]:not(:disabled):hover,
-html button[class*="bg-violet-"]:not(:disabled):hover,
-html button[class*="bg-purple-"]:not(:disabled):hover,
-html button[class*="bg-indigo-"]:not(:disabled):hover {
+html:not(.dark) button[class*="bg-gradient-to-"]:not(:disabled):hover,
+html:not(.dark) button[class*="bg-violet-"]:not(:disabled):hover,
+html:not(.dark) button[class*="bg-purple-"]:not(:disabled):hover,
+html:not(.dark) button[class*="bg-indigo-"]:not(:disabled):hover {
   filter: brightness(0.92);
 }
 
-html button:disabled {
+html:not(.dark) button:disabled {
   opacity: 0.6;
 }
 
 
 /* Campos de formulário, busca e filtros */
 
-html input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not(#sidebar-search),
-html select,
-html textarea {
+html:not(.dark) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not(#sidebar-search),
+html:not(.dark) select,
+html:not(.dark) textarea {
   background-color: #fcfcfc !important; border: 1px solid var(--shape) !important; border-radius: 4px !important; color: var(--text) !important; min-height: 38px;
 }
 
@@ -416,121 +416,121 @@ html #sidebar-search {
   background: transparent !important; border: 0 !important; box-shadow: none !important; min-height: 0;
 }
 
-html label {
+html:not(.dark) label {
   color: var(--description);
 }
 
-html input[type="checkbox"],
-html input[type="radio"] {
+html:not(.dark) input[type="checkbox"],
+html:not(.dark) input[type="radio"] {
   accent-color: var(--primary);
 }
 
 
 /* Grade / tabela */
 
-html table {
+html:not(.dark) table {
   background: var(--surface); border-collapse: collapse;
 }
 
-html thead,
-html thead tr,
-html thead th {
+html:not(.dark) thead,
+html:not(.dark) thead tr,
+html:not(.dark) thead th {
   background: var(--background) !important; color: var(--title) !important; font-weight: 600;
 }
 
-html tbody tr {
+html:not(.dark) tbody tr {
   border-color: var(--line) !important;
 }
 
-html tbody tr:hover {
+html:not(.dark) tbody tr:hover {
   background-color: #00518c0d !important;
 }
 
-html th,
-html td {
+html:not(.dark) th,
+html:not(.dark) td {
   border-color: var(--line) !important;
 }
 
-html [class*="divide-zinc-"] > :not([hidden]) ~ :not([hidden]),
-html [class*="divide-slate-"] > :not([hidden]) ~ :not([hidden]),
-html [class*="divide-gray-"] > :not([hidden]) ~ :not([hidden]),
-html [class*="divide-neutral-"] > :not([hidden]) ~ :not([hidden]),
-html [class*="divide-stone-"] > :not([hidden]) ~ :not([hidden]) {
+html:not(.dark) [class*="divide-zinc-"] > :not([hidden]) ~ :not([hidden]),
+html:not(.dark) [class*="divide-slate-"] > :not([hidden]) ~ :not([hidden]),
+html:not(.dark) [class*="divide-gray-"] > :not([hidden]) ~ :not([hidden]),
+html:not(.dark) [class*="divide-neutral-"] > :not([hidden]) ~ :not([hidden]),
+html:not(.dark) [class*="divide-stone-"] > :not([hidden]) ~ :not([hidden]) {
   border-color: var(--line) !important;
 }
 
 
 /* Cartões e modais (Box do Relatus): fundo branco, borda suave e sombra discreta */
 
-html [class*="rounded-lg"][class*="border"][class*="bg-zinc-9"],
-html [class*="rounded-xl"][class*="border"][class*="bg-zinc-9"],
-html [class*="rounded-2xl"][class*="border"][class*="bg-zinc-9"],
-html [class*="rounded-lg"][class*="border"][class*="bg-slate-9"],
-html [class*="rounded-lg"][class*="border"][class*="bg-gray-9"],
-html [class*="rounded-lg"][class*="border"][class*="bg-neutral-9"],
-html [class*="rounded-lg"][class*="border"][class*="bg-stone-9"],
-html [class*="rounded-xl"][class*="border"][class*="bg-slate-9"],
-html [class*="rounded-xl"][class*="border"][class*="bg-gray-9"],
-html [class*="rounded-xl"][class*="border"][class*="bg-neutral-9"],
-html [class*="rounded-xl"][class*="border"][class*="bg-stone-9"],
-html [class*="rounded-2xl"][class*="border"][class*="bg-slate-9"],
-html [class*="rounded-2xl"][class*="border"][class*="bg-gray-9"],
-html [class*="rounded-2xl"][class*="border"][class*="bg-neutral-9"],
-html [class*="rounded-2xl"][class*="border"][class*="bg-stone-9"] {
+html:not(.dark) [class*="rounded-lg"][class*="border"][class*="bg-zinc-9"],
+html:not(.dark) [class*="rounded-xl"][class*="border"][class*="bg-zinc-9"],
+html:not(.dark) [class*="rounded-2xl"][class*="border"][class*="bg-zinc-9"],
+html:not(.dark) [class*="rounded-lg"][class*="border"][class*="bg-slate-9"],
+html:not(.dark) [class*="rounded-lg"][class*="border"][class*="bg-gray-9"],
+html:not(.dark) [class*="rounded-lg"][class*="border"][class*="bg-neutral-9"],
+html:not(.dark) [class*="rounded-lg"][class*="border"][class*="bg-stone-9"],
+html:not(.dark) [class*="rounded-xl"][class*="border"][class*="bg-slate-9"],
+html:not(.dark) [class*="rounded-xl"][class*="border"][class*="bg-gray-9"],
+html:not(.dark) [class*="rounded-xl"][class*="border"][class*="bg-neutral-9"],
+html:not(.dark) [class*="rounded-xl"][class*="border"][class*="bg-stone-9"],
+html:not(.dark) [class*="rounded-2xl"][class*="border"][class*="bg-slate-9"],
+html:not(.dark) [class*="rounded-2xl"][class*="border"][class*="bg-gray-9"],
+html:not(.dark) [class*="rounded-2xl"][class*="border"][class*="bg-neutral-9"],
+html:not(.dark) [class*="rounded-2xl"][class*="border"][class*="bg-stone-9"] {
   background-color: var(--surface) !important; border-color: var(--line) !important; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 
 /* Paleta decorativa: verdes, roxos, ciano e similares viram azul do Relatus; rosa, laranja e vermelho decorativos viram grená */
 
-html :is([class*="from-emerald-"], [class*="from-teal-"], [class*="from-sky-"], [class*="from-blue-"], [class*="from-cyan-"], [class*="from-indigo-"], [class*="from-violet-"], [class*="from-purple-"], [class*="from-fuchsia-"]):is([class*="bg-gradient-to-"]):not([class*="/"]):not(button):not(a) {
+html:not(.dark) :is([class*="from-emerald-"], [class*="from-teal-"], [class*="from-sky-"], [class*="from-blue-"], [class*="from-cyan-"], [class*="from-indigo-"], [class*="from-violet-"], [class*="from-purple-"], [class*="from-fuchsia-"]):is([class*="bg-gradient-to-"]):not([class*="/"]):not(button):not(a) {
   background-image: linear-gradient(90deg, #0053bc 0%, #00234f 100%) !important;
 }
 
-html :is([class*="from-rose-"], [class*="from-pink-"], [class*="from-orange-"]):is([class*="bg-gradient-to-"]):not([class*="/"]):not(button):not(a) {
+html:not(.dark) :is([class*="from-rose-"], [class*="from-pink-"], [class*="from-orange-"]):is([class*="bg-gradient-to-"]):not([class*="/"]):not(button):not(a) {
   background-image: linear-gradient(90deg, #cf1961 0%, #b4044a 100%) !important;
 }
 
-html :is([class*="from-emerald-"], [class*="from-teal-"], [class*="from-sky-"], [class*="from-blue-"], [class*="from-cyan-"], [class*="from-indigo-"], [class*="from-violet-"], [class*="from-purple-"], [class*="from-fuchsia-"])[class*="from-"][class*="/"]:not(button):not(a) {
+html:not(.dark) :is([class*="from-emerald-"], [class*="from-teal-"], [class*="from-sky-"], [class*="from-blue-"], [class*="from-cyan-"], [class*="from-indigo-"], [class*="from-violet-"], [class*="from-purple-"], [class*="from-fuchsia-"])[class*="from-"][class*="/"]:not(button):not(a) {
   background-image: none !important; background-color: #00518c14 !important;
 }
 
-html :is([class*="from-rose-"], [class*="from-pink-"], [class*="from-orange-"])[class*="from-"][class*="/"]:not(button):not(a) {
+html:not(.dark) :is([class*="from-rose-"], [class*="from-pink-"], [class*="from-orange-"])[class*="from-"][class*="/"]:not(button):not(a) {
   background-image: none !important; background-color: #b4044a14 !important;
 }
 
-html :is([class*="bg-teal-"][class*="/"], [class*="bg-sky-"][class*="/"], [class*="bg-blue-"][class*="/"], [class*="bg-cyan-"][class*="/"], [class*="bg-indigo-"][class*="/"], [class*="bg-violet-"][class*="/"], [class*="bg-purple-"][class*="/"], [class*="bg-fuchsia-"][class*="/"]):not(button):not(a) {
+html:not(.dark) :is([class*="bg-teal-"][class*="/"], [class*="bg-sky-"][class*="/"], [class*="bg-blue-"][class*="/"], [class*="bg-cyan-"][class*="/"], [class*="bg-indigo-"][class*="/"], [class*="bg-violet-"][class*="/"], [class*="bg-purple-"][class*="/"], [class*="bg-fuchsia-"][class*="/"]):not(button):not(a) {
   background-color: #00518c14 !important;
 }
 
-html :is([class*="bg-rose-"][class*="/"], [class*="bg-pink-"][class*="/"], [class*="bg-orange-"][class*="/"]):not(button):not(a) {
+html:not(.dark) :is([class*="bg-rose-"][class*="/"], [class*="bg-pink-"][class*="/"], [class*="bg-orange-"][class*="/"]):not(button):not(a) {
   background-color: #b4044a14 !important;
 }
 
-html :is([class~="text-teal-400"], [class~="text-teal-500"], [class~="text-teal-600"], [class~="text-sky-400"], [class~="text-sky-500"], [class~="text-sky-600"], [class~="text-blue-400"], [class~="text-blue-500"], [class~="text-blue-600"], [class~="text-cyan-400"], [class~="text-cyan-500"], [class~="text-cyan-600"], [class~="text-indigo-400"], [class~="text-indigo-500"], [class~="text-indigo-600"], [class~="text-violet-400"], [class~="text-violet-500"], [class~="text-violet-600"], [class~="text-purple-400"], [class~="text-purple-500"], [class~="text-purple-600"], [class~="text-fuchsia-400"], [class~="text-fuchsia-500"], [class~="text-fuchsia-600"]) {
+html:not(.dark) :is([class~="text-teal-400"], [class~="text-teal-500"], [class~="text-teal-600"], [class~="text-sky-400"], [class~="text-sky-500"], [class~="text-sky-600"], [class~="text-blue-400"], [class~="text-blue-500"], [class~="text-blue-600"], [class~="text-cyan-400"], [class~="text-cyan-500"], [class~="text-cyan-600"], [class~="text-indigo-400"], [class~="text-indigo-500"], [class~="text-indigo-600"], [class~="text-violet-400"], [class~="text-violet-500"], [class~="text-violet-600"], [class~="text-purple-400"], [class~="text-purple-500"], [class~="text-purple-600"], [class~="text-fuchsia-400"], [class~="text-fuchsia-500"], [class~="text-fuchsia-600"]) {
   color: var(--primary) !important;
 }
 
-html :is([class~="text-rose-400"], [class~="text-rose-500"], [class~="text-rose-600"], [class~="text-pink-400"], [class~="text-pink-500"], [class~="text-pink-600"], [class~="text-orange-400"], [class~="text-orange-500"], [class~="text-orange-600"]) {
+html:not(.dark) :is([class~="text-rose-400"], [class~="text-rose-500"], [class~="text-rose-600"], [class~="text-pink-400"], [class~="text-pink-500"], [class~="text-pink-600"], [class~="text-orange-400"], [class~="text-orange-500"], [class~="text-orange-600"]) {
   color: var(--secondary) !important;
 }
 
-html :is([class*="border-emerald-"], [class*="border-teal-"], [class*="border-sky-"], [class*="border-blue-"], [class*="border-cyan-"], [class*="border-indigo-"], [class*="border-violet-"], [class*="border-purple-"], [class*="border-fuchsia-"], [class*="border-rose-"], [class*="border-pink-"], [class*="border-orange-"]):not([class*=":border-"]) {
+html:not(.dark) :is([class*="border-emerald-"], [class*="border-teal-"], [class*="border-sky-"], [class*="border-blue-"], [class*="border-cyan-"], [class*="border-indigo-"], [class*="border-violet-"], [class*="border-purple-"], [class*="border-fuchsia-"], [class*="border-rose-"], [class*="border-pink-"], [class*="border-orange-"]):not([class*=":border-"]) {
   border-color: var(--line) !important;
 }
 
 
 /* Links com aparência de botão (telas de entrada) e links simples */
 
-html a:is([class*="from-sky-"], [class*="from-blue-"])[class*="bg-gradient-to-"] {
+html:not(.dark) a:is([class*="from-sky-"], [class*="from-blue-"])[class*="bg-gradient-to-"] {
   background-image: none !important; background-color: var(--primary) !important; color: #fff !important; border-radius: 4px;
 }
 
-html a:is([class*="from-sky-"], [class*="from-blue-"])[class*="bg-gradient-to-"]:hover {
+html:not(.dark) a:is([class*="from-sky-"], [class*="from-blue-"])[class*="bg-gradient-to-"]:hover {
   background-color: var(--primary-dark) !important;
 }
 
-html a:not([class]) {
+html:not(.dark) a:not([class]) {
   color: var(--primary);
 }
 
@@ -561,3 +561,18 @@ html [class*="max-h-[50vh]"] { max-height: 50dvh !important; }
 html img, html video { max-width: 100%; height: auto; }
 html input, html select, html textarea { max-width: 100%; min-width: 0; }
 html pre { overflow-x: auto; max-width: 100%; }
+
+html.dark { color-scheme: dark; }
+html.dark body { background: #09090b; color: #e4e4e7; font-family: var(--font-poppins), Poppins, Arial, sans-serif; }
+html.dark [class~="bg-white"] { background-color: #18181b !important; }
+html.dark [class*="border-[#ebebf0]"] { border-color: #27272a !important; }
+html.dark [class*="text-[#333333]"],
+html.dark [class*="text-[#454343]"] { color: #d4d4d8 !important; }
+html.dark [class*="text-[#00518C]"] { color: #60a5fa !important; }
+html.dark [class*="hover:text-[#00518C]"]:hover { color: #93c5fd !important; }
+html.dark [class*="text-[#121214]"] { color: #fafafa !important; }
+html.dark header { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6); }
+html.dark ::-webkit-scrollbar-thumb { background: #3f3f46; }
+html.dark ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+html.dark * { scrollbar-color: #3f3f46 transparent; }
+html.dark input, html.dark select, html.dark textarea { color-scheme: dark; }

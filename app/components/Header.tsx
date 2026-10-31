@@ -6,6 +6,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../AuthContext';
 import { fotoDoGit } from './fotoGit';
+import ThemeToggle from './ThemeToggle';
 
 interface PerfilHeader {
   avatar?: string;
@@ -64,6 +65,7 @@ export default function Header() {
         <img src="/logo.png" alt="Núcleo PTU" className="h-9 w-auto" />
       </Link>
       <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+        <ThemeToggle />
         {nome && <span className="hidden max-w-[220px] truncate text-sm text-[#333333] sm:inline">{nome}</span>}
         <Link href="/profile" title="Meu perfil" className="relative inline-flex shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}

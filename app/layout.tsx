@@ -23,6 +23,9 @@
  }>) {
    return (
      <html lang="pt-BR" suppressHydrationWarning>
+       <head>
+         <script dangerouslySetInnerHTML={{ __html: "try{if(localStorage.getItem(\"nucleoptu.tema\")===\"dark\")document.documentElement.classList.add(\"dark\")}catch(e){}" }} />
+       </head>
        <body
          className={`${poppins.variable} antialiased`}
        >
