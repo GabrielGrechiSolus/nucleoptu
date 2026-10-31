@@ -26,8 +26,8 @@ describe('registro do BM gravado no banco', () => {
   });
 
   it('seleciona os chamados da pessoa pelo usuário Git (sem diferenciar maiúsculas)', () => {
-    const itens = [{ id: 'a', autores: ['GabrielGrechiSolus'] }, { id: 'b', autores: ['outro'] }, { id: 'c' }] as unknown as Chamado[];
-    expect(chamadosDaPessoa(itens, 'gabrielgrechisolus').map((c) => c.id)).toEqual(['a']);
+    const itens = [{ id: 'a', autores: ['Gabriel Grechi'], autoresLogin: ['GabrielGrechiSolus'] }, { id: 'b', autores: ['outro'], autoresLogin: ['outro'] }, { id: 'c' }, { id: 'd', autores: ['GabrielGrechiSolus'] }] as unknown as Chamado[];
+    expect(chamadosDaPessoa(itens, 'gabrielgrechisolus').map((c) => c.id)).toEqual(['a', 'd']);
     expect(chamadosDaPessoa(itens, '')).toEqual([]);
   });
 

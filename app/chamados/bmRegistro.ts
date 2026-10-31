@@ -31,7 +31,7 @@ export function precisaAtualizar(reg: RegistroBm | undefined, resumo: BmResumoLi
 export function chamadosDaPessoa(itens: Chamado[], gitUser: string): Chamado[] {
   const u = gitUser.trim().toLowerCase();
   if (!u) return [];
-  return itens.filter((c) => (c.autores ?? []).some((a) => a.toLowerCase() === u));
+  return itens.filter((c) => [...(c.autoresLogin ?? []), ...(c.autores ?? [])].some((a) => a.toLowerCase() === u));
 }
 
 // O Firestore não aceita undefined: descarta propriedades indefinidas.

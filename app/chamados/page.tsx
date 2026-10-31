@@ -102,7 +102,7 @@ function ChamadosPage() {
   // Dados do BM gravados no banco (coleção chamados_bm): todos leem; só quem tem a chave do BM sincroniza.
   const [registros, setRegistros] = useState<Record<string, RegistroBm>>({});
   const [temChave, setTemChave] = useState(false);
-  const [escopoBm, setEscopoBm] = useState<'meus' | 'todos'>('meus');
+  const [escopoBm, setEscopoBm] = useState<'filtrados' | 'meus' | 'todos'>('filtrados');
   const [progressoBm, setProgressoBm] = useState<{ feito: number; total: number } | null>(null);
   const [msgBm, setMsgBm] = useState('');
   const [atualizandoUm, setAtualizandoUm] = useState(false);
@@ -127,7 +127,7 @@ function ChamadosPage() {
 
   const sincronizarBm = async (lista: Chamado[], forcar: boolean) => {
     if (!lista.length) {
-      setMsgBm(escopoBm === 'meus' ? 'Nenhum chamado seu na lista (confira o usuário Git no perfil) ou escolha “Todos”.' : 'Nenhum chamado para sincronizar.');
+      setMsgBm(escopoBm === 'meus' ? 'Nenhum chamado seu na lista (confira o usuário Git no perfil) ou escolha outra opção.' : 'Nenhum chamado para sincronizar.');
       return;
     }
     pararBm.current = false;
@@ -490,7 +490,8 @@ function ChamadosPage() {
           </label>
           {temChave && !semGit && (
             <span className="flex flex-wrap items-center gap-2">
-              <select value={escopoBm} onChange={(e) => setEscopoBm(e.target.value as 'meus' | 'todos')} className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-100" disabled={!!progressoBm}>
+              <select value={escopoBm} onChange={(e) => setEscopoBm(e.target.value as 'filtrados' | 'meus' | 'todos')} className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-100" disabled={!!progressoBm}>
+                <option value="filtrados">Filtrados na tela ({filtrados.length})</option>
                 <option value="meus">Meus chamados</option>
                 <option value="todos">Todos os chamados</option>
               </select>
@@ -500,7 +501,7 @@ function ChamadosPage() {
                   <button onClick={() => { pararBm.current = true; }} className="rounded border border-zinc-700 px-2 py-1 text-xs hover:bg-zinc-800">Parar</button>
                 </>
               ) : (
-                <button onClick={() => sincronizarBm(escopoBm === 'meus' ? chamadosDaPessoa(itens, pessoa.gitUser) : itens, false)} className="inline-flex items-center gap-1 rounded border border-zinc-700 px-2 py-1 text-xs hover:bg-zinc-800">
+                <button onClick={() => sincronizarBm(escopoBm === 'filtrados' ? filtrados : escopoBm === 'meus' ? chamadosDaPessoa(itens, pessoa.gitUser) : itens, false)} className="inline-flex items-center gap-1 rounded border border-zinc-700 px-2 py-1 text-xs hover:bg-zinc-800">
                   <RefreshCcw className="h-3.5 w-3.5" /> Atualizar do BM
                 </button>
               )}
