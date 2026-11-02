@@ -32,14 +32,14 @@ const dataParaNumero = (d: string) => {
 const formataIso = (iso: string) => (iso ? iso.split('-').reverse().join('/') : '');
 
 const estiloSituacao: Record<string, string> = {
-  'em-correcao': 'bg-amber-500/15 text-amber-600',
-  corrigido: 'bg-emerald-500/15 text-emerald-600',
-  encerrado: 'bg-zinc-800 text-zinc-400',
+  'em-correcao': 'rel-tag-alert',
+  corrigido: 'rel-tag-ok',
+  encerrado: '',
 };
 
 function Selo({ ok }: { ok: boolean }) {
   return (
-    <span className={`rounded px-1.5 py-0.5 text-xs ${ok ? 'bg-emerald-500/15 text-emerald-600' : 'bg-zinc-800 text-zinc-500'}`}>
+    <span className={`rel-tag ${ok ? 'rel-tag-ok' : ''}`}>
       {ok ? 'Sim' : 'Não'}
     </span>
   );
@@ -47,9 +47,9 @@ function Selo({ ok }: { ok: boolean }) {
 
 function FiltroTri({ rotulo, valor, onChange }: { rotulo: string; valor: Tri; onChange: (v: Tri) => void }) {
   return (
-    <label className="flex flex-col gap-1 text-xs text-zinc-400">
+    <label className="rel-field rel-label">
       {rotulo}
-      <select value={valor} onChange={(e) => onChange(e.target.value as Tri)} className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100">
+      <select value={valor} onChange={(e) => onChange(e.target.value as Tri)} className="rel-input">
         <option value="todos">Todos</option>
         <option value="sim">Sim</option>
         <option value="nao">Não</option>
@@ -356,29 +356,26 @@ function ChamadosPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl">
-      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <FolderSearch className="h-7 w-7 text-sky-400" />
-          <div>
-            <h1 className="text-2xl font-bold">Contexto de chamados</h1>
-            <p className="text-sm text-zinc-400">O que está em correção, o que já foi corrigido (e em qual revision saiu) e as regras que estavam escondidas.</p>
-          </div>
+    <div className="rel-page mx-auto max-w-7xl">
+      <header className="rel-box flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="rel-title"><FolderSearch className="h-5 w-5" /> Contexto de chamados</h1>
+          <p className="rel-desc">O que está em correção, o que já foi corrigido (e em qual revision saiu) e as regras que estavam escondidas.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => setMostraModelo(true)} className="flex items-center gap-2 rounded-md border border-zinc-700 px-3 py-2 text-sm hover:bg-zinc-900">
+          <button onClick={() => setMostraModelo(true)} className="rel-btn rel-btn-outline">
             <FileText className="h-4 w-4" /> Modelo de contexto
           </button>
-          <button onClick={carregar} className="flex items-center gap-2 rounded-md border border-zinc-700 px-3 py-2 text-sm hover:bg-zinc-900">
+          <button onClick={carregar} className="rel-btn rel-btn-outline">
             <RefreshCcw className="h-4 w-4" /> Atualizar
           </button>
           {importPermitido ? (
-            <button onClick={() => setMostraImportar((v) => !v)} className="flex items-center gap-2 rounded-md bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500">
+            <button onClick={() => setMostraImportar((v) => !v)} className="rel-btn rel-btn-primary">
               <Upload className="h-4 w-4" /> Importar contextos
             </button>
           ) : (
             importPermitido === false && (
-              <span title={importMotivo} className="flex items-center gap-2 rounded-md border border-zinc-700 px-3 py-2 text-xs text-zinc-400">
+              <span title={importMotivo} className="rel-tag">
                 <Upload className="h-4 w-4" /> Importação disponível só na rede interna (172.16.81.235)
               </span>
             )
@@ -386,14 +383,14 @@ function ChamadosPage() {
         </div>
       </header>
 
-      {msg && <div className="mb-4 rounded-md border border-sky-700/50 bg-sky-900/20 px-3 py-2 text-sm text-sky-200">{msg}</div>}
-      {erro && <div className="mb-4 rounded-md border border-rose-700/50 bg-rose-900/20 px-3 py-2 text-sm text-rose-200">{erro}</div>}
+      {msg && <div className="rel-notice">{msg}</div>}
+      {erro && <div className="rel-notice rel-notice-error">{erro}</div>}
 
       {mostraImportar && importPermitido && (
-        <section className="mb-4 space-y-3 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+        <section className="rel-box space-y-3">
           <div>
-            <div className="mb-1 text-xs text-zinc-400">Escolher a pasta no computador (a que contém as pastas dos chamados)</div>
-            <button onClick={() => pastaRef.current?.click()} className="rounded-md border border-zinc-700 px-3 py-2 text-sm hover:bg-zinc-900">
+            <div className="rel-label mb-1">Escolher a pasta no computador (a que contém as pastas dos chamados)</div>
+            <button onClick={() => pastaRef.current?.click()} className="rel-btn rel-btn-outline">
               Escolher pasta...
             </button>
             <input
@@ -406,7 +403,7 @@ function ChamadosPage() {
               multiple
             />
           </div>
-          <label className="flex flex-col gap-1 text-xs text-zinc-400">
+          <label className="rel-field rel-label">
             Ou ler a pasta de contextos do servidor (somente dentro da pasta configurada no servidor)
             <div className="flex flex-wrap gap-2">
               <input
@@ -414,9 +411,9 @@ function ChamadosPage() {
                 onChange={(e) => setCaminho(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !lendo && lerDoCaminho()}
                 placeholder="C:/RepositorioGit/claude/contextos_prs"
-                className="min-w-[240px] flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 font-mono text-sm text-zinc-100"
+                className="rel-input min-w-[240px] flex-1 font-mono"
               />
-              <button onClick={lerDoCaminho} disabled={lendo || !caminho.trim()} className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-60">
+              <button onClick={lerDoCaminho} disabled={lendo || !caminho.trim()} className="rel-btn rel-btn-primary">
                 {lendo ? 'Lendo...' : 'Ler pasta'}
               </button>
             </div>
@@ -424,21 +421,21 @@ function ChamadosPage() {
         </section>
       )}
 
-      <div className="mb-3 flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2">
         {abas.map((a) => (
           <button
             key={a.id}
             onClick={() => setAba(a.id)}
-            className={`rounded-full border px-3 py-1.5 text-sm ${aba === a.id ? 'border-[#00518C] bg-[#00518C] text-white' : 'border-zinc-700 text-zinc-300 hover:bg-zinc-900'}`}
+            className={`rel-btn rel-btn-sm ${aba === a.id ? 'rel-btn-primary' : 'rel-btn-ghost'}`}
           >
             {a.rotulo} <span className="opacity-75">({contagem[a.id]})</span>
           </button>
         ))}
       </div>
 
-      <section className="mb-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+      <section className="rel-box">
         <div className="flex flex-wrap items-end gap-3">
-          <label className="flex min-w-[220px] flex-1 flex-col gap-1 text-xs text-zinc-400">
+          <label className="rel-field rel-label min-w-[220px] flex-1">
             Pesquisar
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-500" />
@@ -446,34 +443,34 @@ function ChamadosPage() {
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
                 placeholder="Chamado, cliente, assunto, módulo, revision, PR..."
-                className="w-full rounded-md border border-zinc-700 bg-zinc-900 py-2 pl-8 pr-3 text-sm text-zinc-100"
+                className="rel-input pl-8"
               />
             </div>
           </label>
-          <label className="flex flex-col gap-1 text-xs text-zinc-400">
+          <label className="rel-field rel-label">
             Módulo
-            <select value={fModulo} onChange={(e) => setFModulo(e.target.value)} className="max-w-[180px] rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100">
+            <select value={fModulo} onChange={(e) => setFModulo(e.target.value)} className="rel-input max-w-[200px]">
               <option value="">Todos</option>
               {modulos.map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-xs text-zinc-400">
+          <label className="rel-field rel-label">
             Autor do PR
-            <select value={fAutor} onChange={(e) => setFAutor(e.target.value)} className="max-w-[180px] rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100">
+            <select value={fAutor} onChange={(e) => setFAutor(e.target.value)} className="rel-input max-w-[200px]">
               <option value="">Todos</option>
               {autoresLista.map((a) => <option key={a} value={a}>{a}</option>)}
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-xs text-zinc-400">
+          <label className="rel-field rel-label">
             Cliente
-            <select value={fCliente} onChange={(e) => setFCliente(e.target.value)} className="max-w-[180px] rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100">
+            <select value={fCliente} onChange={(e) => setFCliente(e.target.value)} className="rel-input max-w-[200px]">
               <option value="">Todos</option>
               {clientes.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-xs text-zinc-400">
+          <label className="rel-field rel-label">
             Revision
-            <select value={fRevision} onChange={(e) => setFRevision(e.target.value)} className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100">
+            <select value={fRevision} onChange={(e) => setFRevision(e.target.value)} className="rel-input">
               <option value="">Todas</option>
               {revisions.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
@@ -483,14 +480,14 @@ function ChamadosPage() {
           <FiltroTri rotulo="Plano de testes" valor={fPlano} onChange={setFPlano} />
           <FiltroTri rotulo="Tem REGRA.md" valor={fRegra} onChange={setFRegra} />
         </div>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-400">
+        <div className="rel-desc mt-3 flex flex-wrap items-center justify-between gap-3">
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={noConteudo} onChange={(e) => setNoConteudo(e.target.checked)} />
             Pesquisar também dentro dos documentos (mais lento)
           </label>
           {temChave && !semGit && (
             <span className="flex flex-wrap items-center gap-2">
-              <select value={escopoBm} onChange={(e) => setEscopoBm(e.target.value as 'filtrados' | 'meus' | 'todos')} className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-100" disabled={!!progressoBm}>
+              <select value={escopoBm} onChange={(e) => setEscopoBm(e.target.value as 'filtrados' | 'meus' | 'todos')} className="rel-input max-w-[220px]" disabled={!!progressoBm}>
                 <option value="filtrados">Filtrados na tela ({filtrados.length})</option>
                 <option value="meus">Meus chamados</option>
                 <option value="todos">Todos os chamados</option>
@@ -498,10 +495,10 @@ function ChamadosPage() {
               {progressoBm ? (
                 <>
                   <span>BM: {progressoBm.feito}/{progressoBm.total}</span>
-                  <button onClick={() => { pararBm.current = true; }} className="rounded border border-zinc-700 px-2 py-1 text-xs hover:bg-zinc-800">Parar</button>
+                  <button onClick={() => { pararBm.current = true; }} className="rel-btn rel-btn-ghost rel-btn-sm">Parar</button>
                 </>
               ) : (
-                <button onClick={() => sincronizarBm(escopoBm === 'filtrados' ? filtrados : escopoBm === 'meus' ? chamadosDaPessoa(itens, pessoa.gitUser) : itens, false)} className="inline-flex items-center gap-1 rounded border border-zinc-700 px-2 py-1 text-xs hover:bg-zinc-800">
+                <button onClick={() => sincronizarBm(escopoBm === 'filtrados' ? filtrados : escopoBm === 'meus' ? chamadosDaPessoa(itens, pessoa.gitUser) : itens, false)} className="rel-btn rel-btn-outline rel-btn-sm">
                   <RefreshCcw className="h-3.5 w-3.5" /> Atualizar do BM
                 </button>
               )}
@@ -515,9 +512,9 @@ function ChamadosPage() {
       </section>
 
       {msgBm && <p className="mb-2 text-xs text-amber-300">Businessmap: {msgBm}</p>}
-      <section className="overflow-x-auto rounded-lg border border-zinc-800">
+      <section className="rel-table-wrap">
         <table className="w-full text-left text-sm">
-          <thead className="text-xs text-zinc-400">
+          <thead className="text-xs">
             <tr>
               <SortTh label="Chamado" k="numero" sort={sort} onSort={toggleSort} />
               <SortTh label="Assunto" k="assunto" sort={sort} onSort={toggleSort} />
@@ -534,24 +531,24 @@ function ChamadosPage() {
             </tr>
           </thead>
           <tbody>
-            {carregando && <tr><td colSpan={semGit ? 11 : 12} className="px-3 py-8 text-center text-zinc-500">Carregando...</td></tr>}
+            {carregando && <tr><td colSpan={semGit ? 11 : 12} className="rel-empty">Carregando...</td></tr>}
             {!carregando && !filtrados.length && (
               <tr>
-                <td colSpan={semGit ? 11 : 12} className="px-3 py-8 text-center text-zinc-500">
+                <td colSpan={semGit ? 11 : 12} className="rel-empty">
                   {itens.length ? 'Nenhum chamado com esses filtros.' : 'Nenhum contexto importado ainda. Use “Importar contextos”.'}
                 </td>
               </tr>
             )}
             {filtrados.map((c) => (
-              <tr key={c.id} onClick={() => abrir(c)} className="cursor-pointer border-t border-zinc-800 hover:bg-zinc-900/60">
-                <td className="whitespace-nowrap px-3 py-2 font-mono text-sky-300">{c.numero}</td>
+              <tr key={c.id} onClick={() => abrir(c)} className="rel-row">
+                <td className="rel-mono whitespace-nowrap px-3 py-2">{c.numero}</td>
                 <td className="max-w-[360px] px-3 py-2">
-                  <div className="font-medium">{c.assunto}</div>
-                  <div className="text-xs text-zinc-400">{c.cliente || '—'}</div>
+                  <div className="rel-strong">{c.assunto}</div>
+                  <div className="rel-desc">{c.cliente || '—'}</div>
                 </td>
                 <td className="hidden px-3 py-2 text-zinc-300 md:table-cell">{ROTULO_TIPO[c.tipo ?? '']}</td>
                 <td className="px-3 py-2">
-                  {c.situacao ? <span className={`rounded px-1.5 py-0.5 text-xs ${estiloSituacao[c.situacao]}`}>{ROTULO_SITUACAO[c.situacao]}</span> : <span className="text-zinc-600">—</span>}
+                  {c.situacao ? <span className={`rel-tag ${estiloSituacao[c.situacao]}`}>{ROTULO_SITUACAO[c.situacao]}</span> : <span className="text-zinc-600">—</span>}
                 </td>
                 <td className="hidden px-3 py-2 md:table-cell"><BmColuna r={registros[soDigitos(c.numero)]?.resumo} /></td>
                 <td className="hidden px-3 py-2 text-zinc-300 sm:table-cell">{(c.autores ?? []).join(', ') || '—'}</td>
@@ -561,7 +558,7 @@ function ChamadosPage() {
                 <td className={semGit ? 'hidden' : 'hidden px-3 py-2 lg:table-cell'}>
                   <div className="flex flex-wrap gap-1">
                     {c.prs.length ? c.prs.slice(0, 3).map((p) => (
-                      <span key={p.numero} className="rounded bg-violet-500/15 px-1.5 py-0.5 text-xs text-violet-300">#{p.numero}</span>
+                      <span key={p.numero} className="rel-tag rel-tag-info">#{p.numero}</span>
                     )) : <span className="text-xs text-zinc-600">—</span>}
                     {c.prs.length > 3 && <span className="text-xs text-zinc-500">+{c.prs.length - 3}</span>}
                   </div>
@@ -575,8 +572,8 @@ function ChamadosPage() {
       </section>
 
       {previa && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-950 p-5">
+        <div className="rel-backdrop rel-backdrop-top">
+          <div className="rel-box max-h-[85vh] w-full max-w-2xl overflow-y-auto">
             <h2 className="mb-1 text-lg font-semibold">Importar {previa.length} chamado(s)</h2>
             <p className="mb-3 text-sm text-zinc-400">Chamados que já existem serão atualizados com o conteúdo atual das pastas.</p>
             <label className="mb-3 flex items-start gap-2 rounded border border-zinc-700 p-3 text-sm">
@@ -601,16 +598,16 @@ function ChamadosPage() {
               ))}
             </ul>
             <div className="flex justify-end gap-2">
-              <button onClick={() => { setPrevia(null); setSubstituir(false); }} disabled={gravando} className="rounded-md border border-zinc-700 px-3 py-2 text-sm">Cancelar</button>
-              <button onClick={gravar} disabled={gravando} className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium disabled:opacity-60">{gravando ? 'Gravando...' : 'Gravar'}</button>
+              <button onClick={() => { setPrevia(null); setSubstituir(false); }} disabled={gravando} className="rel-btn rel-btn-ghost">Cancelar</button>
+              <button onClick={gravar} disabled={gravando} className="rel-btn rel-btn-primary">{gravando ? 'Gravando...' : 'Gravar'}</button>
             </div>
           </div>
         </div>
       )}
 
       {mostraModelo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setMostraModelo(false)}>
-          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-950 p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="rel-backdrop rel-backdrop-top" onClick={() => setMostraModelo(false)}>
+          <div className="rel-box max-h-[90vh] w-full max-w-3xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="mb-2 flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold">Modelo de contexto (REGRA.md)</h2>
@@ -619,12 +616,12 @@ function ChamadosPage() {
                   Depois, use “Importar contextos”.
                 </p>
               </div>
-              <button onClick={() => setMostraModelo(false)} className="rounded p-1 hover:bg-zinc-800"><X className="h-5 w-5" /></button>
+              <button onClick={() => setMostraModelo(false)} className="rel-btn rel-btn-icon"><X className="h-5 w-5" /></button>
             </div>
             <div className="mb-3 flex gap-2">
-              <button onClick={copiarModelo} className="flex items-center gap-2 rounded-md bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500"><Copy className="h-4 w-4" /> Copiar modelo</button>
+              <button onClick={copiarModelo} className="rel-btn rel-btn-primary"><Copy className="h-4 w-4" /> Copiar modelo</button>
             </div>
-            <pre className="mb-4 whitespace-pre-wrap break-words rounded bg-zinc-900 p-3 text-xs leading-relaxed text-zinc-200">{MODELO_REGRA}</pre>
+            <pre className="rel-pre rel-pre-lg mb-4">{MODELO_REGRA}</pre>
             <h3 className="mb-2 text-sm font-semibold">Campos do cabeçalho</h3>
             <div className="overflow-x-auto rounded border border-zinc-800">
               <table className="w-full text-left text-xs">

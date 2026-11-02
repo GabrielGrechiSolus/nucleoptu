@@ -56,14 +56,14 @@ export default function BmTab() {
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-lg font-semibold">Businessmap</h3>
-        <p className="text-sm text-zinc-400">
+        <h3 className="rel-title">Businessmap</h3>
+        <p className="rel-desc">
           Informe a sua chave de API do Businessmap (no BM: seu perfil → Chave de API). Ela mostra os cartões dos chamados conforme a sua permissão. A chave fica somente neste navegador: o sistema não a grava no servidor nem no banco. Em outro navegador ou computador, informe de novo.
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className={`rounded px-2 py-0.5 text-xs ${salva ? 'bg-emerald-500/15 text-emerald-300' : 'bg-zinc-700/40 text-zinc-300'}`}>{salva ? 'Chave guardada neste navegador' : 'Sem chave neste navegador'}</span>
-        {quem && <span className="text-zinc-400">{quem}</span>}
+        <span className={`rel-tag ${salva ? 'rel-tag-ok' : ''}`}>{salva ? 'Chave guardada neste navegador' : 'Sem chave neste navegador'}</span>
+        {quem && <span className="rel-desc">{quem}</span>}
       </div>
       <div className="flex flex-col gap-2 sm:flex-row">
         <input
@@ -72,15 +72,15 @@ export default function BmTab() {
           value={nova}
           onChange={(e) => setNova(e.target.value)}
           placeholder={salva ? 'Nova chave (substitui a atual)' : 'Cole a sua chave de API'}
-          className="flex-1 rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
+          className="rel-input flex-1"
         />
-        <button onClick={salvar} disabled={!nova.trim() || validando} className="rounded bg-sky-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+        <button onClick={salvar} disabled={!nova.trim() || validando} className="rel-btn rel-btn-primary">
           {validando ? 'Validando...' : 'Validar e guardar'}
         </button>
-        {salva && <button onClick={remover} className="rounded border border-zinc-700 px-4 py-2 text-sm hover:bg-zinc-800">Remover</button>}
+        {salva && <button onClick={remover} className="rel-btn rel-btn-ghost">Remover</button>}
       </div>
-      {msg && <p className="text-sm text-emerald-300">{msg}</p>}
-      {erro && <p className="text-sm text-red-300">{erro}</p>}
+      {msg && <p className="rel-notice rel-notice-ok">{msg}</p>}
+      {erro && <p className="rel-notice rel-notice-error">{erro}</p>}
     </div>
   );
 }

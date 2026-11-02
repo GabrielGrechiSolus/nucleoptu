@@ -11,6 +11,7 @@ import { chamadosDaPessoa, soDigitos, type RegistroBm } from '../chamados/bmRegi
 import { lerRegistrosBm, sincronizaBm } from '../chamados/bmSync';
 import type { Chamado } from '../chamados/parse';
 import { ROTULO_SITUACAO } from '../chamados/parse';
+import { ListChecks, RefreshCcw } from 'lucide-react';
 import ProcessoModal from './ProcessoModal';
 import { permissaoProcessos } from './clienteProcesso';
 
@@ -67,34 +68,36 @@ function ProcessosPage() {
 
   if (permissao && !permissao.permitido) {
     return (
-      <div className="mx-auto max-w-xl rounded-lg border border-zinc-800 p-6 text-sm">
-        <h1 className="mb-2 text-lg font-semibold">Processos do BM</h1>
-        <p className="text-zinc-400">{permissao.motivo || 'Recurso experimental liberado apenas para usuários Git autorizados.'}</p>
-        <p className="mt-2 text-xs text-zinc-500">Para usar, informe a sua chave do Businessmap em Perfil → Businessmap.</p>
+      <div className="rel-page mx-auto max-w-xl">
+        <section className="rel-box">
+          <h1 className="rel-title rel-title-line"><ListChecks size={20} /> Processos do BM</h1>
+          <p className="rel-notice rel-notice-alert">{permissao.motivo || 'Recurso experimental liberado apenas para usuários Git autorizados.'}</p>
+          <p className="rel-desc mt-3">Para usar, informe a sua chave do Businessmap em Perfil → Businessmap.</p>
+        </section>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">Processos do BM</h1>
-        <p className="text-sm text-zinc-400">
-          Experimento: preenche os campos do cartão a partir do Git, marca os critérios de saída que o Git comprova e move o cartão. Cada gravação pede a sua confirmação.
-        </p>
-      </div>
+    <div className="rel-page">
+      <section className="rel-box">
+        <h1 className="rel-title rel-title-line"><ListChecks size={20} /> Processos do BM</h1>
+        <p className="rel-desc mb-4">Experimento: preenche os campos do cartão a partir do Git, marca os critérios de saída que o Git comprova e move o cartão. Cada gravação pede a sua confirmação.</p>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="rel-field w-full max-w-sm">
+            <label className="rel-label" htmlFor="busca-processos">Pesquisar</label>
+            <input id="busca-processos" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Chamado, assunto ou cliente" className="rel-input" />
+          </div>
+          <button onClick={carregar} disabled={carregando} className="rel-btn rel-btn-outline"><RefreshCcw size={14} /> Recarregar</button>
+          <span className="rel-desc pb-2">{linhas.length} chamado(s) seus com cartão no BM sincronizado</span>
+        </div>
+      </section>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Chamado, assunto ou cliente" className="w-full max-w-sm rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm" />
-        <button onClick={carregar} disabled={carregando} className="rounded border border-zinc-700 px-3 py-2 text-sm hover:bg-zinc-800 disabled:opacity-50">Recarregar</button>
-        <span className="text-xs text-zinc-500">{linhas.length} chamado(s) seus com cartão no BM sincronizado</span>
-      </div>
+      {erro && <p className="rel-notice rel-notice-error">{erro}</p>}
 
-      {erro && <p className="text-sm text-red-300">{erro}</p>}
-
-      <section className="overflow-x-auto rounded-lg border border-zinc-800">
+      <section className="rel-table-wrap">
         <table className="w-full text-left text-sm">
-          <thead className="text-xs text-zinc-400">
+          <thead className="text-xs">
             <tr>
               <SortTh label="Chamado" k="numero" sort={sort} onSort={toggleSort} />
               <SortTh label="Assunto" k="assunto" sort={sort} onSort={toggleSort} />
@@ -104,17 +107,17 @@ function ProcessosPage() {
             </tr>
           </thead>
           <tbody>
-            {carregando && <tr><td colSpan={5} className="px-3 py-8 text-center text-zinc-500">Carregando...</td></tr>}
+            {carregando && <tr><td colSpan={5} className="rel-empty">Carregando...</td></tr>}
             {!carregando && !linhas.length && (
-              <tr><td colSpan={5} className="px-3 py-8 text-center text-zinc-500">Nenhum chamado seu com cartão do BM sincronizado. Use “Atualizar do BM” em Contexto de chamados e confira o usuário Git do perfil.</td></tr>
+              <tr><td colSpan={5} className="rel-empty">Nenhum chamado seu com cartão do BM sincronizado. Use “Atualizar do BM” em Contexto de chamados e confira o usuário Git do perfil.</td></tr>
             )}
             {linhas.map((c) => (
-              <tr key={c.id} onClick={() => setAberto(c)} className="cursor-pointer border-t border-zinc-800 hover:bg-zinc-900/60">
-                <td className="whitespace-nowrap px-3 py-2 font-mono text-sky-300">{c.numero}</td>
-                <td className="max-w-[420px] px-3 py-2"><div className="font-medium">{c.assunto}</div><div className="text-xs text-zinc-400">{c.cliente || '—'}</div></td>
+              <tr key={c.id} onClick={() => setAberto(c)} className="rel-row">
+                <td className="rel-mono whitespace-nowrap px-3 py-2">{c.numero}</td>
+                <td className="max-w-[420px] px-3 py-2"><div className="rel-strong">{c.assunto}</div><div className="rel-desc">{c.cliente || '—'}</div></td>
                 <td className="hidden px-3 py-2 md:table-cell">{c.situacao ? ROTULO_SITUACAO[c.situacao] : '—'}</td>
                 <td className="px-3 py-2"><BmColuna r={registros[soDigitos(c.numero)]?.resumo} /></td>
-                <td className="px-3 py-2 text-right"><span className="rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white">Processo</span></td>
+                <td className="px-3 py-2 text-right"><span className="rel-btn rel-btn-primary rel-btn-sm">Processo</span></td>
               </tr>
             ))}
           </tbody>

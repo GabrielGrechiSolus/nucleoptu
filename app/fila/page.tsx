@@ -80,46 +80,46 @@ function FilaPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl">
-      <header className="mb-4 flex flex-wrap items-center gap-3">
-        <ListChecks className="h-7 w-7 text-sky-400" />
+    <div className="rel-page mx-auto max-w-7xl">
+      <header className="rel-box flex flex-wrap items-center justify-between gap-3">
+        <ListChecks className="h-6 w-6" style={{ color: "var(--rel-primary)" }} />
         <div>
-          <h1 className="text-2xl font-bold">Fila de aplicação</h1>
-          <p className="text-sm text-zinc-400">Correções que precisam ser aplicadas no cliente antes da atualização da revision.</p>
+          <h1 className="rel-title" style={{ marginBottom: 0 }}>Fila de aplicação</h1>
+          <p className="rel-desc">Correções que precisam ser aplicadas no cliente antes da atualização da revision.</p>
         </div>
       </header>
 
       {pessoa.carregado && !pessoa.gitUser && (
-        <div className="mb-4 rounded-md border border-amber-600/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-700">
+        <div className="rel-notice rel-notice-alert">
           Você ainda não informou seu usuário no Git. Sem ele, a fila não sabe quais PRs são seus. Informe no <a className="underline" href="/profile">Perfil</a>.
         </div>
       )}
-      {erro && <div className="mb-4 rounded-md border border-rose-700/50 bg-rose-900/20 px-3 py-2 text-sm text-rose-200">{erro}</div>}
+      {erro && <div className="rel-notice rel-notice-error">{erro}</div>}
 
-      <div className="mb-3 flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2">
         {abas.map((a) => (
           <button
             key={a.id}
             title={a.dica}
             onClick={() => setAba(a.id)}
-            className={`rounded-full border px-3 py-1.5 text-sm ${aba === a.id ? 'border-[#00518C] bg-[#00518C] text-white' : 'border-zinc-700 text-zinc-300 hover:bg-zinc-900'}`}
+            className={`rel-btn rel-btn-sm ${aba === a.id ? 'rel-btn-primary' : 'rel-btn-ghost'}`}
           >
             {a.rotulo} <span className={contagem[a.id] && (a.id === 'aplicar' || a.id === 'continuar') ? 'font-semibold' : 'opacity-75'}>({contagem[a.id]})</span>
           </button>
         ))}
       </div>
 
-      <section className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
-        <label className="flex min-w-[220px] flex-1 flex-col gap-1 text-xs text-zinc-400">
+      <section className="rel-box flex flex-wrap items-end gap-3">
+        <label className="rel-field rel-label min-w-[220px] flex-1">
           Pesquisar
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-500" />
-            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Chamado, cliente, correção, PR, dono..." className="w-full rounded-md border border-zinc-700 bg-zinc-900 py-2 pl-8 pr-3 text-sm text-zinc-100" />
+            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Chamado, cliente, correção, PR, dono..." className="rel-input pl-8" />
           </div>
         </label>
-        <label className="flex flex-col gap-1 text-xs text-zinc-400">
+        <label className="rel-field rel-label">
           Status
-          <select value={fStatus} onChange={(e) => setFStatus(e.target.value as '' | StatusAplicacao)} className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100">
+          <select value={fStatus} onChange={(e) => setFStatus(e.target.value as '' | StatusAplicacao)} className="rel-input max-w-[220px]">
             <option value="">Todos</option>
             {STATUS_FILA.map((s) => <option key={s} value={s}>{ROTULO_STATUS_CURTO[s]}</option>)}
           </select>
@@ -131,9 +131,9 @@ function FilaPage() {
         <span className="ml-auto text-xs text-zinc-400">{filtrados.length} pedido(s)</span>
       </section>
 
-      <section className="overflow-x-auto rounded-lg border border-zinc-800">
+      <section className="rel-table-wrap">
         <table className="w-full text-left text-sm">
-          <thead className="text-xs text-zinc-400">
+          <thead className="text-xs">
             <tr>
               <SortTh label="Chamado" k="chamado" sort={sort} onSort={toggleSort} />
               <SortTh label="Cliente" k="cliente" sort={sort} onSort={toggleSort} />
@@ -146,13 +146,13 @@ function FilaPage() {
           </thead>
           <tbody>
             {!filtrados.length && (
-              <tr><td colSpan={7} className="px-3 py-8 text-center text-zinc-500">{aba === 'aplicar' ? 'Nada para você aplicar agora.' : aba === 'continuar' ? 'Nada aguardando a sua continuidade.' : 'Nenhum pedido.'}</td></tr>
+              <tr><td colSpan={7} className="rel-empty">{aba === 'aplicar' ? 'Nada para você aplicar agora.' : aba === 'continuar' ? 'Nada aguardando a sua continuidade.' : 'Nenhum pedido.'}</td></tr>
             )}
             {filtrados.map((v) => {
               const precisaDeMim = (ehDono(v, eu) && v.donoLogins.length > 0 && (v.aplicacao === 'aberto' || v.aplicacao === 'aplicando')) || (v.aplicacao === 'aplicado' && ehSolicitante(v, eu));
               return (
-                <tr key={v.id} onClick={() => setAberto(v.id)} className={`cursor-pointer border-t border-zinc-800 hover:bg-zinc-900/60 ${precisaDeMim ? 'bg-sky-500/5' : ''}`}>
-                  <td className="whitespace-nowrap px-3 py-2 font-mono text-sky-300">{v.chamadoNumero}</td>
+                <tr key={v.id} onClick={() => setAberto(v.id)} className={`rel-row ${precisaDeMim ? 'bg-sky-500/5' : ''}`}>
+                  <td className="rel-mono whitespace-nowrap px-3 py-2">{v.chamadoNumero}</td>
                   <td className="px-3 py-2"><div className="font-medium">{v.cliente}</div><div className="max-w-[320px] truncate text-xs text-zinc-400">{v.assunto}</div></td>
                   <td className="hidden px-3 py-2 md:table-cell"><span className="font-mono text-zinc-300">{v.contextoNumero}</span><div className="max-w-[260px] truncate text-xs text-zinc-400">{v.contextoAssunto}</div></td>
                   <td className="hidden px-3 py-2 text-zinc-300 lg:table-cell">{v.donoNomes.join(', ') || '—'}</td>
@@ -173,7 +173,7 @@ function FilaPage() {
               <div>
                 <div className="font-mono text-sky-300">{selecionado.chamadoNumero}</div>
                 <h2 className="text-lg font-semibold">{selecionado.cliente}</h2>
-                <p className="text-sm text-zinc-400">{selecionado.assunto}</p>
+                <p className="rel-desc">{selecionado.assunto}</p>
               </div>
               <button onClick={() => setAberto(null)} className="rounded p-1 hover:bg-zinc-800"><X className="h-5 w-5" /></button>
             </div>

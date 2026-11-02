@@ -132,7 +132,7 @@ function UsuariosAdminPage() {
     });
   }, [usuarios, busca, fSituacao, fPerfil, fAdmin, sort]);
 
-  if (!eu.carregado) return <p className="text-sm text-zinc-400">Carregando...</p>;
+  if (!eu.carregado) return <p className="rel-desc">Carregando...</p>;
   if (!eu.admin) {
     return (
       <div className="mx-auto max-w-xl rounded-lg border border-zinc-800 p-6 text-center">
@@ -144,60 +144,60 @@ function UsuariosAdminPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl">
-      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div className="rel-page mx-auto max-w-7xl">
+      <header className="rel-box flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <ShieldCheck className="h-7 w-7 text-sky-400" />
+          <ShieldCheck className="h-6 w-6" style={{ color: "var(--rel-primary)" }} />
           <div>
-            <h1 className="text-2xl font-bold">Administração de usuários</h1>
-            <p className="text-sm text-zinc-400">Cadastrar usuários, trocar senhas, inativar e definir administradores. Não há cadastro antes do login.</p>
+            <h1 className="rel-title" style={{ marginBottom: 0 }}>Administração de usuários</h1>
+            <p className="rel-desc">Cadastrar usuários, trocar senhas, inativar e definir administradores. Não há cadastro antes do login.</p>
           </div>
         </div>
-        <button onClick={abrirNovo} disabled={!eu.configurado} className="flex items-center gap-2 rounded-md bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-60">
+        <button onClick={abrirNovo} disabled={!eu.configurado} className="rel-btn rel-btn-primary">
           <UserPlus className="h-4 w-4" /> Novo usuário
         </button>
       </header>
 
       {!eu.configurado && (
-        <div className="mb-4 rounded-md border border-amber-600/40 bg-amber-500/10 px-3 py-3 text-sm text-amber-700">
+        <div className="rel-notice rel-notice-alert">
           <strong>Falta configurar a chave do Firebase Admin no servidor.</strong> No console do Firebase: Configurações do projeto &gt; Contas de serviço &gt; Gerar nova chave privada. Salve o arquivo fora do Git e informe o caminho em
           <code className="mx-1">FIREBASE_SERVICE_ACCOUNT_PATH</code> no <code>.env.local</code>; depois reinicie o servidor. Detalhes em <code>docs/ADMIN_USUARIOS.md</code>.
         </div>
       )}
-      {erro && <div className="mb-4 rounded-md border border-rose-700/50 bg-rose-900/20 px-3 py-2 text-sm text-rose-200">{erro}</div>}
+      {erro && <div className="rel-notice rel-notice-error">{erro}</div>}
 
-      <section className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
-        <label className="flex min-w-[220px] flex-1 flex-col gap-1 text-xs text-zinc-400">
+      <section className="rel-box flex flex-wrap items-end gap-3">
+        <label className="rel-field rel-label min-w-[220px] flex-1">
           Pesquisar
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-500" />
-            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome ou e-mail" className="w-full rounded-md border border-zinc-700 bg-zinc-900 py-2 pl-8 pr-3 text-sm text-zinc-100" />
+            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome ou e-mail" className="rel-input pl-8" />
           </div>
         </label>
-        <label className="flex flex-col gap-1 text-xs text-zinc-400">
+        <label className="rel-field rel-label">
           Situação
-          <select value={fSituacao} onChange={(e) => setFSituacao(e.target.value as '' | 'ativo' | 'inativo')} className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100">
+          <select value={fSituacao} onChange={(e) => setFSituacao(e.target.value as '' | 'ativo' | 'inativo')} className="rel-input max-w-[220px]">
             <option value="">Todas</option><option value="ativo">Ativos</option><option value="inativo">Inativos</option>
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-xs text-zinc-400">
+        <label className="rel-field rel-label">
           Perfil
-          <select value={fPerfil} onChange={(e) => setFPerfil(e.target.value)} className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100">
+          <select value={fPerfil} onChange={(e) => setFPerfil(e.target.value)} className="rel-input max-w-[220px]">
             <option value="">Todos</option>{TIPOS_PERFIL.map((t) => <option key={t} value={t}>{ROTULO_PERFIL[t]}</option>)}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-xs text-zinc-400">
+        <label className="rel-field rel-label">
           Administrador
-          <select value={fAdmin} onChange={(e) => setFAdmin(e.target.value as '' | 'sim' | 'nao')} className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100">
+          <select value={fAdmin} onChange={(e) => setFAdmin(e.target.value as '' | 'sim' | 'nao')} className="rel-input max-w-[220px]">
             <option value="">Todos</option><option value="sim">Sim</option><option value="nao">Não</option>
           </select>
         </label>
         <span className="ml-auto text-xs text-zinc-400">{filtrados.length} de {usuarios.length} usuário(s)</span>
       </section>
 
-      <section className="overflow-x-auto rounded-lg border border-zinc-800">
+      <section className="rel-table-wrap">
         <table className="w-full text-left text-sm">
-          <thead className="text-xs text-zinc-400">
+          <thead className="text-xs">
             <tr>
               <SortTh label="Nome" k="nome" sort={sort} onSort={toggleSort} />
               <SortTh label="E-mail" k="email" sort={sort} onSort={toggleSort} className="hidden sm:table-cell" />
@@ -209,8 +209,8 @@ function UsuariosAdminPage() {
             </tr>
           </thead>
           <tbody>
-            {carregando && <tr><td colSpan={7} className="px-3 py-8 text-center text-zinc-500">Carregando...</td></tr>}
-            {!carregando && !filtrados.length && <tr><td colSpan={7} className="px-3 py-8 text-center text-zinc-500">Nenhum usuário.</td></tr>}
+            {carregando && <tr><td colSpan={7} className="rel-empty">Carregando...</td></tr>}
+            {!carregando && !filtrados.length && <tr><td colSpan={7} className="rel-empty">Nenhum usuário.</td></tr>}
             {filtrados.map((u) => (
               <tr key={u.uid} className={`border-t border-zinc-800 ${u.inativo ? 'opacity-60' : ''}`}>
                 <td className="px-3 py-2 font-medium">{u.nome}<div className="text-xs text-zinc-500 sm:hidden">{u.email}</div></td>
@@ -239,8 +239,8 @@ function UsuariosAdminPage() {
       </section>
 
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => !salvando && setModal(null)}>
-          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-950 p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="rel-backdrop rel-backdrop-top" onClick={() => !salvando && setModal(null)}>
+          <div className="rel-box max-h-[90vh] w-full max-w-md overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="mb-3 flex items-start justify-between gap-3">
               <h2 className="text-lg font-semibold">
                 {modal.tipo === 'novo' ? 'Novo usuário' : modal.tipo === 'senha' ? `Trocar a senha de ${modal.usuario.nome}` : modal.acao === 'inativar' ? `Inativar ${modal.usuario.nome}?` : modal.acao === 'ativar' ? `Reativar ${modal.usuario.nome}?` : modal.acao === 'admin-sim' ? `Tornar ${modal.usuario.nome} administrador?` : `Retirar a permissão de administrador de ${modal.usuario.nome}?`}
@@ -250,22 +250,22 @@ function UsuariosAdminPage() {
 
             {modal.tipo === 'novo' && !criado && (
               <div className="space-y-3">
-                <label className="block text-xs text-zinc-400">Nome *<input value={nome} onChange={(e) => setNome(e.target.value)} className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100" /></label>
-                <label className="block text-xs text-zinc-400">E-mail *<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100" /></label>
+                <label className="block text-xs text-zinc-400">Nome *<input value={nome} onChange={(e) => setNome(e.target.value)} className="rel-input max-w-[220px]" /></label>
+                <label className="block text-xs text-zinc-400">E-mail *<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="rel-input max-w-[220px]" /></label>
                 <label className="block text-xs text-zinc-400">Senha temporária * (mínimo {SENHA_MINIMA})
                   <div className="mt-1 flex gap-2">
-                    <input value={senha} onChange={(e) => setSenha(e.target.value)} className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 font-mono text-sm text-zinc-100" />
+                    <input value={senha} onChange={(e) => setSenha(e.target.value)} className="rel-input max-w-[220px]" />
                     <button type="button" onClick={() => setSenha(gerarSenha())} className="whitespace-nowrap rounded-md border border-zinc-700 px-2 text-xs hover:bg-zinc-900">Gerar</button>
                   </div>
                 </label>
                 <label className="block text-xs text-zinc-400">Tipo de perfil *
-                  <select value={tipo} onChange={(e) => setTipo(e.target.value as TipoPerfil)} className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100">
+                  <select value={tipo} onChange={(e) => setTipo(e.target.value as TipoPerfil)} className="rel-input max-w-[220px]">
                     {TIPOS_PERFIL.map((t) => <option key={t} value={t}>{ROTULO_PERFIL[t]}</option>)}
                   </select>
                 </label>
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={admin} onChange={(e) => setAdmin(e.target.checked)} /> Administrador</label>
                 {problema && <p className="text-sm text-rose-600">{problema}</p>}
-                <button onClick={criar} disabled={salvando} className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-60">{salvando ? 'Cadastrando...' : 'Cadastrar'}</button>
+                <button onClick={criar} disabled={salvando} className="rel-btn rel-btn-primary">{salvando ? 'Cadastrando...' : 'Cadastrar'}</button>
               </div>
             )}
             {modal.tipo === 'novo' && criado && (
@@ -278,16 +278,16 @@ function UsuariosAdminPage() {
 
             {modal.tipo === 'senha' && (
               <div className="space-y-3">
-                <p className="text-sm text-zinc-400">As sessões abertas dessa pessoa serão encerradas.</p>
+                <p className="rel-desc">As sessões abertas dessa pessoa serão encerradas.</p>
                 <label className="block text-xs text-zinc-400">Nova senha (mínimo {SENHA_MINIMA})
                   <div className="mt-1 flex gap-2">
-                    <input value={senha} onChange={(e) => setSenha(e.target.value)} className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 font-mono text-sm text-zinc-100" />
+                    <input value={senha} onChange={(e) => setSenha(e.target.value)} className="rel-input max-w-[220px]" />
                     <button type="button" onClick={() => { const s = gerarSenha(); setSenha(s); setSenha2(s); }} className="whitespace-nowrap rounded-md border border-zinc-700 px-2 text-xs hover:bg-zinc-900">Gerar</button>
                   </div>
                 </label>
-                <label className="block text-xs text-zinc-400">Repita a senha<input value={senha2} onChange={(e) => setSenha2(e.target.value)} className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 font-mono text-sm text-zinc-100" /></label>
+                <label className="block text-xs text-zinc-400">Repita a senha<input value={senha2} onChange={(e) => setSenha2(e.target.value)} className="rel-input max-w-[220px]" /></label>
                 {problema && <p className="text-sm text-rose-600">{problema}</p>}
-                <button onClick={() => trocarSenha(modal.usuario)} disabled={salvando} className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-60">{salvando ? 'Salvando...' : 'Trocar senha'}</button>
+                <button onClick={() => trocarSenha(modal.usuario)} disabled={salvando} className="rel-btn rel-btn-primary">{salvando ? 'Salvando...' : 'Trocar senha'}</button>
               </div>
             )}
 
