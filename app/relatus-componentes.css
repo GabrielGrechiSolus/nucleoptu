@@ -116,3 +116,24 @@ html .rel-input:focus { outline: none; border-color: var(--rel-primary) !importa
   .rel-grid-s2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .rel-grid-s3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+.rel-split { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+.rel-stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+@media (min-width: 1024px) {
+  .rel-split { grid-template-columns: minmax(0, 1fr) 320px; align-items: start; }
+  .rel-side { position: sticky; top: 0; }
+}
+.rel-section-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.rel-section-head .rel-subtitle { margin: 0; }
+.rel-check { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 0; border-top: 1px solid var(--rel-line); cursor: pointer; }
+.rel-check:first-of-type { border-top: 0; }
+.rel-check input { flex: none; }
+.rel-check-body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.rel-check-note { color: var(--rel-muted); font-size: 0.78rem; line-height: 1.35; }
+.rel-stat { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--rel-line); font-size: 0.85rem; }
+.rel-stat:first-of-type { border-top: 0; }
+.rel-progress { height: 6px; margin: 2px 0 8px; background: var(--rel-shape); border-radius: 3px; overflow: hidden; }
+.rel-progress > span { display: block; height: 100%; background: var(--rel-primary); border-radius: 3px; transition: width 0.2s; }
+.rel-details { margin-top: 12px; }
+.rel-details summary { color: var(--rel-primary); font-size: 0.78rem; cursor: pointer; }
+.rel-details summary:hover { text-decoration: underline; }

@@ -5,22 +5,18 @@ import { ExternalLink, X } from 'lucide-react';
 import { htmlParaTexto } from '../chamados/bm';
 import type { Chamado } from '../chamados/parse';
 import type { RegistroBm } from '../chamados/bmRegistro';
-import { anexaLinksNaDescricao, avaliaChecks, avaliaCriterio, linksGitDoChamado, linksQueFaltam, propostasDeCampos, textoConclusaoComplementado, type PropostaCampo } from './automacao';
+import { anexaLinksNaDescricao, avaliaChecks, avaliaCriterio, linksDoChamado, linksQueFaltam, propostasDeCampos, textoConclusaoComplementado } from './automacao';
 import { aplicarProcesso, consultaChecksGit, lerProcesso, simularProcesso, type EstadoProcesso, type MudancaProcesso, type RequisicaoSimulada, type ResultadoGravacao } from './clienteProcesso';
 
 const norma = (t: string) => t.replace(/\s+/g, ' ').trim().toLowerCase();
 
-type SituacaoCampo = 'igual' | 'vazio' | 'diferente';
-
-const situacaoDoCampo = (atual: string, proposto: string): SituacaoCampo => (!atual.trim() ? 'vazio' : norma(atual) === norma(proposto) ? 'igual' : 'diferente');
-
-const ROTULO_SITUACAO: Record<SituacaoCampo, string> = { igual: 'já igual', vazio: 'vazio no BM', diferente: 'diferente do Git' };
-const COR_SITUACAO: Record<SituacaoCampo, string> = { igual: 'rel-tag-ok', vazio: 'rel-tag-alert', diferente: 'rel-tag-info' };
-
-function Bloco({ titulo, children, className = '' }: { titulo: string; children: React.ReactNode; className?: string }) {
+function Secao({ titulo, aside, children }: { titulo: string; aside?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className={`rel-box ${className}`}>
-      <h3 className="rel-subtitle">{titulo}</h3>
+    <section className="rel-box">
+      <div className="rel-section-head">
+        <h3 className="rel-subtitle">{titulo}</h3>
+        {aside}
+      </div>
       {children}
     </section>
   );
@@ -31,11 +27,11 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
   const [estado, setEstado] = useState<EstadoProcesso | null>(null);
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(true);
-  const [valores, setValores] = useState<Record<string, string>>({});
-  const [campoMarcado, setCampoMarcado] = useState<Record<string, boolean>>({});
+  const [valorTexto, setValorTexto] = useState('');
+  const [textoMarcado, setTextoMarcado] = useState(false);
+  const [linksSel, setLinksSel] = useState<Record<string, boolean>>({});
   const [criterioMarcado, setCriterioMarcado] = useState<Record<number, boolean>>({});
   const criterioTocado = useRef<Set<number>>(new Set());
-  const [linksMarcado, setLinksMarcado] = useState(false);
   const [comentario, setComentario] = useState('');
   const [comentarioMarcado, setComentarioMarcado] = useState(false);
   const [moverMarcado, setMoverMarcado] = useState(false);
@@ -45,36 +41,29 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
   const [trabalhando, setTrabalhando] = useState(false);
   const [checks, setChecks] = useState<Awaited<ReturnType<typeof consultaChecksGit>> | undefined>(undefined);
 
-  const propostasDe = useCallback(
-    (e: EstadoProcesso): PropostaCampo[] => propostasDeCampos(chamado, { texto: e.campos.find((c) => c.chave === 'texto')?.valorAtual ?? '' }),
-    [chamado],
-  );
-  const propostas = useMemo<PropostaCampo[]>(() => (estado ? propostasDe(estado) : []), [estado, propostasDe]);
+  const links = useMemo(() => linksDoChamado(chamado), [chamado]);
+  const campoTexto = estado?.campos.find((c) => c.chave === 'texto');
+  const textoAtual = campoTexto?.valorAtual ?? '';
+  const proposta = useMemo(() => (estado ? propostasDeCampos(chamado, { texto: textoAtual })[0] : undefined), [estado, chamado, textoAtual]);
 
   const iniciaSelecao = useCallback(
     (e: EstadoProcesso) => {
-      const v: Record<string, string> = {};
-      const m: Record<string, boolean> = {};
-      for (const p of propostasDe(e)) {
-        const campo = e.campos.find((c) => c.chave === p.chave);
-        v[p.chave] = p.valor;
-        const sit = situacaoDoCampo(campo?.valorAtual ?? '', p.valor);
-        const padraoSomente = p.chave === 'texto' && !textoConclusaoComplementado(campo?.valorAtual ?? '');
-        m[p.chave] = !!campo?.disponivel && (sit === 'vazio' || (sit === 'diferente' && padraoSomente));
-      }
-      setValores(v);
-      setCampoMarcado(m);
+      const atual = e.campos.find((c) => c.chave === 'texto');
+      const p = propostasDeCampos(chamado, { texto: atual?.valorAtual ?? '' })[0];
+      setValorTexto(p?.valor ?? '');
+      setTextoMarcado(!!p && !!atual?.disponivel && !textoConclusaoComplementado(atual?.valorAtual ?? '') && norma(atual?.valorAtual ?? '') !== norma(p.valor));
+      const faltantes = new Set(linksQueFaltam(e.descricaoHtml, links).map((l) => l.url));
+      setLinksSel(Object.fromEntries(links.map((l) => [l.url, faltantes.has(l.url)])));
       setCriterioMarcado({});
       criterioTocado.current = new Set();
-      setLinksMarcado(linksQueFaltam(e.descricaoHtml, linksGitDoChamado(chamado)).length > 0);
       setComentario('');
       setComentarioMarcado(false);
       setMoverMarcado(false);
-      const atual = e.colunas.find((c) => c.id === e.card.colunaId);
-      const alvo = e.colunas.find((c) => c.posicao > (atual?.posicao ?? 0) && (c.secao === 3 || /conclu/i.test(c.nome))) ?? e.colunas.find((c) => c.posicao > (atual?.posicao ?? 0));
+      const col = e.colunas.find((c) => c.id === e.card.colunaId);
+      const alvo = e.colunas.find((c) => c.posicao > (col?.posicao ?? 0) && (c.secao === 3 || /conclu/i.test(c.nome))) ?? e.colunas.find((c) => c.posicao > (col?.posicao ?? 0));
       setDestino(alvo?.id ?? 0);
     },
-    [propostasDe, chamado],
+    [chamado, links],
   );
 
   const carrega = useCallback(async () => {
@@ -103,8 +92,7 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
     };
   }, [chamado]);
 
-  const textoAtual = estado?.campos.find((c) => c.chave === 'texto')?.valorAtual ?? '';
-  const textoFinal = campoMarcado.texto ? valores.texto ?? '' : textoAtual;
+  const textoFinal = textoMarcado ? valorTexto : textoAtual;
   const temPr = chamado.temPr;
   const temEvidencia = chamado.evidencias.length > 0;
   const temPlano = chamado.planosTeste.length > 0;
@@ -126,21 +114,24 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
     });
   }, [criterios, estado]);
 
-  const linksGit = useMemo(() => linksGitDoChamado(chamado), [chamado]);
-  const linksFaltantes = useMemo(() => (estado ? linksQueFaltam(estado.descricaoHtml, linksGit) : []), [estado, linksGit]);
-  const descricaoDepois = useMemo(() => (estado ? anexaLinksNaDescricao(estado.descricaoHtml, linksGit) : ''), [estado, linksGit]);
-  const faltam = criterios.filter((c) => !c.marcado && !criterioMarcado[c.itemId]);
-  const podeMover = !!estado && !estado.card.bloqueado && faltam.length === 0 && destino > 0;
+  const faltantes = useMemo(() => new Set((estado ? linksQueFaltam(estado.descricaoHtml, links) : []).map((l) => l.url)), [estado, links]);
+  const linksEscolhidos = links.filter((l) => faltantes.has(l.url) && linksSel[l.url]);
+  const descricaoDepois = useMemo(() => (estado ? anexaLinksNaDescricao(estado.descricaoHtml, linksEscolhidos) : ''), [estado, linksEscolhidos]);
+
+  const pendentes = criterios.filter((c) => !c.marcado && !criterioMarcado[c.itemId]);
+  const totalMarcados = criterios.length - pendentes.length;
+  const podeMover = !!estado && !estado.card.bloqueado && pendentes.length === 0 && destino > 0;
 
   const monta = (): MudancaProcesso[] => {
     const m: MudancaProcesso[] = [];
-    for (const p of propostas) if (campoMarcado[p.chave]) m.push({ tipo: 'campo', campo: p.rotulo, valor: valores[p.chave] ?? p.valor });
+    if (textoMarcado && valorTexto.trim() && campoTexto) m.push({ tipo: 'campo', campo: campoTexto.rotulo, valor: valorTexto });
     for (const c of criterios) if (!c.marcado && criterioMarcado[c.itemId]) m.push({ tipo: 'checklist', itemId: c.itemId });
-    if (linksMarcado && linksFaltantes.length) m.push({ tipo: 'descricao', links: linksGit });
+    if (linksEscolhidos.length) m.push({ tipo: 'descricao', links: linksEscolhidos });
     if (comentarioMarcado && comentario.trim()) m.push({ tipo: 'comentario', texto: comentario.trim() });
     if (moverMarcado && podeMover) m.push({ tipo: 'mover', colunaId: destino });
     return m;
   };
+  const quantidade = estado ? monta().length : 0;
 
   const revisar = async () => {
     const m = monta();
@@ -179,6 +170,7 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
   };
 
   const colunaAtual = estado?.colunas.find((c) => c.id === estado.card.colunaId)?.nome ?? '—';
+  const progresso = criterios.length ? Math.round((totalMarcados / criterios.length) * 100) : 100;
 
   return (
     <div className="rel-backdrop" onClick={onClose}>
@@ -187,7 +179,7 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rel-mono">{chamado.numero}</span>
-              <span className="rel-tag rel-tag-info">coluna atual: {colunaAtual}</span>
+              <span className="rel-tag rel-tag-info">{colunaAtual}</span>
               {registro.resumo && (
                 <a href={registro.resumo.url} target="_blank" rel="noreferrer" className="rel-link inline-flex items-center gap-1 text-xs">
                   Abrir cartão <ExternalLink className="h-3 w-3" />
@@ -195,7 +187,7 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
               )}
             </div>
             <h2 className="rel-strong mt-1 text-xl">{chamado.assunto}</h2>
-            <p className="rel-desc">Experimento restrito ao seu usuário Git. Nada é gravado no BM sem a sua confirmação.</p>
+            <p className="rel-desc">Escolha o que atualizar no cartão. Nada é gravado sem a sua confirmação.</p>
           </div>
           <button onClick={onClose} aria-label="Fechar" className="rel-btn rel-btn-icon"><X className="h-5 w-5" /></button>
         </header>
@@ -203,79 +195,63 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
         <div className="rel-modal-body">
           {carregando && <p className="rel-desc">Lendo o cartão no Businessmap...</p>}
           {erro && <p className="rel-notice rel-notice-error">{erro}</p>}
+          {estado?.card.bloqueado && <p className="rel-notice rel-notice-alert">O cartão está bloqueado no BM: não é possível mover enquanto estiver assim.</p>}
 
           {estado && (
-            <>
-              {estado.card.bloqueado && <p className="rel-notice rel-notice-alert">O cartão está bloqueado no BM: não é possível mover enquanto estiver assim.</p>}
+            <div className="rel-split">
+              <div className="rel-stack">
+                <Secao titulo="Texto de conclusão" aside={campoTexto && !campoTexto.disponivel ? <span className="rel-tag rel-tag-error">campo não habilitado no quadro</span> : undefined}>
+                  {proposta ? (
+                    <>
+                      <label className="rel-check">
+                        <input type="checkbox" checked={textoMarcado} disabled={!campoTexto?.disponivel} onChange={(e) => setTextoMarcado(e.target.checked)} />
+                        <span className="rel-strong">Gravar o texto abaixo no cartão</span>
+                        {textoConclusaoComplementado(textoAtual) ? <span className="rel-tag rel-tag-ok">já complementado no BM</span> : <span className="rel-tag rel-tag-alert">ainda é a mensagem padrão</span>}
+                      </label>
+                      <textarea value={valorTexto} onChange={(e) => setValorTexto(e.target.value)} rows={8} className="rel-input mt-3" aria-label="Texto de conclusão" />
+                      <details className="rel-details">
+                        <summary>Ver o texto que está hoje no BM</summary>
+                        <pre className="rel-pre mt-2">{textoAtual || '—'}</pre>
+                      </details>
+                    </>
+                  ) : (
+                    <p className="rel-desc">O chamado não tem regra de negócio escrita (REGRA.md) para montar o texto de conclusão.</p>
+                  )}
+                </Secao>
 
-              <Bloco titulo="1. Campos do cartão preenchidos a partir do Git">
-                <p className="rel-desc mb-3">Marque o que deve ser gravado no cartão. Campos já iguais ao Git não precisam ser regravados; campos diferentes vêm desmarcados para não sobrescrever o que alguém escreveu.</p>
-                <div className="rel-list">
-                  {propostas.map((p) => {
-                    const campo = estado.campos.find((c) => c.chave === p.chave);
-                    const sit = situacaoDoCampo(campo?.valorAtual ?? '', valores[p.chave] ?? p.valor);
-                    return (
-                      <div key={p.chave} className="rel-item">
-                        <label className="flex flex-wrap items-center gap-2">
-                          <input type="checkbox" checked={!!campoMarcado[p.chave]} disabled={!campo?.disponivel} onChange={(e) => setCampoMarcado((a) => ({ ...a, [p.chave]: e.target.checked }))} />
-                          <span className="rel-strong">{p.rotulo}</span>
-                          {campo?.disponivel ? <span className={`rel-tag ${COR_SITUACAO[sit]}`}>{ROTULO_SITUACAO[sit]}</span> : <span className="rel-tag rel-tag-error">{campo?.id ? 'campo não habilitado no quadro deste cartão' : 'campo não existe no BM'}</span>}
-                        </label>
-                        <div className="rel-grid rel-grid-s2 mt-3">
-                          <div className="rel-field">
-                            <span className="rel-label">Hoje no BM</span>
-                            <pre className="rel-pre">{campo?.valorAtual || '—'}</pre>
-                          </div>
-                          <div className="rel-field">
-                            <span className="rel-label">Proposto pelo Git (pode editar)</span>
-                            <textarea
-                              value={valores[p.chave] ?? ''}
-                              onChange={(e) => setValores((a) => ({ ...a, [p.chave]: e.target.value }))}
-                              rows={p.chave === 'texto' ? 8 : 3}
-                              className="rel-input"
-                            />
-                          </div>
-                        </div>
+                <Secao titulo="Links na descrição do cartão">
+                  <p className="rel-desc mb-2">Entram no fim do texto da aba Detalhes, abaixo dos outros links. O que já existe não é alterado.</p>
+                  {links.length ? (
+                    <>
+                      <div>
+                        {links.map((l) => {
+                          const falta = faltantes.has(l.url);
+                          return (
+                            <label key={l.url} className="rel-check">
+                              <input type="checkbox" checked={falta && !!linksSel[l.url]} disabled={!falta} onChange={(e) => setLinksSel((a) => ({ ...a, [l.url]: e.target.checked }))} />
+                              <a href={l.url} target="_blank" rel="noreferrer" className="rel-link" onClick={(e) => e.stopPropagation()}>{l.texto}</a>
+                              <span className={`rel-tag ${falta ? 'rel-tag-alert' : 'rel-tag-ok'}`}>{falta ? 'falta no cartão' : 'já no cartão'}</span>
+                            </label>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                  {!propostas.length && <p className="rel-desc">O Git não tem dados para preencher campos deste chamado.</p>}
-                </div>
-              </Bloco>
+                      {linksEscolhidos.length > 0 && (
+                        <details className="rel-details">
+                          <summary>Ver como ficará o fim da descrição</summary>
+                          <pre className="rel-pre mt-2">{htmlParaTexto(descricaoDepois).slice(-700)}</pre>
+                        </details>
+                      )}
+                    </>
+                  ) : (
+                    <p className="rel-desc">Este chamado não tem PR, plano de testes nem evidência com link.</p>
+                  )}
+                </Secao>
 
-              <Bloco titulo="2. Links do Git na descrição do cartão">
-                <p className="rel-desc mb-3">Os links são acrescentados no fim do texto da aba Detalhes, abaixo dos outros links (Entendimento, Análise etc.). O texto que já existe não é alterado.</p>
-                {linksGit.length ? (
-                  <>
-                    <label className="mb-3 flex flex-wrap items-center gap-2">
-                      <input type="checkbox" checked={linksMarcado && linksFaltantes.length > 0} disabled={!linksFaltantes.length} onChange={(e) => setLinksMarcado(e.target.checked)} />
-                      <span className="rel-strong">Acrescentar os links do Git</span>
-                      {!linksFaltantes.length && <span className="rel-tag rel-tag-ok">já constam na descrição</span>}
-                    </label>
-                    <ul className="rel-list mb-3">
-                      {linksGit.map((l) => (
-                        <li key={l.url} className="flex flex-wrap items-center gap-2">
-                          <a href={l.url} target="_blank" rel="noreferrer" className="rel-link">{l.texto}</a>
-                          <span className={`rel-tag ${linksFaltantes.some((x) => x.url === l.url) ? 'rel-tag-alert' : 'rel-tag-ok'}`}>{linksFaltantes.some((x) => x.url === l.url) ? 'falta no cartão' : 'já no cartão'}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="rel-field">
-                      <span className="rel-label">Como ficará o fim da descrição</span>
-                      <pre className="rel-pre">{htmlParaTexto(descricaoDepois).slice(-800)}</pre>
-                    </div>
-                  </>
-                ) : (
-                  <p className="rel-desc">Este chamado não tem PR com link do GitHub.</p>
-                )}
-              </Bloco>
-
-              <Bloco titulo="3. Critérios de saída da coluna atual">
-                {criterios.length ? (
-                  <ul className="rel-list">
-                    {criterios.map((c) => (
-                      <li key={c.itemId} className="rel-item">
-                        <label className="flex flex-wrap items-center gap-2">
+                <Secao titulo="Critérios de saída da coluna" aside={criterios.length ? <span className="rel-desc">{totalMarcados} de {criterios.length}</span> : undefined}>
+                  {criterios.length ? (
+                    <div>
+                      {criterios.map((c) => (
+                        <label key={c.itemId} className="rel-check">
                           <input
                             type="checkbox"
                             checked={c.marcado || !!criterioMarcado[c.itemId]}
@@ -285,59 +261,68 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
                               setCriterioMarcado((a) => ({ ...a, [c.itemId]: e.target.checked }));
                             }}
                           />
-                          <span className="rel-strong">{c.texto}</span>
+                          <span className="rel-check-body">
+                            <span className="rel-strong">{c.texto}</span>
+                            {!c.marcado && <span className="rel-check-note">{c.avaliacao.motivo}</span>}
+                          </span>
                           {c.marcado ? (
-                            <span className="rel-tag rel-tag-ok">já marcado no BM</span>
+                            <span className="rel-tag rel-tag-ok">marcado no BM</span>
                           ) : c.avaliacao.automatico ? (
                             <span className={`rel-tag ${c.avaliacao.cumprido ? 'rel-tag-ok' : 'rel-tag-error'}`}>{c.avaliacao.cumprido ? 'cumprido pelo Git' : 'não cumprido'}</span>
                           ) : (
                             <span className="rel-tag">manual</span>
                           )}
                         </label>
-                        {!c.marcado && <p className="rel-desc mt-1 pl-6">{c.avaliacao.motivo}</p>}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="rel-desc">A coluna atual não tem critérios de saída.</p>
-                )}
-              </Bloco>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="rel-desc">A coluna atual não tem critérios de saída.</p>
+                  )}
+                </Secao>
 
-              <div className="rel-grid rel-grid-2">
-                <Bloco titulo="4. Comentário no cartão (opcional)">
-                  <label className="mb-3 flex items-center gap-2">
+                <Secao titulo="Comentário no cartão">
+                  <label className="rel-check">
                     <input type="checkbox" checked={comentarioMarcado} onChange={(e) => setComentarioMarcado(e.target.checked)} />
-                    <span className="rel-strong">Publicar comentário</span>
+                    <span className="rel-strong">Publicar um comentário</span>
                   </label>
-                  <textarea value={comentario} onChange={(e) => setComentario(e.target.value)} rows={4} placeholder="Texto do comentário" className="rel-input" />
-                </Bloco>
+                  {comentarioMarcado && <textarea value={comentario} onChange={(e) => setComentario(e.target.value)} rows={4} placeholder="Texto do comentário" className="rel-input mt-3" aria-label="Comentário" />}
+                </Secao>
+              </div>
 
-                <Bloco titulo="5. Mover o cartão">
-                  <label className="mb-3 flex items-center gap-2">
+              <aside className="rel-stack rel-side">
+                <Secao titulo="Resumo">
+                  <div className="rel-stat"><span className="rel-desc">Coluna atual</span><span className="rel-strong">{colunaAtual}</span></div>
+                  <div className="rel-stat"><span className="rel-desc">Critérios de saída</span><span className="rel-strong">{totalMarcados} de {criterios.length}</span></div>
+                  <div className="rel-progress" aria-hidden="true"><span style={{ width: `${progresso}%` }} /></div>
+                  <div className="rel-stat"><span className="rel-desc">Alterações selecionadas</span><span className="rel-strong">{quantidade}</span></div>
+                </Secao>
+
+                <Secao titulo="Mover o cartão">
+                  <label className="rel-check">
                     <input type="checkbox" checked={moverMarcado && podeMover} disabled={!podeMover} onChange={(e) => setMoverMarcado(e.target.checked)} />
-                    <span className="rel-strong">Mover para a coluna</span>
+                    <span className="rel-strong">Mover para</span>
                   </label>
-                  <select value={destino} onChange={(e) => setDestino(Number(e.target.value))} className="rel-input mb-2">
+                  <select value={destino} onChange={(e) => setDestino(Number(e.target.value))} className="rel-input mt-2" aria-label="Coluna de destino">
                     {estado.colunas.filter((c) => c.id !== estado.card.colunaId).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
                   </select>
                   {!podeMover && (
-                    <p className="rel-notice rel-notice-alert">
-                      {estado.card.bloqueado ? 'Cartão bloqueado.' : faltam.length ? `Faltam ${faltam.length} critério(s) de saída: ${faltam.map((c) => c.texto).join('; ')}.` : 'Escolha a coluna de destino.'}
+                    <p className="rel-notice rel-notice-alert mt-3">
+                      {estado.card.bloqueado ? 'Cartão bloqueado.' : pendentes.length ? `Faltam ${pendentes.length} critério(s) de saída: ${pendentes.map((c) => c.texto).join('; ')}.` : 'Escolha a coluna de destino.'}
                     </p>
                   )}
-                </Bloco>
-              </div>
+                </Secao>
 
-              {resultados && (
-                <Bloco titulo="Resultado da gravação">
-                  <ul className="rel-list">
-                    {resultados.map((r, i) => (
-                      <li key={i} className={`rel-notice ${r.ok ? 'rel-notice-ok' : 'rel-notice-error'}`}>{r.ok ? '✔' : '✖'} {r.descricao}{r.erro ? ` — ${r.erro}` : ''}</li>
-                    ))}
-                  </ul>
-                </Bloco>
-              )}
-            </>
+                {resultados && (
+                  <Secao titulo="Resultado da gravação">
+                    <ul className="rel-list">
+                      {resultados.map((r, i) => (
+                        <li key={i} className={`rel-notice ${r.ok ? 'rel-notice-ok' : 'rel-notice-error'}`}>{r.ok ? '✔' : '✖'} {r.descricao}{r.erro ? ` — ${r.erro}` : ''}</li>
+                      ))}
+                    </ul>
+                  </Secao>
+                )}
+              </aside>
+            </div>
           )}
         </div>
 
@@ -345,7 +330,7 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
           <span className="rel-desc">A gravação fica registrada no BM em nome do dono da chave.</span>
           <div className="flex gap-2">
             <button onClick={carrega} disabled={carregando || trabalhando} className="rel-btn rel-btn-ghost">Reler do BM</button>
-            <button onClick={revisar} disabled={!estado || trabalhando} className="rel-btn rel-btn-primary">{trabalhando ? 'Aguarde...' : 'Revisar alterações'}</button>
+            <button onClick={revisar} disabled={!estado || trabalhando || quantidade === 0} className="rel-btn rel-btn-primary">{trabalhando ? 'Aguarde...' : `Revisar alterações${quantidade ? ` (${quantidade})` : ''}`}</button>
           </div>
         </footer>
 
@@ -362,8 +347,8 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
                 <ol className="list-decimal pl-5">
                   {simulacao.map((r, i) => <li key={i} className="rel-value">{r.descricao}</li>)}
                 </ol>
-                <details>
-                  <summary className="rel-link cursor-pointer text-xs">Ver as requisições exatas</summary>
+                <details className="rel-details">
+                  <summary>Ver as requisições exatas</summary>
                   <pre className="rel-pre mt-2">{simulacao.map((r) => `${r.metodo} ${r.caminho}\n${r.corpo === undefined ? '' : JSON.stringify(r.corpo)}`).join('\n\n')}</pre>
                 </details>
               </div>

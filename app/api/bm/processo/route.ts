@@ -93,12 +93,12 @@ function montaRequisicoes(estado: Awaited<ReturnType<typeof lerEstado>>, mudanca
       saida.push({ metodo: 'PUT', caminho: `/cards/${card.cardId}/customFields/${alvo.id}`, corpo: { value: enviado }, descricao: `Preencher o campo "${def.rotulo}"` });
     } else if (m.tipo === 'descricao') {
       const links = (Array.isArray(m.links) ? m.links : [])
-        .map((l) => ({ texto: String(l?.texto ?? '').slice(0, 200), url: String(l?.url ?? '') }))
-        .filter((l) => l.texto && /^https:\/\/github\.com\/solussaude\//i.test(l.url) && l.url.length < 500);
-      if (!links.length) throw new ErroBm(400, 'Nenhum link do Git válido para anexar.');
+        .map((l) => ({ texto: String(l?.texto ?? '').slice(0, 200), url: String(l?.url ?? ''), tipo: 'git' as const }))
+        .filter((l) => l.texto && /^https:\/\//i.test(l.url) && l.url.length < 500);
+      if (!links.length) throw new ErroBm(400, 'Nenhum link válido para anexar.');
       const nova = anexaLinksNaDescricao(estado.descricaoHtml, links);
       if (nova === estado.descricaoHtml) continue;
-      saida.push({ metodo: 'PATCH', caminho: `/cards/${card.cardId}`, corpo: { description: nova }, descricao: 'Acrescentar os links do Git no fim da descrição do cartão' });
+      saida.push({ metodo: 'PATCH', caminho: `/cards/${card.cardId}`, corpo: { description: nova }, descricao: 'Acrescentar os links no fim da descrição do cartão' });
     } else if (m.tipo === 'checklist') {
       const item = criterios.find((c) => c.itemId === Number(m.itemId));
       if (!item) throw new ErroBm(400, 'Critério de saída inexistente na coluna atual.');

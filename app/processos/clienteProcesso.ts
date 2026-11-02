@@ -40,7 +40,7 @@ export interface EstadoProcesso {
 export type MudancaProcesso =
   | { tipo: 'campo'; campo: string; valor: string }
   | { tipo: 'checklist'; itemId: number; comentario?: string }
-  | { tipo: 'descricao'; links: { texto: string; url: string }[] }
+  | { tipo: 'descricao'; links: { texto: string; url: string; tipo?: string }[] }
   | { tipo: 'comentario'; texto: string }
   | { tipo: 'mover'; colunaId: number };
 

@@ -1,7 +1,7 @@
 import { MENSAGEM_PADRAO_CONCLUSAO } from '../chamados/bm';
 import type { Chamado } from '../chamados/parse';
 
-export type ChaveCampo = 'texto' | 'pr' | 'branch' | 'repo' | 'qa';
+export type ChaveCampo = 'texto';
 
 export interface DefinicaoCampo {
   chave: ChaveCampo;
@@ -11,10 +11,6 @@ export interface DefinicaoCampo {
 
 export const CAMPOS_AUTOMATICOS: DefinicaoCampo[] = [
   { chave: 'texto', rotulo: 'Texto conclusão', padrao: /^texto conclus/i },
-  { chave: 'pr', rotulo: 'Git PR', padrao: /^git pr$/i },
-  { chave: 'branch', rotulo: 'Git branch', padrao: /^git branch$/i },
-  { chave: 'repo', rotulo: 'reponame', padrao: /^(git )?repo/i },
-  { chave: 'qa', rotulo: 'QA - Documentação', padrao: /^qa - document/i },
 ];
 
 export const campoPorNome = (nome: string) => CAMPOS_AUTOMATICOS.find((c) => c.padrao.test(nome));
@@ -61,20 +57,9 @@ export interface PropostaCampo {
   valor: string;
 }
 
-export function propostasDeCampos(c: Pick<Chamado, 'docs' | 'prs' | 'branches' | 'evidencias' | 'planosTeste'>, atuais: Partial<Record<ChaveCampo, string>> = {}): PropostaCampo[] {
-  const prs = (c.prs ?? []).filter((p) => p.url);
-  const linhasQa = [
-    ...(c.planosTeste ?? []).map((l) => `Plano de testes: ${l.url}`),
-    ...(c.evidencias ?? []).map((l) => `Evidência de testes: ${l.url}`),
-  ];
-  const lista: PropostaCampo[] = [
-    { chave: 'texto', rotulo: 'Texto conclusão', valor: comporTextoConclusao(atuais.texto ?? '', rascunhoTextoConclusao(c)) },
-    { chave: 'pr', rotulo: 'Git PR', valor: prs.map((p) => p.url).join(', ') },
-    { chave: 'branch', rotulo: 'Git branch', valor: (c.branches ?? []).join(', ') },
-    { chave: 'repo', rotulo: 'reponame', valor: [...new Set(prs.map((p) => p.repo).filter(Boolean))].join(', ') },
-    { chave: 'qa', rotulo: 'QA - Documentação', valor: linhasQa.join('\n') },
-  ];
-  return lista.filter((p) => p.valor.trim());
+export function propostasDeCampos(c: Pick<Chamado, 'docs'>, atuais: Partial<Record<ChaveCampo, string>> = {}): PropostaCampo[] {
+  const valor = comporTextoConclusao(atuais.texto ?? '', rascunhoTextoConclusao(c));
+  return valor.trim() ? [{ chave: 'texto', rotulo: 'Texto conclusão', valor }] : [];
 }
 
 const normaliza = (t: string) => t.normalize("NFD").replace(new RegExp("[\u0300-\u036f]", "g"), "").toLowerCase();
@@ -142,21 +127,34 @@ export function textoConclusaoComplementado(valor: string): boolean {
   return resto.length >= 40;
 }
 
-export interface LinkGit {
+export interface LinkCartao {
   texto: string;
   url: string;
+  tipo: 'git' | 'plano' | 'evidencia';
 }
 
-export const linksGitDoChamado = (c: Pick<Chamado, 'prs'>): LinkGit[] =>
-  (c.prs ?? [])
-    .filter((p) => p.url && /^https:\/\/github\.com\//i.test(p.url))
-    .map((p) => ({ texto: `Git PR ${p.repo ? `${p.repo} ` : ''}#${p.numero}`, url: p.url as string }));
+export type LinkGit = LinkCartao;
+
+const urlHttps = (u: string | undefined) => !!u && /^https:\/\//i.test(u);
+
+export function linksDoChamado(c: Pick<Chamado, 'prs' | 'planosTeste' | 'evidencias'>, semGit = false): LinkCartao[] {
+  const git: LinkCartao[] = semGit
+    ? []
+    : (c.prs ?? [])
+        .filter((p) => p.url && /^https:\/\/github\.com\//i.test(p.url))
+        .map((p) => ({ texto: `Git PR ${p.repo ? `${p.repo} ` : ''}#${p.numero}`, url: p.url as string, tipo: 'git' as const }));
+  const plano = (c.planosTeste ?? []).filter((l) => urlHttps(l.url)).map((l) => ({ texto: 'Plano de testes', url: l.url, tipo: 'plano' as const }));
+  const evidencia = (c.evidencias ?? []).filter((l) => urlHttps(l.url)).map((l) => ({ texto: 'Evidência de testes', url: l.url, tipo: 'evidencia' as const }));
+  return [...git, ...plano, ...evidencia];
+}
+
+export const linksGitDoChamado = (c: Pick<Chamado, 'prs'>): LinkCartao[] => linksDoChamado({ prs: c.prs, planosTeste: [], evidencias: [] });
 
 const escapaHtml = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-export const linksQueFaltam = (descricaoHtml: string, links: LinkGit[]) => links.filter((l) => !descricaoHtml.includes(l.url) && !descricaoHtml.includes(escapaHtml(l.url)));
+export const linksQueFaltam = (descricaoHtml: string, links: LinkCartao[]) => links.filter((l) => !descricaoHtml.includes(l.url) && !descricaoHtml.includes(escapaHtml(l.url)));
 
-export function anexaLinksNaDescricao(descricaoHtml: string, links: LinkGit[]): string {
+export function anexaLinksNaDescricao(descricaoHtml: string, links: LinkCartao[]): string {
   const novos = linksQueFaltam(descricaoHtml, links);
   if (!novos.length) return descricaoHtml;
   const bloco = novos.map((l) => `<p><a href="${escapaHtml(l.url)}">${escapaHtml(l.texto)}</a></p>`).join('');
