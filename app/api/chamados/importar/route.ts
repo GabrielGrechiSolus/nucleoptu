@@ -2,12 +2,11 @@ import { NextResponse } from 'next/server';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { montaChamado, numeroDaPasta, type Chamado } from '../../../chamados/parse';
-import { origemPermitida } from '../../_servidor';
+import { verificaFirebase } from '../../_servidor';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Importação de contextos liberada somente na rede interna (regras em ../../_servidor).
 // A rota só lê dentro da pasta CONTEXTOS_DIR (padrão: C:/RepositorioGit/claude/contextos_prs), nunca outro caminho.
 const PASTA_CONTEXTOS = path.resolve(process.env.CONTEXTOS_DIR ?? 'C:/RepositorioGit/claude/contextos_prs');
 
@@ -28,13 +27,13 @@ async function lePastaChamado(dir: string): Promise<Chamado | null> {
 
 // A página consulta se a importação está liberada para quem a abriu.
 export async function GET(req: Request) {
-  const o = origemPermitida(req);
-  return NextResponse.json({ permitido: o.ok, motivo: o.motivo ?? '', pasta: PASTA_CONTEXTOS.replace(/\\/g, '/') });
+  const login = await verificaFirebase(req);
+  return NextResponse.json({ permitido: login.ok, motivo: login.ok ? '' : login.motivo ?? '', pasta: PASTA_CONTEXTOS.replace(/\\/g, '/') });
 }
 
 export async function POST(req: Request) {
-  const o = origemPermitida(req);
-  if (!o.ok) return NextResponse.json({ erro: o.motivo }, { status: 403 });
+  const login = await verificaFirebase(req);
+  if (!login.ok) return NextResponse.json({ erro: login.motivo }, { status: 401 });
 
   let pedido = '';
   try {

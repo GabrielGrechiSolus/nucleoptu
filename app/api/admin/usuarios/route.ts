@@ -74,7 +74,7 @@ export async function POST(req: Request) {
   const email = normalizaEmail(dados.email as string);
   try {
     const auth = getAuth(a.app);
-    const u = await auth.createUser({ email, password: dados.senha as string, displayName: (dados.nome as string).trim() });
+    const u = await auth.createUser({ email, password: dados.senha as string, displayName: (dados.nome as string).trim(), emailVerified: true });
     if (dados.admin) await auth.setCustomUserClaims(u.uid, { admin: true });
     const db = getFirestore(a.app);
     await db.collection('profiles').doc(u.uid).set(

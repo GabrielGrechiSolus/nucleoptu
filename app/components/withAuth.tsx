@@ -3,6 +3,8 @@
 import { useAuth } from '../AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import VerificaEmail from './VerificaEmail';
+import { exigeVerificacaoEmail } from '../verificacao-email';
 
 const withAuth = <P extends object>(WrappedComponent: React.ComponentType<P>) => {
     const AuthComponent = (props: P) => {
@@ -21,6 +23,10 @@ const withAuth = <P extends object>(WrappedComponent: React.ComponentType<P>) =>
                     <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-sky-500"></div>
                 </div>
             );
+        }
+
+        if (exigeVerificacaoEmail({ emailVerificado: user.emailVerified, criadoEm: user.metadata?.creationTime })) {
+            return <VerificaEmail />;
         }
 
         return <WrappedComponent {...props} />;

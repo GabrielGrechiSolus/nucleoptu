@@ -1,41 +1,10 @@
 import { execFile } from 'node:child_process';
-import os from 'node:os';
 import { promisify } from 'node:util';
+import { exigeVerificacaoEmail } from '../verificacao-email';
 
 // Utilitários das rotas de API (somente servidor).
 
 const exec = promisify(execFile);
-
-// ---------- Rede interna ----------
-// - O endereço usado no acesso precisa ser: um IP que comece com um dos prefixos de IMPORT_REDE_PREFIXO
-//   (padrão: 172.16.81. e 172.16.82., Wi-Fi e cabo), ou um nome de IMPORT_HOSTS (padrão: localhost e o nome deste computador).
-// - Quando o IP de origem é informado (x-forwarded-for / x-real-ip), também precisa começar com um dos prefixos
-//   ou ser o próprio computador.
-// O Next.js não expõe o IP do socket nas rotas; a barreira de rede de verdade é o firewall.
-const PREFIXOS_REDE = (process.env.IMPORT_REDE_PREFIXO ?? '172.16.81.,172.16.82.')
-  .split(',')
-  .map((p) => p.trim())
-  .filter(Boolean);
-export const HOSTS_PERMITIDOS = (process.env.IMPORT_HOSTS ?? `localhost,127.0.0.1,[::1],${os.hostname()}`)
-  .split(',')
-  .map((h) => h.trim().toLowerCase())
-  .filter(Boolean);
-const LOCAIS = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
-const naRede = (ip: string) => PREFIXOS_REDE.some((p) => ip.startsWith(p));
-
-export function origemPermitida(req: Request): { ok: boolean; motivo?: string } {
-  // Endereço que a pessoa digitou (cabeçalho Host); req.url pode vir normalizado para o endereço de escuta (0.0.0.0).
-  const bruto = (req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? new URL(req.url).host).toLowerCase();
-  const host = bruto.startsWith('[') ? bruto.slice(0, bruto.indexOf(']') + 1) : bruto.split(':')[0];
-  if (!HOSTS_PERMITIDOS.includes(host) && !naRede(host)) {
-    return { ok: false, motivo: `Este recurso só é permitido na rede interna. Acesse pelo endereço do servidor na rede (${PREFIXOS_REDE.map((p) => `${p}x`).join(' ou ')}). Você acessou por ${host}.` };
-  }
-  const ip = (req.headers.get('x-forwarded-for')?.split(',')[0] ?? req.headers.get('x-real-ip') ?? '').trim();
-  if (ip && !naRede(ip) && !LOCAIS.has(ip)) {
-    return { ok: false, motivo: 'Este recurso só é permitido a partir da rede interna.' };
-  }
-  return { ok: true };
-}
 
 // ---------- Login do Firebase ----------
 // Valida o ID token enviado em "Authorization: Bearer ..." pela API pública do Firebase (sem SDK de admin).
@@ -51,8 +20,11 @@ export async function verificaFirebase(req: Request): Promise<{ ok: boolean; ema
       body: JSON.stringify({ idToken: token }),
     });
     if (!r.ok) return { ok: false, motivo: 'Login inválido ou expirado. Entre novamente.' };
-    const j = (await r.json()) as { users?: { email?: string; localId?: string }[] };
+    const j = (await r.json()) as { users?: { email?: string; localId?: string; emailVerified?: boolean; createdAt?: string }[] };
     if (!j.users?.length) return { ok: false, motivo: 'Login inválido ou expirado. Entre novamente.' };
+    if (exigeVerificacaoEmail({ emailVerificado: j.users[0].emailVerified, criadoEm: j.users[0].createdAt ? Number(j.users[0].createdAt) : null })) {
+      return { ok: false, motivo: 'Confirme o seu e-mail para usar este recurso.' };
+    }
     return { ok: true, email: j.users[0].email, uid: j.users[0].localId, token };
   } catch {
     return { ok: false, motivo: 'Não foi possível validar o login agora.' };

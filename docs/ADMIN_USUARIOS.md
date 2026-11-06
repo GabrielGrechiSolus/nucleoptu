@@ -1,6 +1,6 @@
 # Administração de usuários
 
-Não existe mais cadastro antes do login. Quem cadastra, inativa e troca a senha de usuários são os **administradores**, em **Administração** no menu (`/admin/usuarios`).
+Qualquer pessoa com e-mail @solus.inf.br pode fazer o próprio cadastro na tela de login ("Cadastrar Agora"). Os **administradores**, em **Administração** no menu (`/admin/usuarios`), também cadastram, inativam e trocam a senha de usuários.
 
 ## Quem é administrador
 
@@ -36,3 +36,16 @@ Sem isso, a página mostra o aviso de configuração e os botões ficam desligad
 
 - As rotas `/api/admin/*` exigem login válido e não revogado e conferem a permissão de administrador no servidor.
 - No console do Firebase, desative a opção de **cadastro de usuários** (Authentication > Configurações > Ações do usuário) para que ninguém crie conta pela API pública. A remoção da tela de cadastro, sozinha, não impede isso.
+
+## Cadastro próprio e confirmação por e-mail
+
+- Quem se cadastra pela tela de login recebe um e-mail de confirmação do Firebase e só usa o sistema depois de clicar no link (a tela "Confirme o seu e-mail" oferece "Já confirmei", "Reenviar e-mail" e "Sair").
+- A exigência vale para contas criadas a partir de `NEXT_PUBLIC_VERIFICACAO_EMAIL_A_PARTIR_DE` (padrão `2026-11-06T00:00:00Z`); contas anteriores continuam entrando normalmente. Usuários criados pela Administração já nascem com o e-mail confirmado.
+- As rotas do servidor também recusam contas novas sem e-mail confirmado.
+- O texto do e-mail é do Firebase: para deixá-lo em português e com o nome da Solus, ajuste em Firebase Console → Authentication → Templates.
+
+## Atualização automática ao entrar
+
+- A cada novo login, quem tem usuário Git no perfil (exceto Sustentação) tem os contextos criados e atualizados a partir dos PRs dos últimos 60 dias, já consultando a revision na API da Qualidade.
+- Se a chave do Businessmap estiver no perfil, os cartões dos chamados da pessoa são sincronizados em seguida (só os que mudaram).
+- A "previsão de liberação" das correções ainda sem revision é sempre a próxima depois da última revision publicada na API da Qualidade (maior revision entre os repositórios de `REVISAO_REPOS`).

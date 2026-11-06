@@ -66,17 +66,22 @@ declare module 'firebase/auth' {
   export interface Auth {
     signOut(): Promise<void>;
     currentUser: User | null;
+    languageCode: string | null;
   }
   export interface User {
     uid: string;
     email?: string;
     displayName?: string;
     photoURL?: string;
+    emailVerified: boolean;
+    metadata: { creationTime?: string; lastSignInTime?: string };
+    reload(): Promise<void>;
   }
   export function getAuth(app?: any): Auth;
   export function signInWithEmailAndPassword(auth: Auth, email: string, password: string): Promise<any>;
   export function createUserWithEmailAndPassword(auth: Auth, email: string, password: string): Promise<any>;
   export function signOut(auth: Auth): Promise<void>;
+  export function sendEmailVerification(user: User): Promise<void>;
   export function updateProfile(user: User, profile: any): Promise<void>;
   export function onAuthStateChanged(auth: Auth, callback: (user: User | null) => void): any;
 }
