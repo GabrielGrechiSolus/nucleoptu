@@ -13,6 +13,7 @@ import type { Chamado } from '../chamados/parse';
 import { ROTULO_SITUACAO } from '../chamados/parse';
 import { ListChecks, RefreshCcw } from 'lucide-react';
 import ProcessoModal from './ProcessoModal';
+import { EVENTO_DADOS_ATUALIZADOS } from '../components/AtualizaAoEntrar';
 import { permissaoProcessos } from './clienteProcesso';
 
 function ProcessosPage() {
@@ -43,6 +44,8 @@ function ProcessosPage() {
   useEffect(() => {
     carregar();
     permissaoProcessos().then(setPermissao);
+    window.addEventListener(EVENTO_DADOS_ATUALIZADOS, carregar);
+    return () => window.removeEventListener(EVENTO_DADOS_ATUALIZADOS, carregar);
   }, [carregar]);
 
   const reler = useCallback(

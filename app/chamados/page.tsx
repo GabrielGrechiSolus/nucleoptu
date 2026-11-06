@@ -16,11 +16,16 @@ import { chamadosDaPessoa, soDigitos, type RegistroBm } from './bmRegistro';
 import { lerRegistrosBm, sincronizaBm } from './bmSync';
 import { lerChaveBm } from './bmChave';
 import DetalheChamado from './DetalheChamado';
+import { previsaoDe } from './previsao';
+import { EVENTO_DADOS_ATUALIZADOS } from '../components/AtualizaAoEntrar';
+import { usePrevisaoRevisao } from './usePrevisaoRevisao';
 
 type Tri = 'todos' | 'sim' | 'nao';
 type Aba = 'todos' | 'em-correcao' | 'corrigidos' | 'regras';
 
 const COLECAO = 'chamados';
+
+const tokenDoLogin = async () => (await (auth.currentUser as unknown as { getIdToken(): Promise<string> } | null)?.getIdToken()) ?? '';
 
 const passa = (v: boolean, f: Tri) => f === 'todos' || (f === 'sim' ? v : !v);
 
@@ -95,6 +100,7 @@ function Md({ texto }: { texto: string }) {
 function ChamadosPage() {
   const [itensBrutos, setItens] = useState<Chamado[]>([]);
   const pessoa = usePessoa();
+  const previsaoGlobal = usePrevisaoRevisao();
   const semGit = pessoa.semGit;
   // Perfil Sustentação: sem links, PRs nem branches do Git (evidência, plano e análise continuam visíveis).
   const itens = useMemo(() => (semGit ? itensBrutos.map(semGitChamado) : itensBrutos), [itensBrutos, semGit]);
@@ -169,13 +175,13 @@ function ChamadosPage() {
   const pastaRef = useRef<HTMLInputElement>(null);
   const [caminho, setCaminho] = useState('C:/RepositorioGit/claude/contextos_prs');
   const [lendo, setLendo] = useState(false);
-  // Importação liberada só na rede interna (confirmado pelo servidor); null enquanto consulta.
   const [importPermitido, setImportPermitido] = useState<boolean | null>(null);
   const [importMotivo, setImportMotivo] = useState('');
   const { sort, toggleSort } = useSort({ key: 'publicado', dir: 'desc' });
 
   useEffect(() => {
-    fetch('/api/chamados/importar')
+    tokenDoLogin()
+      .then((token) => fetch('/api/chamados/importar', { headers: { Authorization: `Bearer ${token}` } }))
       .then((r) => r.json())
       .then((j) => {
         setImportPermitido(!!j.permitido);
@@ -214,6 +220,15 @@ function ChamadosPage() {
     carregar();
   }, [carregar]);
 
+  useEffect(() => {
+    const recarrega = () => {
+      carregar();
+      lerRegistrosBm().then(setRegistros).catch(() => undefined);
+    };
+    window.addEventListener(EVENTO_DADOS_ATUALIZADOS, recarrega);
+    return () => window.removeEventListener(EVENTO_DADOS_ATUALIZADOS, recarrega);
+  }, [carregar]);
+
   const aoEscolherPasta = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const arquivos = Array.from(e.target.files ?? []);
     e.target.value = '';
@@ -231,7 +246,7 @@ function ChamadosPage() {
     setMsg('');
     setLendo(true);
     try {
-      const r = await fetch('/api/chamados/importar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ caminho }) });
+      const r = await fetch('/api/chamados/importar', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await tokenDoLogin()}` }, body: JSON.stringify({ caminho }) });
       const j = await r.json();
       if (!r.ok) {
         setMsg(j.erro ?? 'Não foi possível ler a pasta.');
@@ -246,7 +261,7 @@ function ChamadosPage() {
       } catch {}
       setPrevia(j.chamados as Chamado[]);
     } catch {
-      setMsg('Não foi possível ler a pasta. Confirme que está acessando pela rede interna (172.16.81.235).');
+      setMsg('Não foi possível ler a pasta. Tente novamente.');
     } finally {
       setLendo(false);
     }
@@ -376,7 +391,7 @@ function ChamadosPage() {
           ) : (
             importPermitido === false && (
               <span title={importMotivo} className="rel-tag">
-                <Upload className="h-4 w-4" /> Importação disponível só na rede interna (172.16.81.235)
+                <Upload className="h-4 w-4" /> Importação indisponível
               </span>
             )
           )}
@@ -553,7 +568,7 @@ function ChamadosPage() {
                 <td className="hidden px-3 py-2 md:table-cell"><BmColuna r={registros[soDigitos(c.numero)]?.resumo} /></td>
                 <td className="hidden px-3 py-2 text-zinc-300 sm:table-cell">{(c.autores ?? []).join(', ') || '—'}</td>
                 <td className="hidden px-3 py-2 text-zinc-300 lg:table-cell">{c.modulo || '—'}</td>
-                <td className="hidden px-3 py-2 text-zinc-300 sm:table-cell">{c.revision || (c.situacao === 'corrigido' && c.previsaoRevision ? `previsão ${c.previsaoRevision}` : c.situacao === 'em-correcao' ? 'ainda não saiu' : '—')}</td>
+                <td className="hidden px-3 py-2 text-zinc-300 sm:table-cell">{c.revision || (previsaoDe(c, previsaoGlobal) ? `previsão ${previsaoDe(c, previsaoGlobal)}` : c.situacao === 'em-correcao' ? 'ainda não saiu' : '—')}</td>
                 <td className="hidden whitespace-nowrap px-3 py-2 text-zinc-400 md:table-cell">{formataIso(c.publicadoEm) || '—'}</td>
                 <td className={semGit ? 'hidden' : 'hidden px-3 py-2 lg:table-cell'}>
                   <div className="flex flex-wrap gap-1">
@@ -648,6 +663,7 @@ function ChamadosPage() {
         <DetalheChamado
           key={aberto.id}
           c={aberto}
+          previsao={previsaoDe(aberto, previsaoGlobal)}
           semGit={semGit}
           registro={registros[soDigitos(aberto.numero)]}
           temChave={temChave}

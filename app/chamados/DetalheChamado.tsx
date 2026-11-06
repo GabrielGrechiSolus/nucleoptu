@@ -45,6 +45,7 @@ function Cabecalho({ icone, texto }: { icone: React.ReactNode; texto: string }) 
 
 export default function DetalheChamado({
   c,
+  previsao,
   semGit,
   registro,
   temChave,
@@ -54,6 +55,7 @@ export default function DetalheChamado({
   Md,
 }: {
   c: Chamado;
+  previsao: string;
   semGit: boolean;
   registro?: RegistroBm;
   temChave: boolean;
@@ -83,7 +85,7 @@ export default function DetalheChamado({
               <span className="rel-mono">{c.numero}</span>
               {c.situacao && <span className={`rel-tag ${estiloSituacao[c.situacao]}`}>{ROTULO_SITUACAO[c.situacao]}</span>}
               {c.revision && <span className="rel-tag rel-tag-info">revision {c.revision}</span>}
-              {!c.revision && c.previsaoRevision && <span className="rel-tag rel-tag-alert">previsão {c.previsaoRevision}</span>}
+              {!c.revision && previsao && <span className="rel-tag rel-tag-alert">previsão {previsao}</span>}
               <BmColuna r={registro?.resumo} />
             </div>
             <h2 className="rel-strong mt-1 text-xl">{c.assunto}</h2>
@@ -115,7 +117,7 @@ export default function DetalheChamado({
 
               <Cartao titulo="Publicação">
                 <dl className="rel-grid rel-grid-s2">
-                  <Campo rotulo="Revision">{c.revision || (c.previsaoRevision ? `ainda não saiu (previsão de liberação: ${c.previsaoRevision})` : c.situacao === 'em-correcao' ? 'ainda não saiu' : '')}</Campo>
+                  <Campo rotulo="Revision">{c.revision || (previsao ? `ainda não saiu (previsão de liberação: ${previsao})` : c.situacao === 'em-correcao' ? 'ainda não saiu' : '')}</Campo>
                   <Campo rotulo="Publicado em">{formataIso(c.publicadoEm)}</Campo>
                   <Campo rotulo="Atualizado">{c.atualizadoEm}</Campo>
                 </dl>

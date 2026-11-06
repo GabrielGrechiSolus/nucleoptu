@@ -1,34 +1,14 @@
 import { NextResponse } from 'next/server';
 import { ErroGithub, exigeGit, githubGet } from '../../_servidor';
-import { primeiraRevisao, tagsPublicadas, ultimaRevisao, type TagPublicada } from './busca';
+import { primeiraRevisao } from './busca';
+import { tagsDoRepo } from './fonte';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const ORG = process.env.GITHUB_ORG ?? 'solussaude';
-// API da Qualidade (rede interna): tags publicadas em cada revision, por repositório.
-const API_REVISAO = process.env.QUALIDADE_API_REVISAO ?? 'https://desenv.solus.inf.br/qld/jenkins/api/tag/revisao';
 const MAX_PRS = 80;
 const PARALELO = 3;
-
-interface TagsDoRepo {
-  tags: TagPublicada[];
-  ultima: number;
-}
-
-const cache = new Map<string, { em: number; dados: TagsDoRepo }>();
-
-async function tagsDoRepo(repo: string): Promise<TagsDoRepo> {
-  const guardado = cache.get(repo);
-  if (guardado && Date.now() - guardado.em < 10 * 60 * 1000) return guardado.dados;
-  const r = await fetch(`${API_REVISAO}?column=CNOMEREPO&value=${encodeURIComponent(repo)}`, { signal: AbortSignal.timeout(25000), cache: 'no-store' });
-  if (!r.ok) throw new Error('API de revisions indisponível');
-  const j = (await r.json()) as { NNUMETAG: string; CREVIUPDAT: string; DDATATAG?: string }[];
-  const linhas = Array.isArray(j) ? j : [];
-  const dados = { tags: tagsPublicadas(linhas), ultima: ultimaRevisao(linhas) };
-  cache.set(repo, { em: Date.now(), dados });
-  return dados;
-}
 
 export interface ResultadoRevisao {
   revisao: number | null;
