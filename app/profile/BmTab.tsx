@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { auth } from '../../firebase';
-import { gravaChaveBm, lerChaveBm } from '../chamados/bmChave';
+import { gravaChaveBm, gravaEuBm, lerChaveBm } from '../chamados/bmChave';
 
 // Os tipos do Firebase neste projeto são simplificados (types/firebase.d.ts): getIdToken existe em tempo de execução.
 const idToken = async () => (await (auth.currentUser as unknown as { getIdToken(): Promise<string> } | null)?.getIdToken()) ?? '';
@@ -34,6 +34,7 @@ export default function BmTab() {
         return;
       }
       gravaChaveBm(chave);
+      gravaEuBm(j.usuario);
       setSalva(true);
       setNova('');
       setQuem(`${j.usuario.nome}${j.usuario.email ? ` (${j.usuario.email})` : ''}`);
@@ -47,6 +48,7 @@ export default function BmTab() {
 
   const remover = () => {
     gravaChaveBm('');
+    gravaEuBm(null);
     setSalva(false);
     setQuem('');
     setMsg('Chave removida deste navegador.');

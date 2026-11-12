@@ -22,3 +22,29 @@ export const cabecalhoBm = (): Record<string, string> => {
   const c = lerChaveBm();
   return c ? { 'x-bm-key': c } : {};
 };
+
+const K_EU = 'nucleoptu.bm.eu';
+
+export interface EuBm {
+  id: number;
+  nome: string;
+  email: string;
+}
+
+export function lerEuBm(): EuBm | null {
+  try {
+    const bruto = localStorage.getItem(K_EU);
+    return bruto ? (JSON.parse(bruto) as EuBm) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function gravaEuBm(eu: EuBm | null) {
+  try {
+    if (eu) localStorage.setItem(K_EU, JSON.stringify(eu));
+    else localStorage.removeItem(K_EU);
+  } catch {
+    return;
+  }
+}

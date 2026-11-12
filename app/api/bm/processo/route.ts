@@ -3,6 +3,7 @@ import { ErroBm, bmEscreve, camposDoBm, camposDoQuadroBm, checklistDaColunaBm, c
 import { dadosDoPerfil, verificaFirebase } from '../../_servidor';
 import { htmlParaTexto } from '../../../chamados/bm';
 import { PERFIL_SEM_GIT } from '../../../chamados/semgit';
+import { numeroDoChamado } from '../../../chamados/bmQuadro';
 import { CAMPOS_AUTOMATICOS, anexaLinksNaDescricao, campoPorNome, textoParaHtml, type LinkGit } from '../../../processos/automacao';
 
 export const runtime = 'nodejs';
@@ -53,7 +54,8 @@ const soDigitos = (x: unknown) => String(x ?? '').replace(/\D/g, '');
 
 async function lerEstado(chave: string, cardId: number, chamado: string) {
   const { card } = await detalheDoCartao(chave, cardId, true);
-  if (soDigitos(card.custom_id) !== soDigitos(chamado)) throw new ErroBm(400, 'O cartão não corresponde ao chamado.');
+  const alvo = soDigitos(chamado);
+  if (numeroDoChamado(card.custom_id, card.title) !== alvo && String(card.card_id) !== alvo) throw new ErroBm(400, 'O cartão não corresponde ao chamado.');
   const boardId = Number(card.board_id);
   const colunaId = Number(card.column_id);
   const [colunas, itens, marcados, campos, noQuadro] = await Promise.all([colunasDoQuadroBm(chave, boardId), checklistDaColunaBm(chave, boardId, colunaId), checklistMarcadoBm(chave, cardId), camposDoBm(chave), camposDoQuadroBm(chave, boardId)]);
@@ -65,7 +67,7 @@ async function lerEstado(chave: string, cardId: number, chamado: string) {
   });
   const marcadosPorId = new Map(marcados.map((m) => [m.id, m]));
   return {
-    card: { cardId, chamado: soDigitos(card.custom_id), titulo: card.title ?? '', boardId, colunaId, bloqueado: !!card.is_blocked },
+    card: { cardId, chamado: numeroDoChamado(card.custom_id, card.title) || String(cardId), titulo: card.title ?? '', boardId, colunaId, bloqueado: !!card.is_blocked },
     descricaoHtml: card.description ?? '',
     descricao: htmlParaTexto(card.description),
     colunas: colunas.filter((c) => c.workflowId === null || c.workflowId === Number(card.workflow_id)).sort((a, b) => a.posicao - b.posicao),

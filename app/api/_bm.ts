@@ -184,9 +184,9 @@ export async function detalheDoCartao(bm: string, cardId: number, fresco = false
 }
 
 // Quem é a pessoa dona da chave (usado para validar a chave informada no perfil).
-export async function bmEu(chave: string): Promise<{ nome: string; email: string }> {
-  const u = await bmGet<{ realname?: string; username?: string; email?: string }>(chave, '/me');
-  return { nome: u.realname || u.username || '', email: u.email ?? '' };
+export async function bmEu(chave: string): Promise<{ id: number; nome: string; email: string }> {
+  const u = await bmGet<{ user_id?: number; realname?: string; username?: string; email?: string }>(chave, '/me');
+  return { id: Number(u.user_id ?? 0), nome: u.realname || u.username || '', email: u.email ?? '' };
 }
 
 export type MetodoEscrita = 'PUT' | 'PATCH' | 'POST' | 'DELETE';
@@ -281,4 +281,21 @@ export async function camposDoQuadroBm(chave: string, boardId: number): Promise<
     return lista.map((c) => num(c.field_id));
   });
   return new Set(ids);
+}
+
+const CAMPOS_QUADRO = 'card_id,custom_id,title,owner_user_id,type_id,priority,deadline,created_at,last_modified,in_current_position_since,board_id,column_id,section,is_blocked';
+
+export async function cartoesDoQuadroBm(chave: string, boardIds: number[], fresco = false): Promise<BmCartaoBruto[]> {
+  const chaveCache = `quadro-${boardIds.join(',')}`;
+  return comCache(chave, chaveCache, fresco ? 0 : 120_000, async () => {
+    const todos: BmCartaoBruto[] = [];
+    for (const b of boardIds) {
+      for (let pagina = 1; pagina <= 20; pagina++) {
+        const lote = (await bmGet<BmCartaoBruto[]>(chave, '/cards', { board_ids: String(b), state: 'active', per_page: '200', page: String(pagina), fields: CAMPOS_QUADRO })) ?? [];
+        todos.push(...lote);
+        if (lote.length < 200) break;
+      }
+    }
+    return todos;
+  });
 }

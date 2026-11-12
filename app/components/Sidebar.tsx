@@ -28,6 +28,7 @@ import {
   ArrowUpRight,
   FolderSearch,
   ListChecks,
+  Inbox,
 } from 'lucide-react';
 import { usePessoa } from './usePessoa';
 import { useAdmin } from '../admin/useAdmin';
@@ -65,6 +66,13 @@ const NAV_ITEMS: NavItem[] = [
     icon: FolderSearch,
     color: 'text-teal-400',
     gradient: 'from-teal-500/20 to-teal-600/10',
+  },
+  {
+    href: '/chamados-bm',
+    label: 'Chamados sem PR (BM)',
+    icon: Inbox,
+    color: 'text-amber-400',
+    gradient: 'from-amber-500/20 to-amber-600/10',
   },
   {
     href: '/fila',

@@ -10,6 +10,7 @@ import { buscaPerfilGit, geraContextosDoGit, textoDoResumo } from '../chamados/a
 import { lerChaveBm } from '../chamados/bmChave';
 import { chamadosDaPessoa } from '../chamados/bmRegistro';
 import { lerRegistrosBm, sincronizaBm } from '../chamados/bmSync';
+import { lerQuadroBm, sincronizaQuadroBm } from '../chamados/bmQuadroSync';
 import type { Chamado } from '../chamados/parse';
 import { exigeVerificacaoEmail } from '../verificacao-email';
 
@@ -62,6 +63,11 @@ export default function AtualizaAoEntrar() {
         });
         partes.push(`BM: ${rb.atualizados} atualizado(s), ${rb.iguais} sem mudança${rb.erros ? `, ${rb.erros} com erro` : ''}.${rb.aviso ? ` ${rb.aviso}` : ''}`);
         if (rb.erros) erro = true;
+        setEstado({ texto: 'Atualizando o quadro do Businessmap...', tipo: 'info' });
+        const quadro = await lerQuadroBm();
+        const rq = await sincronizaQuadroBm(auth.currentUser?.email ?? '', quadro.cartoes);
+        partes.push(rq.aviso ? rq.aviso : `Quadro do BM: ${rq.total} cartão(ões), ${rq.gravados} atualizado(s).`);
+        if (rq.aviso) erro = true;
       } catch {
         partes.push('Não foi possível atualizar o Businessmap agora.');
         erro = true;

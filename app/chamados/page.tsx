@@ -18,6 +18,8 @@ import { lerChaveBm } from './bmChave';
 import DetalheChamado from './DetalheChamado';
 import { previsaoDe } from './previsao';
 import { EVENTO_DADOS_ATUALIZADOS } from '../components/AtualizaAoEntrar';
+import { reportsAtivos, reportsPorNumero, type CartaoQuadro } from './bmQuadro';
+import { lerQuadroBm } from './bmQuadroSync';
 import { usePrevisaoRevisao } from './usePrevisaoRevisao';
 
 type Tri = 'todos' | 'sim' | 'nao';
@@ -101,6 +103,8 @@ function ChamadosPage() {
   const [itensBrutos, setItens] = useState<Chamado[]>([]);
   const pessoa = usePessoa();
   const previsaoGlobal = usePrevisaoRevisao();
+  const [quadro, setQuadro] = useState<CartaoQuadro[]>([]);
+  const reportsDoQuadro = useMemo(() => reportsPorNumero(quadro), [quadro]);
   const semGit = pessoa.semGit;
   // Perfil Sustentação: sem links, PRs nem branches do Git (evidência, plano e análise continuam visíveis).
   const itens = useMemo(() => (semGit ? itensBrutos.map(semGitChamado) : itensBrutos), [itensBrutos, semGit]);
@@ -221,9 +225,14 @@ function ChamadosPage() {
   }, [carregar]);
 
   useEffect(() => {
+    lerQuadroBm().then((q) => setQuadro(q.cartoes)).catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
     const recarrega = () => {
       carregar();
       lerRegistrosBm().then(setRegistros).catch(() => undefined);
+      lerQuadroBm().then((q) => setQuadro(q.cartoes)).catch(() => undefined);
     };
     window.addEventListener(EVENTO_DADOS_ATUALIZADOS, recarrega);
     return () => window.removeEventListener(EVENTO_DADOS_ATUALIZADOS, recarrega);
@@ -565,7 +574,7 @@ function ChamadosPage() {
                 <td className="px-3 py-2">
                   {c.situacao ? <span className={`rel-tag ${estiloSituacao[c.situacao]}`}>{ROTULO_SITUACAO[c.situacao]}</span> : <span className="text-zinc-600">—</span>}
                 </td>
-                <td className="hidden px-3 py-2 md:table-cell"><BmColuna r={registros[soDigitos(c.numero)]?.resumo} /></td>
+                <td className="hidden px-3 py-2 md:table-cell"><BmColuna r={registros[soDigitos(c.numero)]?.resumo} />{reportsAtivos(reportsDoQuadro.get(soDigitos(c.numero))).length > 0 && <span className="rel-tag rel-tag-error mt-1">Report</span>}</td>
                 <td className="hidden px-3 py-2 text-zinc-300 sm:table-cell">{(c.autores ?? []).join(', ') || '—'}</td>
                 <td className="hidden px-3 py-2 text-zinc-300 lg:table-cell">{c.modulo || '—'}</td>
                 <td className="hidden px-3 py-2 text-zinc-300 sm:table-cell">{c.revision || (previsaoDe(c, previsaoGlobal) ? `previsão ${previsaoDe(c, previsaoGlobal)}` : c.situacao === 'em-correcao' ? 'ainda não saiu' : '—')}</td>
