@@ -31,6 +31,7 @@ import {
   Inbox,
 } from 'lucide-react';
 import { usePessoa } from './usePessoa';
+import { podeUsarProcessos } from '../processos/acesso';
 import { useAdmin } from '../admin/useAdmin';
 import { pendenciasPara, type Vinculo } from '../chamados/aplicacao';
 
@@ -215,7 +216,7 @@ const Sidebar: React.FC = () => {
   const pessoa = usePessoa();
   const eu = useAdmin();
   // Administração de usuários aparece só para administradores.
-  const processosItens: NavItem[] = pessoa.gitUser.toLowerCase() === 'gabrielgrechisolus' ? [{ href: '/processos', label: 'Processos do BM', icon: ListChecks, color: 'text-emerald-400', gradient: 'from-emerald-500/20 to-emerald-600/10' }] : [];
+  const processosItens: NavItem[] = podeUsarProcessos(pessoa.perfil, pessoa.gitUser) ? [{ href: '/processos', label: 'Processos do BM', icon: ListChecks, color: 'text-emerald-400', gradient: 'from-emerald-500/20 to-emerald-600/10' }] : [];
   const adminItens: NavItem[] = [...(eu.admin ? [{ href: '/admin/usuarios', label: 'Administração', icon: ListChecks, color: 'text-sky-400', gradient: 'from-sky-500/20 to-sky-600/10' }] : []), ...processosItens, ...ADMIN_ITEMS];
   const contadorDe = (href: string) => (href === '/notice-board' ? unreadNotices : href === '/fila' ? pendFila : 0);
   const [isMobileOpen, setIsMobileOpen] = useState(false);

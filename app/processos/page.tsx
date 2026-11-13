@@ -18,6 +18,7 @@ import type { EuBm } from '../chamados/bmChave';
 import ProcessoModal from './ProcessoModal';
 import { EVENTO_DADOS_ATUALIZADOS } from '../components/AtualizaAoEntrar';
 import { permissaoProcessos } from './clienteProcesso';
+import { FILTROS_INICIAIS, filtrosAtivos, passaFiltros, type FiltrosProcessos } from './filtros';
 
 function chamadoMinimo(c: CartaoQuadro): Chamado {
   return {
@@ -57,12 +58,11 @@ function ProcessosPage() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const [permissao, setPermissao] = useState<{ permitido: boolean; motivo: string } | null>(null);
-  const [busca, setBusca] = useState('');
+  const [filtros, setFiltros] = useState<FiltrosProcessos>(FILTROS_INICIAIS);
   const [aberto, setAberto] = useState<Chamado | null>(null);
   const [quadro, setQuadro] = useState<CartaoQuadro[]>([]);
   const [metaQuadro, setMetaQuadro] = useState<MetaQuadro | null>(null);
   const [eu, setEu] = useState<EuBm | null>(null);
-  const [incluiConcluidos, setIncluiConcluidos] = useState(false);
   const [abertoSemPr, setAbertoSemPr] = useState<CartaoQuadro | null>(null);
   const { sort, toggleSort } = useSort({ key: 'numero', dir: 'desc' });
 
@@ -100,30 +100,70 @@ function ProcessosPage() {
 
   const reports = useMemo(() => reportsPorNumero(quadro), [quadro]);
   const comPr = useMemo(() => new Set(itens.filter((c) => c.temPr).map((c) => c.id)), [itens]);
+  const quadroPorId = useMemo(() => new Map(quadro.map((c) => [c.cardId, c])), [quadro]);
+  const semPrBase = useMemo(() => quadro.filter((c) => !ehReport(c) && eu?.id && c.ownerId === eu.id && (!c.numero || !comPr.has(c.numero))), [quadro, eu, comPr]);
+  const temReport = useCallback((numero: string) => reportsAtivos(reports.get(numero)).length > 0, [reports]);
   const semPr = useMemo(
-    () => quadro.filter((c) => !ehReport(c) && eu?.id && c.ownerId === eu.id && (!c.numero || !comPr.has(c.numero)) && (incluiConcluidos || !concluido(c))),
-    [quadro, eu, comPr, incluiConcluidos],
+    () =>
+      semPrBase.filter((c) =>
+        passaFiltros(
+          { texto: [c.numero, c.titulo, c.tipo, c.coluna].join(' '), coluna: c.coluna, concluido: concluido(c), bloqueado: c.bloqueado, report: temReport(c.numero), situacao: '', cliente: '', temPr: false },
+          filtros,
+        ),
+      ),
+    [semPrBase, filtros, temReport],
   );
 
   const meus = useMemo(() => chamadosDaPessoa(itens, pessoa.gitUser).filter((c) => registros[soDigitos(c.numero)]?.encontrado), [itens, pessoa.gitUser, registros]);
 
+  const concluidoDoChamado = useCallback(
+    (c: Chamado) => {
+      const reg = registros[soDigitos(c.numero)];
+      const doQuadro = reg?.cardId ? quadroPorId.get(reg.cardId) : undefined;
+      if (doQuadro) return concluido(doQuadro);
+      return reg?.resumo?.secao === 'Concluído' || reg?.resumo?.secao === 'Documentado';
+    },
+    [registros, quadroPorId],
+  );
+
   const linhas = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    const filtradas = q ? meus.filter((c) => [c.numero, c.assunto, c.cliente].join(' ').toLowerCase().includes(q)) : meus;
+    const filtradas = meus.filter((c) => {
+      const resumo = registros[soDigitos(c.numero)]?.resumo;
+      return passaFiltros(
+        { texto: [c.numero, c.assunto, c.cliente, c.modulo].join(' '), coluna: resumo?.coluna ?? '', concluido: concluidoDoChamado(c), bloqueado: !!resumo?.bloqueado, report: temReport(soDigitos(c.numero)), situacao: c.situacao, cliente: c.cliente, temPr: true },
+        filtros,
+      );
+    });
     return sortRows(filtradas, sort, {
       numero: (c) => c.id,
       assunto: (c) => c.assunto,
       situacao: (c) => (c.situacao ? ROTULO_SITUACAO[c.situacao] : ''),
       bm: (c) => registros[soDigitos(c.numero)]?.resumo?.coluna ?? '',
     });
-  }, [meus, busca, sort, registros]);
+  }, [meus, filtros, sort, registros, concluidoDoChamado, temReport]);
+
+  const opcoes = useMemo(() => {
+    const colunas = new Set<string>();
+    for (const c of meus) {
+      const col = registros[soDigitos(c.numero)]?.resumo?.coluna;
+      if (col) colunas.add(col);
+    }
+    for (const c of semPrBase) if (c.coluna) colunas.add(c.coluna);
+    return {
+      colunas: [...colunas].sort(),
+      situacoes: [...new Set(meus.map((c) => c.situacao).filter(Boolean))].sort(),
+      clientes: [...new Set(meus.map((c) => c.cliente).filter(Boolean))].sort(),
+    };
+  }, [meus, semPrBase, registros]);
+
+  const altera = <K extends keyof FiltrosProcessos>(k: K, v: FiltrosProcessos[K]) => setFiltros((a) => ({ ...a, [k]: v }));
 
   if (permissao && !permissao.permitido) {
     return (
       <div className="rel-page mx-auto max-w-xl">
         <section className="rel-box">
           <h1 className="rel-title rel-title-line"><ListChecks size={20} /> Processos do BM</h1>
-          <p className="rel-notice rel-notice-alert">{permissao.motivo || 'Recurso experimental liberado apenas para usuários Git autorizados.'}</p>
+          <p className="rel-notice rel-notice-alert">{permissao.motivo || 'Esta tela é liberada para os perfis Desenvolvimento e Análise.'}</p>
           <p className="rel-desc mt-3">Para usar, informe a sua chave do Businessmap em Perfil → Businessmap.</p>
         </section>
       </div>
@@ -134,19 +174,74 @@ function ProcessosPage() {
     <div className="rel-page">
       <section className="rel-box">
         <h1 className="rel-title rel-title-line"><ListChecks size={20} /> Processos do BM</h1>
-        <p className="rel-desc mb-4">Experimento: preenche os campos do cartão a partir do Git, marca os critérios de saída que o Git comprova e move o cartão. Cada gravação pede a sua confirmação.</p>
+        <p className="rel-desc mb-4">Preenche o texto de conclusão e os links a partir do Git, marca os critérios de saída que o Git comprova, comenta e move o cartão. Cada gravação pede a sua confirmação.</p>
         <div className="flex flex-wrap items-end gap-3">
-          <div className="rel-field w-full max-w-sm">
+          <div className="rel-field min-w-[220px] flex-1">
             <label className="rel-label" htmlFor="busca-processos">Pesquisar</label>
-            <input id="busca-processos" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Chamado, assunto ou cliente" className="rel-input" />
+            <input id="busca-processos" value={filtros.busca} onChange={(e) => altera('busca', e.target.value)} placeholder="Chamado, assunto, cliente ou módulo" className="rel-input" />
           </div>
+          <label className="rel-field rel-label">
+            Mostrar
+            <select value={filtros.mostrar} onChange={(e) => altera('mostrar', e.target.value as FiltrosProcessos['mostrar'])} className="rel-input">
+              <option value="todos">Com e sem PR</option>
+              <option value="com">Só com PR</option>
+              <option value="sem">Só sem PR</option>
+            </select>
+          </label>
+          <label className="rel-field rel-label">
+            Andamento
+            <select value={filtros.andamento} onChange={(e) => altera('andamento', e.target.value as FiltrosProcessos['andamento'])} className="rel-input">
+              <option value="andamento">Em andamento</option>
+              <option value="concluidos">Concluídos</option>
+              <option value="todos">Todos</option>
+            </select>
+          </label>
+          <label className="rel-field rel-label">
+            Coluna no BM
+            <select value={filtros.coluna} onChange={(e) => altera('coluna', e.target.value)} className="rel-input max-w-[220px]">
+              <option value="">Todas</option>
+              {opcoes.colunas.map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </label>
+          <label className="rel-field rel-label">
+            Situação
+            <select value={filtros.situacao} onChange={(e) => altera('situacao', e.target.value)} className="rel-input">
+              <option value="">Todas</option>
+              {opcoes.situacoes.map((o) => <option key={o} value={o}>{ROTULO_SITUACAO[o] ?? o}</option>)}
+            </select>
+          </label>
+          <label className="rel-field rel-label">
+            Cliente
+            <select value={filtros.cliente} onChange={(e) => altera('cliente', e.target.value)} className="rel-input max-w-[200px]">
+              <option value="">Todos</option>
+              {opcoes.clientes.map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </label>
+          <label className="rel-field rel-label">
+            Report
+            <select value={filtros.report} onChange={(e) => altera('report', e.target.value as FiltrosProcessos['report'])} className="rel-input">
+              <option value="todos">Todos</option>
+              <option value="com">Com report</option>
+              <option value="sem">Sem report</option>
+            </select>
+          </label>
+          <label className="rel-field rel-label">
+            Bloqueio
+            <select value={filtros.bloqueado} onChange={(e) => altera('bloqueado', e.target.value as FiltrosProcessos['bloqueado'])} className="rel-input">
+              <option value="todos">Todos</option>
+              <option value="sim">Bloqueados</option>
+              <option value="nao">Não bloqueados</option>
+            </select>
+          </label>
+          <button onClick={() => setFiltros(FILTROS_INICIAIS)} disabled={filtrosAtivos(filtros) === 0} className="rel-btn rel-btn-ghost">Limpar filtros{filtrosAtivos(filtros) ? ` (${filtrosAtivos(filtros)})` : ''}</button>
           <button onClick={carregar} disabled={carregando} className="rel-btn rel-btn-outline"><RefreshCcw size={14} /> Recarregar</button>
-          <span className="rel-desc pb-2">{linhas.length} chamado(s) seus com cartão no BM sincronizado</span>
         </div>
+        <p className="rel-desc mt-3">{linhas.length} chamado(s) com PR e {semPr.length} sem PR nos filtros atuais.</p>
       </section>
 
       {erro && <p className="rel-notice rel-notice-error">{erro}</p>}
 
+      {filtros.mostrar !== 'sem' && (
       <section className="rel-table-wrap">
         <table className="w-full text-left text-sm">
           <thead className="text-xs">
@@ -161,7 +256,7 @@ function ProcessosPage() {
           <tbody>
             {carregando && <tr><td colSpan={5} className="rel-empty">Carregando...</td></tr>}
             {!carregando && !linhas.length && (
-              <tr><td colSpan={5} className="rel-empty">Nenhum chamado seu com cartão do BM sincronizado. Use “Atualizar do BM” em Contexto de chamados e confira o usuário Git do perfil.</td></tr>
+              <tr><td colSpan={5} className="rel-empty">{meus.length ? 'Nenhum chamado com esses filtros.' : 'Nenhum chamado seu com cartão do BM sincronizado. Use “Atualizar do BM” em Contexto de chamados e confira o usuário Git do perfil.'}</td></tr>
             )}
             {linhas.map((c) => (
               <tr key={c.id} onClick={() => setAberto(c)} className="rel-row">
@@ -175,14 +270,16 @@ function ProcessosPage() {
           </tbody>
         </table>
       </section>
+      )}
 
+      {filtros.mostrar !== 'com' && (
+      <>
       <section className="rel-box">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="rel-title" style={{ marginBottom: 0 }}>Chamados sem PR</h2>
             <p className="rel-desc">Cartões do BM em que você é o responsável e que não têm PR. Os reports abertos aparecem em destaque.</p>
           </div>
-          <label className="rel-desc flex items-center gap-2"><input type="checkbox" checked={incluiConcluidos} onChange={(e) => setIncluiConcluidos(e.target.checked)} /> Incluir concluídos</label>
         </div>
         {!eu?.id && <p className="rel-notice rel-notice-alert mt-3">Não foi possível identificar o seu usuário no BM. Confira a chave em Perfil → Businessmap.</p>}
         {eu?.id && !metaQuadro && <p className="rel-notice mt-3">O quadro do BM ainda não foi sincronizado. Use “Atualizar do BM” em Chamados sem PR (BM).</p>}
@@ -200,7 +297,7 @@ function ProcessosPage() {
             </tr>
           </thead>
           <tbody>
-            {!semPr.length && <tr><td colSpan={5} className="rel-empty">Nenhum cartão seu sem PR.</td></tr>}
+            {!semPr.length && <tr><td colSpan={5} className="rel-empty">{semPrBase.length ? 'Nenhum cartão sem PR com esses filtros.' : 'Nenhum cartão seu sem PR.'}</td></tr>}
             {semPr.map((c) => {
               const rep = reportsAtivos(reports.get(c.numero));
               return (
@@ -222,6 +319,8 @@ function ProcessosPage() {
           </tbody>
         </table>
       </section>
+      </>
+      )}
 
       {abertoSemPr && (
         <ProcessoModal

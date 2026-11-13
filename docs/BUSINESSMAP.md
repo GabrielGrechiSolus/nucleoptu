@@ -25,3 +25,9 @@
 - Report é o cartão do tipo Bug cujo título cita o chamado ("Report: 566.577"). Ele aparece como etiqueta vermelha no chamado de origem, na página de processos, na lista de contexto e nesta página, enquanto não estiver concluído.
 - Em **Processos do BM**, uma segunda lista mostra os cartões em que o usuário é responsável e que não têm PR, e o processo (critérios de saída, comentário e mover) funciona também para eles.
 - O quadro lido é o 45 (`BM_BOARD_IDS`, separados por vírgula). Libere leitura e escrita de `bm_quadro` e `bm_quadro_meta` nas regras do Firestore.
+
+## Quem acessa Processos do BM
+
+- A tela e a gravação no BM são liberadas aos perfis **Desenvolvimento** e **Análise** (tipo do perfil), com ou sem usuário Git. Sustentação não tem acesso.
+- `BM_PROCESSOS_PERFIS` (lista separada por vírgula, padrão `desenvolvimento,analise`) muda os perfis liberados, e `BM_ESCRITA_GIT_USERS` libera usuários Git específicos de outros perfis (padrão `GabrielGrechiSolus`).
+- Cada pessoa grava no BM com a própria chave (Perfil → Businessmap); sem chave, a tela avisa.

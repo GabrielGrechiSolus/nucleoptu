@@ -60,7 +60,7 @@ describe('cartão do Businessmap organizado para a tela', () => {
   it('monta o resumo da lista com coluna, responsável e link do cartão', () => {
     const r = resumoDoCartao(card, meta, BASE);
     expect(r.coluna).toBe('Backlog do Desenvolvimento');
-    expect(r.secao).toBe('Em andamento');
+    expect(r.secao).toBe('Análise');
     expect(r.responsavel).toBe('Gabriel Grechi');
     expect(r.url).toBe('https://solussaude.businessmap.io/ctrl_board/45/cards/5060/details/');
     expect(urlDoCartao(BASE, 45, 5060)).toBe(r.url);

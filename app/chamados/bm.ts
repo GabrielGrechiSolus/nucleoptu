@@ -110,7 +110,7 @@ export interface BmCartao extends BmResumoLista {
 
 export const MENSAGEM_PADRAO_CONCLUSAO = 'As alterações/desenvolvimentos foram efetivadas, ficando disponíveis para atualização via revision.';
 
-const SECOES: Record<number, string> = { 1: 'Solicitado', 2: 'Em andamento', 3: 'Concluído', 4: 'Arquivado' };
+const SECOES: Record<number, string> = { 1: 'Backlog', 2: 'Análise', 3: 'Desenvolvimento e entrega', 4: 'Concluído', 5: 'Documentado' };
 const PRIORIDADES: Record<number, string> = { 1: 'Crítica', 2: 'Alta', 3: 'Média', 4: 'Baixa' };
 
 // Texto simples a partir do HTML do BM (descrição, comentários, subtarefas).

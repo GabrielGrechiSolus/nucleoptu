@@ -4,16 +4,11 @@ import { dadosDoPerfil, verificaFirebase } from '../../_servidor';
 import { htmlParaTexto } from '../../../chamados/bm';
 import { PERFIL_SEM_GIT } from '../../../chamados/semgit';
 import { numeroDoChamado } from '../../../chamados/bmQuadro';
+import { perfisDoAmbiente, podeUsarProcessos, usuariosGitDoAmbiente } from '../../../processos/acesso';
 import { CAMPOS_AUTOMATICOS, anexaLinksNaDescricao, campoPorNome, textoParaHtml, type LinkGit } from '../../../processos/automacao';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-const usuariosLiberados = () =>
-  (process.env.BM_ESCRITA_GIT_USERS ?? 'GabrielGrechiSolus')
-    .split(',')
-    .map((u) => u.trim().toLowerCase())
-    .filter(Boolean);
 
 type Acesso = { ok: true; chave: string; email: string } | { ok: false; status: number; erro: string };
 
@@ -23,8 +18,8 @@ async function autoriza(req: Request): Promise<Acesso> {
   const perfil = await dadosDoPerfil(login.uid ?? '', login.token ?? '');
   if (!perfil.ok) return { ok: false, status: 503, erro: 'Não foi possível confirmar o seu perfil agora.' };
   if (perfil.tipo === PERFIL_SEM_GIT) return { ok: false, status: 403, erro: 'O perfil Sustentação não tem acesso a este recurso.' };
-  if (!perfil.gitUser || !usuariosLiberados().includes(perfil.gitUser.toLowerCase())) {
-    return { ok: false, status: 403, erro: 'Recurso experimental liberado apenas para usuários Git autorizados.' };
+  if (!podeUsarProcessos(perfil.tipo, perfil.gitUser, perfisDoAmbiente(process.env.BM_PROCESSOS_PERFIS), usuariosGitDoAmbiente(process.env.BM_ESCRITA_GIT_USERS))) {
+    return { ok: false, status: 403, erro: 'Esta tela é liberada para os perfis Desenvolvimento e Análise. Ajuste o tipo do seu perfil ou peça a liberação a um administrador.' };
   }
   const chave = (req.headers.get('x-bm-key') ?? '').trim();
   if (!chave) return { ok: false, status: 400, erro: 'Informe a sua chave do Businessmap em Perfil → Businessmap.' };

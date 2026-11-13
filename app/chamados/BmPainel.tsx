@@ -13,7 +13,7 @@ const dataBr = (iso: string) => {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 };
 
-const COR_SECAO: Record<string, string> = { Solicitado: '', 'Em andamento': 'rel-tag-info', Concluído: 'rel-tag-ok' };
+const COR_SECAO: Record<string, string> = { Backlog: '', Análise: 'rel-tag-info', 'Desenvolvimento e entrega': 'rel-tag-info', Concluído: 'rel-tag-ok', Documentado: 'rel-tag-ok' };
 
 export function BmColuna({ r }: { r?: BmResumoLista | null }) {
   if (!r) return <span className="rel-desc">—</span>;
