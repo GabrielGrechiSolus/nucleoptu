@@ -1,5 +1,5 @@
 import { createSign, randomBytes } from 'node:crypto';
-import { credencial } from './_admin';
+import { credencial } from './_credencial';
 
 type Dados = Record<string, unknown>;
 type Valor = Record<string, unknown>;

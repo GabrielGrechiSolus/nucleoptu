@@ -1,4 +1,4 @@
-import fs from 'node:fs';
+import { arrumaChavePrivada, credencial } from './_credencial';
 import { cert, getApps, initializeApp, type App } from 'firebase-admin/app';
 import { getAuth, type DecodedIdToken } from 'firebase-admin/auth';
 import { ehAdminBase, listaAdmins } from '../admin/validacao';
@@ -11,22 +11,7 @@ import { ehAdminBase, listaAdmins } from '../admin/validacao';
 
 export const ADMINS_BASE = listaAdmins(process.env.ADMIN_EMAILS);
 
-export function arrumaChavePrivada(c: Record<string, unknown>): Record<string, unknown> {
-  const chave = c.private_key;
-  return typeof chave === 'string' && chave.includes('\\n') ? { ...c, private_key: chave.replace(/\\n/g, '\n') } : c;
-}
-
-export function credencial():Record<string, unknown> | null {
-  try {
-    const json = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-    if (json) return arrumaChavePrivada(JSON.parse(json));
-    const caminho = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
-    if (caminho && fs.existsSync(caminho)) return arrumaChavePrivada(JSON.parse(fs.readFileSync(caminho, 'utf8')));
-  } catch {
-    return null;
-  }
-  return null;
-}
+export { arrumaChavePrivada, credencial };
 
 export const adminConfigurado = () => credencial() !== null;
 
