@@ -16,7 +16,7 @@ export function arrumaChavePrivada(c: Record<string, unknown>): Record<string, u
   return typeof chave === 'string' && chave.includes('\\n') ? { ...c, private_key: chave.replace(/\\n/g, '\n') } : c;
 }
 
-function credencial(): Record<string, unknown> | null {
+export function credencial():Record<string, unknown> | null {
   try {
     const json = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
     if (json) return arrumaChavePrivada(JSON.parse(json));

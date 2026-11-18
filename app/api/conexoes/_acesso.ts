@@ -1,12 +1,11 @@
-import { getFirestore, type Firestore } from 'firebase-admin/firestore';
-import { adminApp } from '../_admin';
+import { bancoDoAmbiente, type Db } from '../_firestore';
 import { verificaFirebase } from '../_servidor';
 import { ehAgenteBloqueado, mesmaOrigem } from '../../seguranca';
 
 export const COLECAO_CONEXOES = 'clientes_conexoes';
 export const COLECAO_AUDITORIA = 'auditoria_conexoes';
 
-export type Acesso = { ok: true; uid: string; email: string; db: Firestore } | { ok: false; status: number; erro: string };
+export type Acesso = { ok: true; uid: string; email: string; db: Db } | { ok: false; status: number; erro: string };
 
 export async function exigeConexoes(req: Request): Promise<Acesso> {
   if (ehAgenteBloqueado(req.headers.get('user-agent'))) return { ok: false, status: 403, erro: 'Acesso negado.' };
@@ -15,14 +14,9 @@ export async function exigeConexoes(req: Request): Promise<Acesso> {
   }
   const login = await verificaFirebase(req);
   if (!login.ok || !login.uid) return { ok: false, status: 401, erro: login.motivo ?? 'Entre no sistema.' };
-  try {
-    const app = adminApp();
-    if (!app) return { ok: false, status: 503, erro: 'O cadastro de conexões precisa da chave do Firebase Admin configurada no servidor (FIREBASE_SERVICE_ACCOUNT_JSON).' };
-    return { ok: true, uid: login.uid, email: login.email ?? '', db: getFirestore(app) };
-  } catch (e) {
-    console.error('Falha ao iniciar o Firebase Admin:', e);
-    return { ok: false, status: 503, erro: 'A chave do Firebase Admin não pôde ser usada pelo servidor. Cole novamente o JSON da chave em FIREBASE_SERVICE_ACCOUNT_JSON (em uma linha) e faça um novo deploy.' };
-  }
+  const db = bancoDoAmbiente();
+  if (!db) return { ok: false, status: 503, erro: 'O cadastro de conexões precisa da chave do Firebase Admin configurada no servidor (FIREBASE_SERVICE_ACCOUNT_JSON).' };
+  return { ok: true, uid: login.uid, email: login.email ?? '', db };
 }
 
 export const respostaSegura = (corpo: unknown, status = 200) =>
@@ -42,7 +36,7 @@ export const falhaInterna = (e: unknown) => {
   return respostaSegura({ erro: `Falha ao acessar o banco de dados${codigo ? ` (código ${codigo})` : ''}. Tente novamente; se persistir, avise o administrador.` }, 500);
 };
 
-export async function audita(db: Firestore, por: string, acao: string, dados: Record<string, unknown>) {
+export async function audita(db: Db, por: string, acao: string, dados: Record<string, unknown>) {
   await db
     .collection(COLECAO_AUDITORIA)
     .add({ em: new Date().toISOString(), por, acao, ...dados })
