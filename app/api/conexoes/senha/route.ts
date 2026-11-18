@@ -1,12 +1,12 @@
 import { chaveDoAmbiente, decifra } from '../../_cripto';
 import { permite } from '../../_limite';
-import { COLECAO_CONEXOES, audita, exigeConexoes, respostaSegura } from '../_acesso';
+import { COLECAO_CONEXOES, audita, exigeConexoes, falhaInterna, respostaSegura } from '../_acesso';
 import { contextoDaSenha } from '../../../client-connections/servidor';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function POST(req: Request) {
+async function revela(req: Request) {
   const a = await exigeConexoes(req);
   if (!a.ok) return respostaSegura({ erro: a.erro }, a.status);
   if (!permite(`senha:${a.uid}`, 20, 10 * 60_000)) return respostaSegura({ erro: 'Muitas senhas consultadas em pouco tempo. Aguarde alguns minutos.' }, 429);
@@ -30,3 +30,5 @@ export async function POST(req: Request) {
   await audita(a.db, a.email, 'revelar-senha', { clienteId, conexaoId, nome: String(doc.data()?.nome ?? '') });
   return respostaSegura({ senha });
 }
+
+export const POST = (req: Request) => revela(req).catch(falhaInterna);

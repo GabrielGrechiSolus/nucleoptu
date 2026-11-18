@@ -15,9 +15,14 @@ export async function exigeConexoes(req: Request): Promise<Acesso> {
   }
   const login = await verificaFirebase(req);
   if (!login.ok || !login.uid) return { ok: false, status: 401, erro: login.motivo ?? 'Entre no sistema.' };
-  const app = adminApp();
-  if (!app) return { ok: false, status: 503, erro: 'O cadastro de conexões precisa da chave do Firebase Admin configurada no servidor (FIREBASE_SERVICE_ACCOUNT_JSON).' };
-  return { ok: true, uid: login.uid, email: login.email ?? '', db: getFirestore(app) };
+  try {
+    const app = adminApp();
+    if (!app) return { ok: false, status: 503, erro: 'O cadastro de conexões precisa da chave do Firebase Admin configurada no servidor (FIREBASE_SERVICE_ACCOUNT_JSON).' };
+    return { ok: true, uid: login.uid, email: login.email ?? '', db: getFirestore(app) };
+  } catch (e) {
+    console.error('Falha ao iniciar o Firebase Admin:', e);
+    return { ok: false, status: 503, erro: 'A chave do Firebase Admin não pôde ser usada pelo servidor. Cole novamente o JSON da chave em FIREBASE_SERVICE_ACCOUNT_JSON (em uma linha) e faça um novo deploy.' };
+  }
 }
 
 export const respostaSegura = (corpo: unknown, status = 200) =>
@@ -30,6 +35,12 @@ export const respostaSegura = (corpo: unknown, status = 200) =>
       'X-Content-Type-Options': 'nosniff',
     },
   });
+
+export const falhaInterna = (e: unknown) => {
+  console.error('Falha em /api/conexoes:', e);
+  const codigo = String((e as { code?: unknown })?.code ?? '');
+  return respostaSegura({ erro: `Falha ao acessar o banco de dados${codigo ? ` (código ${codigo})` : ''}. Tente novamente; se persistir, avise o administrador.` }, 500);
+};
 
 export async function audita(db: Firestore, por: string, acao: string, dados: Record<string, unknown>) {
   await db

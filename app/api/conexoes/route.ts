@@ -1,12 +1,12 @@
 import { chaveDoAmbiente, cifra } from '../_cripto';
 import { permite } from '../_limite';
-import { COLECAO_CONEXOES, audita, exigeConexoes, respostaSegura } from './_acesso';
+import { COLECAO_CONEXOES, audita, exigeConexoes, falhaInterna, respostaSegura } from './_acesso';
 import { limpaEntrada, paraLista, preparaParaGravar } from '../../client-connections/servidor';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: Request) {
+async function lista(req: Request) {
   const a = await exigeConexoes(req);
   if (!a.ok) return respostaSegura({ erro: a.erro }, a.status);
   if (!permite(`lista:${a.uid}`, 60, 60_000)) return respostaSegura({ erro: 'Muitas consultas. Aguarde um instante.' }, 429);
@@ -14,7 +14,7 @@ export async function GET(req: Request) {
   return respostaSegura({ clientes: snap.docs.map((d) => paraLista(d.id, d.data())) });
 }
 
-export async function POST(req: Request) {
+async function grava(req: Request) {
   const a = await exigeConexoes(req);
   if (!a.ok) return respostaSegura({ erro: a.erro }, a.status);
   if (!permite(`grava:${a.uid}`, 40, 60_000)) return respostaSegura({ erro: 'Muitas alterações seguidas. Aguarde um instante.' }, 429);
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
   return respostaSegura({ cliente: paraLista(ref.id, gravar) });
 }
 
-export async function DELETE(req: Request) {
+async function exclui(req: Request) {
   const a = await exigeConexoes(req);
   if (!a.ok) return respostaSegura({ erro: a.erro }, a.status);
   if (!permite(`exclui:${a.uid}`, 20, 60_000)) return respostaSegura({ erro: 'Muitas exclusões seguidas. Aguarde um instante.' }, 429);
@@ -66,3 +66,7 @@ export async function DELETE(req: Request) {
   await audita(a.db, a.email, 'excluir', { clienteId: id, nome: String(doc.data()?.nome ?? '') });
   return respostaSegura({ ok: true });
 }
+
+export const GET = (req: Request) => lista(req).catch(falhaInterna);
+export const POST = (req: Request) => grava(req).catch(falhaInterna);
+export const DELETE = (req: Request) => exclui(req).catch(falhaInterna);
