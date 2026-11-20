@@ -123,8 +123,10 @@ export function aplicarBloco(catalogo: CatalogoAtlas, bloco: BlocoAtlas): Catalo
     if (!anterior)
         return catalogo;
     // Repetição de uma resposta não duplica contadores. Outro commit nunca mistura regras antigas.
-    if (anterior.sha === bloco.sha && anterior.arquivos >= bloco.proximo && (bloco.proximo > 0 || anterior.estadoLeitura === 'concluido'))
+    if (anterior.sha === bloco.sha && anterior.arquivos >= bloco.proximo && (bloco.proximo > 0 || anterior.estadoLeitura === 'concluido')) {
+        if (anterior.estadoLeitura === 'concluido' && anterior.precisaConferir) return { ...catalogo, repos: catalogo.repos.map((r) => r.id === bloco.repo ? { ...r, precisaConferir: false, baseAtualizadaEm: r.atualizadoEm } : r) };
         return catalogo;
+    }
     const mesmaVersao = anterior.sha === bloco.sha;
     const antigas = mesmaVersao ? catalogo.regras : catalogo.regras.filter((r) => r.repo !== bloco.repo);
     const regras = [...new Map([...antigas, ...bloco.regras].map((r) => [r.id, r])).values()];
@@ -132,7 +134,7 @@ export function aplicarBloco(catalogo: CatalogoAtlas, bloco: BlocoAtlas): Catalo
     for (const r of regras)
         if (r.repo === bloco.repo)
             categorias[r.categoria] = (categorias[r.categoria] ?? 0) + 1;
-    const novo: RepoAtlas = { ...anterior, branch: bloco.branch, sha: bloco.sha, arquivos: bloco.proximo, arquivosTotal: bloco.total, ignorados: bloco.ignorados, catalogados: Object.values(categorias).reduce((a, b) => a + b, 0), categorias, sinais: (mesmaVersao && anterior.arquivos === bloco.inicio ? anterior.sinais : 0) + bloco.sinais, estadoLeitura: bloco.concluido ? 'concluido' : 'lendo', cursor: bloco.cursor, erroLeitura: '', baseAtualizadaEm: anterior.atualizadoEm,
+    const novo: RepoAtlas = { ...anterior, branch: bloco.branch, sha: bloco.sha, arquivos: bloco.proximo, arquivosTotal: bloco.total, ignorados: bloco.ignorados, catalogados: Object.values(categorias).reduce((a, b) => a + b, 0), categorias, sinais: (mesmaVersao && anterior.arquivos === bloco.inicio ? anterior.sinais : 0) + bloco.sinais, estadoLeitura: bloco.concluido ? 'concluido' : 'lendo', cursor: bloco.cursor, erroLeitura: '', baseAtualizadaEm: mesmaVersao ? anterior.baseAtualizadaEm ?? anterior.atualizadoEm : anterior.atualizadoEm, precisaConferir: mesmaVersao ? anterior.precisaConferir : false,
         definicoes: [...new Set([...(mesmaVersao ? anterior.definicoes ?? [] : []), ...bloco.definicoes])],
         chamadas: [...new Map([...(mesmaVersao ? anterior.chamadas ?? [] : []), ...bloco.chamadas].map((c) => [c.nome, c])).values()],
         referencias: [...new Map([...(mesmaVersao ? anterior.referencias ?? [] : []), ...bloco.referencias].map((c) => [`${c.destino}:${c.arquivo}:${c.linha}`, c])).values()] };

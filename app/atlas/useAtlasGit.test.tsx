@@ -78,13 +78,14 @@ test('não mostra nem carrega cache privado quando a permissão atual é negada'
     expect(result.current.catalogo).toBeNull();
     expect(lerMapa).not.toHaveBeenCalled();
 });
-test('troca de revisão invalida somente as fontes do sistema modificado', () => {
+test('uma mudança no Git agenda a conferência sem perder a leitura já concluída', () => {
     const salvo = mapa();
     salvo.repos = salvo.repos.map((r) => ({ ...r, sha: 'lido', baseAtualizadaEm: r.atualizadoEm, estadoLeitura: 'concluido' }));
     const novo = mapa();
     novo.repos[0].atualizadoEm = '2026-11-21';
     const resultado: CatalogoAtlas = reconciliarMapa(novo, salvo);
-    expect(resultado.repos[0].estadoLeitura).toBe('pendente');
-    expect(resultado.repos[0].sha).toBe('');
+    expect(resultado.repos[0].estadoLeitura).toBe('concluido');
+    expect(resultado.repos[0].precisaConferir).toBe(true);
+    expect(resultado.repos[0].sha).toBe('lido');
     expect(resultado.repos[1].estadoLeitura).toBe('concluido');
 });

@@ -17,7 +17,7 @@ O token já configurado em `GITHUB_TOKEN` permanece exclusivamente no servidor. 
 
 O progresso é salvo por usuário em IndexedDB neste navegador. A permissão atual é confirmada pelo servidor antes de mostrar fontes anteriormente salvas. Sem armazenamento disponível, a leitura continua em memória durante a sessão. Outro navegador inicia sua própria leitura; não há banco central de regras nesta implementação.
 
-A lista do Git é atualizada a cada cinco minutos enquanto a página estiver visível. Mudanças no repositório invalidam sua leitura anterior; os demais sistemas são preservados. As descobertas apontam para o commit analisado. “Atualizar Git” também permite tentar novamente os sistemas com falha. Há controles para pausar e retomar a leitura.
+A lista do Git é atualizada a cada cinco minutos enquanto a página estiver visível. Mudanças no repositório agendam uma conferência do commit: pushes em outras branches não obrigam a reler todas as fontes. Uma leitura em curso termina na versão fixada antes de conferir a próxima; os demais sistemas são preservados. As descobertas apontam para o commit analisado. “Atualizar Git” também permite tentar novamente os sistemas com falha. Há controles para pausar e retomar a leitura.
 
 Cada requisição termina um bloco; não há processo em segundo plano dependente de uma função serverless continuar viva. O cache em memória do servidor é uma otimização limitada em tamanho, isolada pela credencial, e não um requisito para retomar. O cursor é autenticado por HMAC, tem validade de sete dias e é vinculado ao repositório, à versão do extrator e à credencial do servidor. Cursor vencido reinicia a leitura daquele sistema.
 

@@ -12,9 +12,9 @@ export function reconciliarMapa(novo: CatalogoAtlas, salvo: CatalogoAtlas | null
         return novo;
     const repos = novo.repos.map((r) => {
         const antigo = salvo.repos.find((a) => a.id === r.id);
-        if (!antigo || (antigo.baseAtualizadaEm && antigo.baseAtualizadaEm !== r.atualizadoEm))
+        if (!antigo)
             return r;
-        return { ...antigo, descricao: r.descricao, atualizadoEm: r.atualizadoEm, url: r.url };
+        return { ...antigo, descricao: r.descricao, atualizadoEm: r.atualizadoEm, url: r.url, precisaConferir: antigo.precisaConferir || !!(antigo.baseAtualizadaEm && antigo.baseAtualizadaEm !== r.atualizadoEm) };
     });
     const nomes = new Set(repos.filter((r) => r.sha).map((r) => r.id));
     return { ...novo, repos, regras: salvo.regras.filter((r) => nomes.has(r.repo)), conexoes: reconstruirConexoes(repos), geradoEm: salvo.geradoEm };
@@ -109,7 +109,7 @@ export function useAtlasGit(consultar: ConsultaAtlas, uid: string | undefined, s
             const mapa = atual.current;
             if (!mapa)
                 return;
-            const pendentes = mapa.repos.filter((r) => r.estadoLeitura === 'pendente' || r.estadoLeitura === 'lendo');
+            const pendentes = mapa.repos.filter((r) => r.estadoLeitura === 'pendente' || r.estadoLeitura === 'lendo' || (r.estadoLeitura === 'concluido' && r.precisaConferir));
             const r = pendentes.find((p) => p.id === selecionado) ?? pendentes[0];
             if (!r) {
                 setLendo('');

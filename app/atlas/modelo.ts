@@ -43,6 +43,7 @@ export interface RepoAtlas {
     cursor?: string;
     erroLeitura?: string;
     baseAtualizadaEm?: string;
+    precisaConferir?: boolean;
     definicoes?: string[];
     chamadas?: {
         nome: string;

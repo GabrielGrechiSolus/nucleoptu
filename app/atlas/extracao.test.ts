@@ -30,3 +30,18 @@ test('outro commit remove pistas antigas desse sistema e mantém as de outros si
     expect(velho.regras).toHaveLength(1);
     expect(novo.regras).toHaveLength(0);
 });
+test('push em outra branch não força reler um commit já analisado', () => {
+    const antigo = aplicarBloco(mapa(), bloco('ptu'));
+    antigo.repos = antigo.repos.map((r) => r.id === 'ptu' ? { ...r, atualizadoEm: '2026-11-21', precisaConferir: true } : r);
+    const novo = aplicarBloco(antigo, bloco('ptu'));
+    expect(novo.repos[0].precisaConferir).toBe(false);
+    expect(novo.repos[0].baseAtualizadaEm).toBe('2026-11-21');
+    expect(novo.regras).toEqual(antigo.regras);
+});
+test('atualização durante uma leitura não mistura as datas da versão fixada', () => {
+    const primeiro = aplicarBloco(mapa(), { ...bloco('ptu'), total: 2, concluido: false, cursor: 'proximo' });
+    primeiro.repos = primeiro.repos.map((r) => r.id === 'ptu' ? { ...r, atualizadoEm: '2026-11-21', precisaConferir: true } : r);
+    const ultimo = aplicarBloco(primeiro, { ...bloco('ptu'), inicio: 1, proximo: 2, total: 2 });
+    expect(ultimo.repos[0].baseAtualizadaEm).toBe('2026-11-20');
+    expect(ultimo.repos[0].precisaConferir).toBe(true);
+});
