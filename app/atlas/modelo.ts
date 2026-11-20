@@ -38,6 +38,18 @@ export interface RepoAtlas {
     atualizadoEm: string;
     url: string;
     categorias: Partial<Record<Categoria, number>>;
+    estadoLeitura?: 'pendente' | 'lendo' | 'concluido' | 'erro';
+    arquivosTotal?: number;
+    cursor?: string;
+    erroLeitura?: string;
+    baseAtualizadaEm?: string;
+    definicoes?: string[];
+    chamadas?: {
+        nome: string;
+        arquivo: string;
+        linha: number;
+    }[];
+    referencias?: ConexaoAtlas[];
 }
 export interface ConexaoAtlas {
     origem: string;
@@ -57,6 +69,27 @@ export interface CatalogoAtlas {
     indexacaoDisponivel?: boolean;
     indexando?: boolean;
     erroIndexacao?: string;
+    origem?: 'github';
+}
+export interface BlocoAtlas {
+    repo: string;
+    branch: string;
+    sha: string;
+    inicio: number;
+    proximo: number;
+    total: number;
+    ignorados: number;
+    regras: RegraAtlas[];
+    sinais: number;
+    definicoes: string[];
+    chamadas: {
+        nome: string;
+        arquivo: string;
+        linha: number;
+    }[];
+    referencias: ConexaoAtlas[];
+    cursor?: string;
+    concluido: boolean;
 }
 export interface RepoGitAtlas {
     nome: string;

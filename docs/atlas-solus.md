@@ -1,58 +1,49 @@
-# Atlas Solus
+# Atlas Solus — fontes diretamente do Git
 
-A página `/atlas`, disponível no menu do NucleoPTU, apresenta os repositórios por território de negócio, conexões rastreáveis, pistas de regras, trilhas de exploração e mudanças recentes. Usa o mesmo login e as mesmas restrições de acesso ao Git das páginas existentes. O perfil Sustentação continua sem acesso ao Git.
+A página `/atlas` usa a integração GitHub existente no NucleoPTU. Não requer checkout, Python, arquivo de inventário no servidor, `ATLAS_WORKSPACE_ROOT`, credencial nova ou armazenamento adicional na Vercel.
 
-## Fontes e atualização
+## Caminho da informação
 
-- `data/atlas.json`: inventário gerado dos checkouts cuja origem é `github.com/solussaude`. Inclui branch, commit, arquivo, linha e impressão digital do conteúdo. Não é servido como arquivo público e está excluído do Git por conter fontes internas.
-- `scripts/index-atlas.py`: lê somente arquivos rastreados pelo Git; não executa procedures, testes, aplicações ou comandos recebidos do navegador. Exclui dependências, credenciais, binários e arquivos acima de 3 MB. Linhas com indícios de segredo não são exibidas.
-- `data/atlas-curadoria.json`: arquivo local opcional, excluído do Git, com explicações internas de trechos específicos. Uma explicação só reaparece na indexação enquanto o conteúdo integral do arquivo coincidir com a impressão digital registrada. Mudança na fonte exige nova leitura e atualização da curadoria. Isso não substitui validação de negócio.
-- GitHub: lista os repositórios acessíveis na organização e consulta as cinco últimas alterações da branch indexada e os PRs mergeados encontrados entre os vinte PRs fechados mais recentemente atualizados. Consulta a cada cinco minutos enquanto a página estiver visível, com cache de cinco minutos no servidor.
+1. A API confirma o login Firebase e o perfil, mantendo a restrição atual de acesso ao Git para Sustentação.
+2. Lista os repositórios acessíveis na organização configurada em `GITHUB_ORG` (padrão `solussaude`), com paginação. O mapa abre com essa lista, mesmo antes de terminar a análise das fontes.
+3. Cada chamada de leitura resolve a branch padrão para um commit e lê até doze arquivos elegíveis, respeitando também o tamanho do bloco. Os blocos seguintes continuam no mesmo commit.
+4. As fontes são buscadas no GitHub, preferencialmente em uma consulta GraphQL com vários blobs. Se o token permitir Contents REST mas não GraphQL, usa a leitura REST dos blobs. Fontes Windows-1252 também são interpretadas.
+5. O servidor extrai pistas e referências, sem executar código dos projetos. Devolve apenas resultados, progresso e cursor assinado. O próximo bloco pode ser atendido por outra instância da Vercel.
+6. O navegador combina os blocos e recompõe as relações, inclusive quando o fornecedor de uma rotina é descoberto depois de quem a utiliza. O sistema selecionado tem prioridade sobre os demais.
 
-O inventário inicial traz apenas metadados. A biblioteca busca doze ocorrências por página no servidor; não baixa todos os trechos de código. As respostas exigem autenticação e não podem ser armazenadas em cache público.
+O token já configurado em `GITHUB_TOKEN` permanece exclusivamente no servidor. Localmente, continua disponível o fallback existente para GitHub CLI. A credencial precisa das permissões de leitura dos repositórios e de seus conteúdos; o Atlas não amplia permissões.
 
-## Executar
+## Retomada, atualização e limites
 
-Na pasta do NucleoPTU:
+O progresso é salvo por usuário em IndexedDB neste navegador. A permissão atual é confirmada pelo servidor antes de mostrar fontes anteriormente salvas. Sem armazenamento disponível, a leitura continua em memória durante a sessão. Outro navegador inicia sua própria leitura; não há banco central de regras nesta implementação.
 
-```sh
-npm run atlas:index -- --root C:/RepositorioGit
-npm run dev
-```
+A lista do Git é atualizada a cada cinco minutos enquanto a página estiver visível. Mudanças no repositório invalidam sua leitura anterior; os demais sistemas são preservados. As descobertas apontam para o commit analisado. “Atualizar Git” também permite tentar novamente os sistemas com falha. Há controles para pausar e retomar a leitura.
 
-A integração Git usa a credencial já existente no servidor (`GITHUB_TOKEN` ou GitHub CLI). Nenhum token é enviado ao navegador. Não adicione credenciais ao inventário ou à curadoria.
+Cada requisição termina um bloco; não há processo em segundo plano dependente de uma função serverless continuar viva. O cache em memória do servidor é uma otimização limitada em tamanho, isolada pela credencial, e não um requisito para retomar. O cursor é autenticado por HMAC, tem validade de sete dias e é vinculado ao repositório, à versão do extrator e à credencial do servidor. Cursor vencido reinicia a leitura daquele sistema.
 
-Variáveis exclusivas do servidor:
+O GitHub pode pedir uma pausa. Nessa situação, o bloco não avança e o navegador respeita o horário de retomada. Falha de um sistema não implica que ele foi analisado. Uma árvore truncada do Git é apresentada como incompleta, nunca como catálogo completo. A leitura de toda a organização pode demorar; a página mostra o progresso e já permite explorar os resultados disponíveis.
 
-```dotenv
-ATLAS_WORKSPACE_ROOT=C:/RepositorioGit
-# Opcional: caminho do Python quando não estiver disponível no PATH
-ATLAS_PYTHON=python
-```
+## Interpretação das pistas
 
-Com os checkouts e Python disponíveis, a página solicita releitura quando o mapa tem mais de quinze minutos, enquanto estiver aberta e visível. A opção “Como funciona o Atlas → Reler código no servidor” permite solicitar a leitura manualmente. A releitura acontece em segundo plano, com acompanhamento a cada quinze segundos e limite de quinze minutos por execução. É necessário um servidor Node persistente para esse modo. Existe uma leitura concorrente por processo e limite de duas solicitações por pessoa a cada dez minutos. A gravação do inventário é atômica; uma leitura malsucedida preserva o mapa anterior.
+- São até três exemplos por categoria em cada arquivo. Documentos literais de cliente não têm esse limite.
+- Dependências, credenciais, binários, links simbólicos e arquivos acima de 3 MB não entram na leitura. Linhas com possíveis segredos são omitidas.
+- Um número com quatorze dígitos não prova CNPJ válido ou exceção exclusiva. Máscaras com todos os dígitos iguais são descartadas.
+- Parâmetros encontrados no código não informam o valor configurado no cliente.
+- Áreas e trilhas são organização editorial. As relações indicam referências no código ou na documentação, não comprovam uma integração em execução.
+- Commit, PR mergeado e branch padrão não confirmam release nem revision instalada no cliente.
+- O passaporte conta sistemas visitados. Não representa domínio, produtividade ou avaliação gerencial.
 
-Sem `ATLAS_WORKSPACE_ROOT`, o mapa salvo continua utilizável e o Git continua sendo consultado, mas o código não é reindexado automaticamente. Hospedagem sem disco persistente/Python/checkouts precisa gerar o inventário no processo de publicação e incluir `data/atlas.json` no artefato. Para múltiplas instâncias, usar um único produtor do inventário e armazenamento compartilhado; a trava atual é local ao processo. O catálogo contém trechos internos: publicar somente com as regras de acesso da aplicação.
-
-O indexador não faz clone, fetch, checkout ou merge e não modifica os repositórios analisados. Portanto, uma divergência entre a branch remota e o checkout local continua sinalizada até que o checkout seja atualizado pelo fluxo normal de desenvolvimento. Reindexar um checkout antigo não atualiza seu código.
-
-## Como interpretar
-
-As áreas são agrupamentos editoriais para navegação, não uma arquitetura validada. Conexões são inferidas de caminhos explícitos, referências documentadas ou chamadas a packages encontrados em outro repositório; não provam que uma integração esteja em execução em produção.
-
-Os cartões automáticos são **pistas**, não regras prontas. Há até três exemplos por categoria em cada arquivo; documentos literais de cliente não têm esse limite. Máscaras com todos os dígitos iguais são descartadas. Um número de quatorze dígitos pode ter outro significado: a menção não comprova CNPJ válido nem exceção exclusiva. Ausência de cartão não comprova ausência de regra.
-
-Parâmetros encontrados no código não informam o valor configurado no cliente. Commit ou PR mergeado não confirma release, revision instalada nem vigência. O painel preserva essas distinções. Arquivo alterado localmente não recebe link para uma versão publicada; os demais links apontam para o commit indexado, nunca para uma linha móvel de uma branch.
-
-O passaporte registra sistemas visitados por pessoa neste navegador. Não atribui domínio técnico, produtividade ou pontuação gerencial. As trilhas são percursos editoriais para descobrir relações, não afirmações de uma sequência universal de execução.
+O inventário local `data/atlas.json`, a curadoria local e o comando opcional `npm run atlas:index` continuam excluídos do Git e podem apoiar análise offline. A página publicada não depende desses arquivos nem os carrega automaticamente como fonte atual.
 
 ## Verificação
 
 ```sh
-npm run atlas:test-index
-npm test -- --runInBand app/atlas/modelo.test.ts app/api/atlas/route.test.ts
+npm test -- --runInBand app/api/atlas app/atlas
 npx tsc --noEmit
 npx eslint app/atlas app/api/atlas
+npm run build
 ```
 
-Os testes cobrem fontes, exclusões, alterações locais, referências entre repositórios, documentos por cliente, busca, autenticação, resumo sem código, validação dos nomes e diferenças entre mapa e Git.
+Os testes incluem paginação, leitura sem disco local, retomada entre instâncias, assinatura e expiração de cursor, versão fixa por commit, exclusão de segredos, fontes Windows, limites do Git, troca de versão, fila e isolamento de acesso.
+
+Referências de implementação: [Git Trees](https://docs.github.com/en/rest/git/trees), [limites do GraphQL](https://docs.github.com/en/graphql/overview/rate-limits-and-query-limits-for-the-graphql-api).

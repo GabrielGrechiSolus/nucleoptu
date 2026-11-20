@@ -102,7 +102,7 @@ export async function dadosDoPerfil(uid: string, idToken: string): Promise<{ ok:
 }
 
 export class ErroGithub extends Error {
-  constructor(public status: number, mensagem: string) {
+  constructor(public status: number, mensagem: string, public retomarEm?: string) {
     super(mensagem);
   }
 }
@@ -111,8 +111,17 @@ export async function githubGet<T>(caminho: string, token: string): Promise<T> {
   const r = await fetch(`https://api.github.com${caminho}`, {
     headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'nucleoptu' },
     cache: 'no-store',
+    signal: AbortSignal.timeout(20_000),
   });
   if (!r.ok) {
+    if (r.status === 403 || r.status === 429) {
+      const dados = await r.json().catch(() => ({})) as { message?: string };
+      if (r.status === 429 || r.headers.get('x-ratelimit-remaining') === '0' || /secondary rate limit|rate limit exceeded/i.test(dados.message ?? '')) {
+        const reset = Number(r.headers.get('x-ratelimit-reset')) * 1000;
+        const espera = Math.max(60, Number(r.headers.get('retry-after')) || 0) * 1000;
+        throw new ErroGithub(429, 'O Git pediu uma pausa nas consultas. A leitura será retomada automaticamente.', new Date(Math.max(Date.now() + espera, reset || 0)).toISOString());
+      }
+    }
     const msg = r.status === 404 ? 'Não encontrado no GitHub.' : r.status === 401 ? 'Token do GitHub inválido ou expirado.' : r.status === 403 || r.status === 429 ? 'Limite de consultas do GitHub atingido ou acesso negado. Tente novamente em instantes.' : `Erro do GitHub (${r.status}).`;
     throw new ErroGithub(r.status, msg);
   }
