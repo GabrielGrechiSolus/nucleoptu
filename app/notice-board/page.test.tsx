@@ -90,9 +90,9 @@ describe('NoticeBoardPage', () => {
     expect(titleElement).toBeInTheDocument();
   });
 
-  it('renders the page description', () => {
+  it('renders the notice and unread counters', async () => {
     render(<NoticeBoardPage />);
-    const descriptionElement = screen.getByText(/Aqui você encontrará os últimos avisos e atualizações./i);
+    const descriptionElement = await screen.findByText(/aviso\(s\).*não lidos/i);
     expect(descriptionElement).toBeInTheDocument();
   });
 

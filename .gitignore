@@ -43,3 +43,10 @@ next-env.d.ts
 # chaves de serviço (nunca versionar)
 /.secrets/
 *firebase-adminsdk*.json
+
+# Cache do indexador Atlas
+/scripts/__pycache__/
+
+# Inventário e curadoria internos do Atlas (gerados/mantidos no servidor)
+/data/atlas.json
+/data/atlas-curadoria.json

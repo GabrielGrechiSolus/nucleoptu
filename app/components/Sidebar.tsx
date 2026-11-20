@@ -48,6 +48,13 @@ interface NavItem {
 // ===== Constantes =====
 const NAV_ITEMS: NavItem[] = [
   {
+    href: '/atlas',
+    label: 'Atlas Solus',
+    icon: Network,
+    color: 'text-teal-400',
+    gradient: 'from-teal-500/20 to-teal-600/10',
+  },
+  {
     href: '/home',
     label: 'Início',
     icon: Home,
