@@ -266,7 +266,7 @@ export function cartaoSemGit(c: BmCartao, ocultaGit: (t: string) => string): BmC
 
 // Conferência do card (itens do processo BM/Relatus). Recalculada a cada exibição: PR e evidência vêm do contexto atual.
 export function conferenciaDeCartao(
-  c: Pick<BmCartao, 'responsavel' | 'campos' | 'bloqueado' | 'motivoBloqueio'>,
+  c: Pick<BmCartao, 'responsavel' | 'campos' | 'bloqueado' | 'motivoBloqueio'> & { tipo?: string },
   contexto: { temPr: boolean; temEvidencia: boolean },
   semGit = false,
 ): BmCartao['conferencia'] {
@@ -274,7 +274,12 @@ export function conferenciaDeCartao(
   const conclusao = campo(/texto conclus/i);
   const prVinculado = campo(/^git pr/i);
   const semResp = !c.responsavel || c.responsavel === '—';
-  const prOk = !!prVinculado || contexto.temPr;
+  const prOk = semGit ? !!prVinculado || contexto.temPr : !!prVinculado;
+  const prSituacao: 'ok' | 'pendente' | 'atencao' = prOk ? 'ok' : contexto.temPr ? 'atencao' : 'pendente';
+  const fluxo = fluxoDoAtendimento(c.tipo ?? '');
+  const itemFluxo: BmCartao['conferencia'] = semGit
+    ? []
+    : [{ item: 'Fluxo do atendimento', situacao: fluxo ? 'ok' : 'atencao', detalhe: fluxo ? `${fluxo.rotulo}: ${fluxo.fechamento} Reviewer técnico no GIT: ${fluxo.reviewer} (sem reviewer de negócio).` : 'Tipo do card não informado: confirme se é correção (Rodrigo Z.) ou desenvolvimento (Denys) para definir o reviewer técnico e o fechamento.' }];
   return [
     { item: 'Analista responsável definido', situacao: semResp ? 'pendente' : 'ok', detalhe: semResp ? 'Sem responsável no card.' : c.responsavel },
     {
@@ -284,10 +289,26 @@ export function conferenciaDeCartao(
     },
     {
       item: 'PR informado',
-      situacao: prOk ? 'ok' : 'pendente',
-      detalhe: semGit ? (prOk ? 'Informado.' : 'Pendente.') : prVinculado ? 'Campo Git PR do card preenchido.' : contexto.temPr ? 'Há PR no contexto (o campo Git PR do card está vazio).' : 'Sem PR no card nem no contexto.',
+      situacao: prSituacao,
+      detalhe: semGit ? (prOk ? 'Informado.' : 'Pendente.') : prVinculado ? 'Campo Git PR do card preenchido.' : contexto.temPr ? 'Há PR no contexto, mas o campo Git PR do card está vazio: o card deve ter o link de cada PR do atendimento.' : 'Sem PR no card nem no contexto.',
     },
-    { item: 'Evidência e plano de testes', situacao: campo(/^qa - document/i) || contexto.temEvidencia ? 'ok' : 'pendente', detalhe: campo(/^qa - document/i) ? 'Campo QA - Documentação preenchido.' : contexto.temEvidencia ? 'Há evidência no contexto.' : 'Sem evidência nem documentação de QA.' },
+    { item: 'Evidência e plano de testes', situacao: campo(/^qa - document/i) || contexto.temEvidencia ? 'ok' : 'pendente', detalhe: campo(/^qa - document/i) ? 'Campo QA - Documentação preenchido.' : contexto.temEvidencia ? 'Há evidência no contexto.' : 'Sem evidência nem documentação de QA (link obrigatório no card).' },
+    ...itemFluxo,
     { item: 'Sem bloqueio', situacao: c.bloqueado ? 'atencao' : 'ok', detalhe: c.bloqueado ? c.motivoBloqueio || 'Card bloqueado.' : 'Não está bloqueado.' },
   ];
+}
+
+export interface FluxoAtendimento {
+  correcao: boolean;
+  rotulo: string;
+  reviewer: string;
+  fechamento: string;
+}
+
+// Fluxo vigente (comunicado de 19/11/2026): só reviewer técnico no GIT; correção fecha sem aceite do entendimento.
+export function fluxoDoAtendimento(tipo: string): FluxoAtendimento | null {
+  const t = tipo.trim();
+  if (!t) return null;
+  if (/corre[cç]|hotfix|issue/i.test(t)) return { correcao: true, rotulo: 'Correção', reviewer: 'Rodrigo Z.', fechamento: 'fecha sem aguardar o aceite do entendimento; a evidência de testes é obrigatória.' };
+  return { correcao: false, rotulo: 'Desenvolvimento', reviewer: 'Denys', fechamento: 'o aceite da evidência de testes é obrigatório.' };
 }

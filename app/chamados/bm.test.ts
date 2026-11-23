@@ -1,4 +1,4 @@
-import { cartaoSemGit, grupoDoCampo, htmlParaTexto, montaCartaoBm, resumoDoCartao, urlDoCartao, MENSAGEM_PADRAO_CONCLUSAO, type BmCartaoBruto, type BmMeta } from './bm';
+import { cartaoSemGit, fluxoDoAtendimento, grupoDoCampo, htmlParaTexto, montaCartaoBm, resumoDoCartao, urlDoCartao, MENSAGEM_PADRAO_CONCLUSAO, type BmCartaoBruto, type BmMeta } from './bm';
 
 const meta: BmMeta = {
   usuarios: { 112: 'Gabriel Grechi', 88: 'Luiz Gustavo', 90: 'Letícia Scheffer' },
@@ -91,6 +91,16 @@ describe('cartão do Businessmap organizado para a tela', () => {
     expect(por('Texto').situacao).toBe('atencao');
     expect(por('PR').situacao).toBe('ok');
     expect(por('Evidência').situacao).toBe('pendente');
+    expect(por('Fluxo').detalhe).toContain('Rodrigo Z.');
+    expect(por('Fluxo').detalhe).toContain('sem reviewer de negócio');
+    const semCampoPr = { ...card, custom_fields: card.custom_fields.filter((f) => f.field_id !== 48) };
+    const soContexto = montaCartaoBm(semCampoPr, [], [], meta, BASE, { temPr: true, temEvidencia: true });
+    expect(soContexto.conferencia.find((i) => i.item === 'PR informado')!.situacao).toBe('atencao');
+    const semNada = montaCartaoBm(semCampoPr, [], [], meta, BASE, { temPr: false, temEvidencia: true });
+    expect(semNada.conferencia.find((i) => i.item === 'PR informado')!.situacao).toBe('pendente');
+    expect(fluxoDoAtendimento('Desenvolvimento')).toMatchObject({ correcao: false, reviewer: 'Denys' });
+    expect(fluxoDoAtendimento('Correção')).toMatchObject({ correcao: true, reviewer: 'Rodrigo Z.' });
+    expect(fluxoDoAtendimento('')).toBeNull();
     expect(por('Sem bloqueio').situacao).toBe('ok');
     const bloqueado = montaCartaoBm({ ...card, is_blocked: 1, block_reason: { comment: 'Aguardando cliente' } }, [], [], meta, BASE);
     expect(bloqueado.conferencia.find((i) => i.item === 'Sem bloqueio')!.detalhe).toBe('Aguardando cliente');

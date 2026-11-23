@@ -1,7 +1,7 @@
 # Integração com o Businessmap (BM) — somente leitura
 
 - Cada chamado (número do contexto) é ligado ao cartão do BM pelo `custom_id`.
-- Lista de chamados: coluna do BM (com selo de bloqueado). Detalhe do chamado: seção "Businessmap" com conferência do card (responsável, texto de conclusão, PR, evidência/plano, bloqueio), dados gerais, tempos, campos personalizados agrupados, descrição, subtarefas, vínculos, anexos e comentários.
+- Lista de chamados: coluna do BM (com selo de bloqueado). Detalhe do chamado: seção "Businessmap" com conferência do card (responsável, texto de conclusão, PR, evidência/plano, fluxo do atendimento, bloqueio), dados gerais, tempos, campos personalizados agrupados, descrição, subtarefas, vínculos, anexos e comentários.
 - Servidor: só chamadas GET (`app/api/_bm.ts`), fila de até 24 chamadas/min por chave (limite do BM: 30/min e 600/h) e cache por chave (metadados 1 h, lotes 5 min, detalhe 2 min). Nada é compartilhado entre chaves de pessoas diferentes.
 - **Chave por usuário:** em Perfil → Businessmap cada pessoa cola a própria chave de API do BM (a chave é validada com `GET /me`). Ela fica somente no navegador (localStorage) e segue ao servidor no cabeçalho `x-bm-key` a cada consulta; o servidor não a grava. Em outro navegador é preciso informar de novo.
 - Alternativa opcional: `BM_API_KEY` no ambiente do servidor (`.env.local` / Vercel) vale para quem não informou a própria chave.
@@ -17,6 +17,14 @@
 - O cartão é gravado inteiro (com Git); a tela de Sustentação oculta o Git ao exibir. Perfil Sustentação não sincroniza.
 - A conferência do card (PR, evidência) é recalculada na tela com o contexto atual.
 - **Regras do Firestore:** é preciso permitir leitura (login) e escrita (login) em `chamados_bm`, como em `chamados`.
+
+## Fluxo de PR e de Card (comunicado de 19/11/2026)
+
+- Vale para todo PR aberto a partir da segunda-feira informada no comunicado (data a confirmar na reunião). Não se vincula reviewer de negócio no GIT: só o **Reviewer Técnico**, Rodrigo Z. para correção e Denys para desenvolvimento.
+- Mariana Campos e o líder avaliam o card pelo link do PR vinculado a ele e registram as observações no próprio card.
+- O card deve ter obrigatoriamente: link de cada PR vinculado ao atendimento (campo Git PR), link da evidência de teste e Texto de conclusão.
+- **Correção:** não espera o aceite do entendimento para fechar; o documento de evidência de testes é obrigatório. **Demais desenvolvimentos:** o aceite da evidência de testes continua obrigatório.
+- Na conferência do card: "PR informado" só fica OK com o campo Git PR preenchido (PR apenas no contexto gera atenção); o item "Fluxo do atendimento" mostra o reviewer técnico e a regra de fechamento pelo tipo do card (`fluxoDoAtendimento`, em `app/chamados/bm.ts`: tipo com "correção", "hotfix" ou "issue" = correção; tipo vazio gera atenção). O app apenas informa; não confere o reviewer no GitHub.
 
 ## Chamados sem PR e reports (quadro do BM)
 
