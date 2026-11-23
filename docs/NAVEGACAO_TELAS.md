@@ -25,3 +25,9 @@
 - Use `<div className="rel-filters">`: grade que quebra por largura mínima de 190px (campos nunca ficam espremidos), uma coluna no celular.
 - A busca leva `rel-filter-wide` (duas colunas); botões ficam em `rel-filter-actions`; caixas de seleção usam `rel-check-inline`.
 - Não limite a largura de `select` com `max-w-*` dentro de `.rel-filters`.
+
+## Menu lateral
+
+- O menu é uma árvore por assunto, definida em `app/components/navegacao.ts` (`montaMenu`): Início, Mural, **Chamados** (Contexto, Fila e a subárvore **Businessmap (BM)** com Chamados sem PR e Processos do BM), **Apoio ao atendimento** (Conexões e Links úteis) e **Conta e administração** (Perfil, Usuários e Gestão de usuários).
+- Para uma tela nova, acrescente o item no grupo do assunto em `montaMenu`; itens restritos (como Processos do BM) entram por opção. A busca do menu, os grupos recolhíveis, o realce da rota ativa e os contadores já funcionam a partir daí.
+- Com o menu recolhido (só ícones), os itens aparecem em lista simples.

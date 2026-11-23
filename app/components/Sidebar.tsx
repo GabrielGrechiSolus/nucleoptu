@@ -1,132 +1,28 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../AuthContext';
 import Header from './Header';
 import { auth, db } from '../../firebase';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { doc, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
-import {
-  Home,
-  Settings,
-  LogOut,
-  Bell,
-  Users,
-  Link as LinkIcon,
-  HelpCircle,
-  User,
-  Network,
-  Kanban,
-  Menu,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  Sparkles,
-  Search,
-  ArrowUpRight,
-  FolderSearch,
-  ListChecks,
-  Inbox,
-} from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, LogOut, Menu, Search, X } from 'lucide-react';
 import { usePessoa } from './usePessoa';
 import { podeUsarProcessos } from '../processos/acesso';
 import { useAdmin } from '../admin/useAdmin';
 import { pendenciasPara, type Vinculo } from '../chamados/aplicacao';
+import { contemRota, filtraMenu, itensDoMenu, montaMenu, rotaAtiva, somaContadores, type GrupoMenu, type ItemMenu, type NoMenu } from './navegacao';
 
-// ===== Tipos =====
-interface NavItem {
-  href: string;
-  label: string;
-  icon: React.ElementType;
-  color: string;
-  gradient: string;
-  badge?: number;
-}
-
-// ===== Constantes =====
-const NAV_ITEMS: NavItem[] = [
-  {
-    href: '/atlas',
-    label: 'Atlas Solus',
-    icon: Network,
-    color: 'text-teal-400',
-    gradient: 'from-teal-500/20 to-teal-600/10',
-  },
-  {
-    href: '/home',
-    label: 'Início',
-    icon: Home,
-    color: 'text-sky-400',
-    gradient: 'from-sky-500/20 to-sky-600/10',
-  },
-  {
-    href: '/notice-board',
-    label: 'Mural',
-    icon: Bell,
-    color: 'text-rose-400',
-    gradient: 'from-rose-500/20 to-rose-600/10',
-  },
-  {
-    href: '/chamados',
-    label: 'Contexto de chamados',
-    icon: FolderSearch,
-    color: 'text-teal-400',
-    gradient: 'from-teal-500/20 to-teal-600/10',
-  },
-  {
-    href: '/chamados-bm',
-    label: 'Chamados sem PR (BM)',
-    icon: Inbox,
-    color: 'text-amber-400',
-    gradient: 'from-amber-500/20 to-amber-600/10',
-  },
-  {
-    href: '/fila',
-    label: 'Fila de aplicação',
-    icon: ListChecks,
-    color: 'text-sky-400',
-    gradient: 'from-sky-500/20 to-sky-600/10',
-  },
-  {
-    href: '/links',
-    label: 'Links Úteis',
-    icon: LinkIcon,
-    color: 'text-cyan-400',
-    gradient: 'from-cyan-500/20 to-cyan-600/10',
-  },
-  {
-    href: '/client-connections',
-    label: 'Conexões',
-    icon: Network,
-    color: 'text-pink-400',
-    gradient: 'from-pink-500/20 to-pink-600/10',
-  },
-];
-
-const ADMIN_ITEMS: NavItem[] = [
-  {
-    href: '/users',
-    label: 'Usuários',
-    icon: Users,
-    color: 'text-gray-300',
-    gradient: 'from-gray-500/10 to-gray-600/5',
-  },
-  {
-    href: '/profile',
-    label: 'Perfil',
-    icon: User,
-    color: 'text-gray-300',
-    gradient: 'from-gray-500/10 to-gray-600/5',
-  },
-];
+// Mobile: atalhos fixos na barra inferior
+const ROTAS_BARRA_INFERIOR = ['/home', '/notice-board', '/chamados', '/fila', '/client-connections'];
 
 // ===== Componentes Auxiliares =====
 
 // Item de navegação individual
 const NavigationItem: React.FC<{
-  item: NavItem;
+  item: ItemMenu;
   isActive: boolean;
   isCollapsed: boolean;
   badge?: number;
@@ -197,6 +93,60 @@ const NavigationItem: React.FC<{
   );
 };
 
+interface RamoProps {
+  nos: NoMenu[];
+  pathname: string;
+  isCollapsed: boolean;
+  forcaAberto: boolean;
+  abertos: Record<string, boolean>;
+  alterna: (id: string, aberto: boolean) => void;
+  contadorDe: (href: string) => number;
+}
+
+const GrupoNavegacao: React.FC<Omit<RamoProps, 'nos'> & { grupo: GrupoMenu }> = ({ grupo, ...ramo }) => {
+  const Icon = grupo.icon;
+  const aberto = ramo.forcaAberto || (ramo.abertos[grupo.id] ?? (grupo.inicialAberto || contemRota(grupo, ramo.pathname)));
+  const total = somaContadores(grupo, ramo.contadorDe);
+  const temAtivo = contemRota(grupo, ramo.pathname);
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => ramo.alterna(grupo.id, !aberto)}
+        aria-expanded={aberto}
+        className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors duration-200 ${
+          temAtivo ? 'text-[#00518C]' : 'text-[#454343] hover:text-[#00518C] hover:bg-[#00518C]/5'
+        }`}
+      >
+        <Icon size={18} className="shrink-0" />
+        <span className="flex-1 truncate text-xs font-semibold uppercase tracking-wider">{grupo.label}</span>
+        {!aberto && total > 0 && (
+          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">{total > 99 ? '99+' : total}</span>
+        )}
+        <ChevronDown size={14} className={`shrink-0 transition-transform duration-200 ${aberto ? '' : '-rotate-90'}`} />
+      </button>
+      {aberto && (
+        <div className="ml-4 flex flex-col gap-0.5 border-l border-[#ebebf0] pl-2">
+          <RamoMenu {...ramo} nos={grupo.filhos} />
+        </div>
+      )}
+    </div>
+  );
+};
+
+const RamoMenu: React.FC<RamoProps> = ({ nos, ...ramo }) => (
+  <>
+    {nos.map((no) =>
+      no.tipo === 'item' ? (
+        <NavigationItem key={no.href} item={no} isActive={rotaAtiva(ramo.pathname, no.href)} isCollapsed={false} badge={ramo.contadorDe(no.href) || undefined} />
+      ) : (
+        <GrupoNavegacao key={no.id} grupo={no} {...ramo} />
+      ),
+    )}
+  </>
+);
+
 // Tecla de atalho visual
 const ShortcutKey: React.FC<{ keys: string[] }> = ({ keys }) => (
   <div className="flex items-center gap-1">
@@ -222,10 +172,10 @@ const Sidebar: React.FC = () => {
   const [pendFila, setPendFila] = useState(0); // pedidos da fila de aplicação que dependem de você
   const pessoa = usePessoa();
   const eu = useAdmin();
-  // Administração de usuários aparece só para administradores.
-  const processosItens: NavItem[] = podeUsarProcessos(pessoa.perfil, pessoa.gitUser) ? [{ href: '/processos', label: 'Processos do BM', icon: ListChecks, color: 'text-emerald-400', gradient: 'from-emerald-500/20 to-emerald-600/10' }] : [];
-  const adminItens: NavItem[] = [...(eu.admin ? [{ href: '/admin/usuarios', label: 'Administração', icon: ListChecks, color: 'text-sky-400', gradient: 'from-sky-500/20 to-sky-600/10' }] : []), ...processosItens, ...ADMIN_ITEMS];
+  const menu = montaMenu({ admin: eu.admin, processos: podeUsarProcessos(pessoa.perfil, pessoa.gitUser) });
+  const [abertos, setAbertos] = useState<Record<string, boolean>>({});
   const contadorDe = (href: string) => (href === '/notice-board' ? unreadNotices : href === '/fila' ? pendFila : 0);
+  const alterna = (id: string, aberto: boolean) => setAbertos((a) => ({ ...a, [id]: aberto }));
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -295,14 +245,8 @@ const Sidebar: React.FC = () => {
     }
   };
 
-  // Filtrar itens de navegação baseado na busca
-  const filteredNavItems = NAV_ITEMS.filter((item) =>
-    item.label.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredAdminItems = adminItens.filter((item) =>
-    item.label.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const buscando = searchQuery.trim().length > 0;
+  const menuVisivel = filtraMenu(menu, searchQuery);
 
   // ===== Renderização =====
   const sidebarContent = (
@@ -335,53 +279,18 @@ const Sidebar: React.FC = () => {
         )}
       </div>
 
-      {/* Navegação Principal */}
+      {/* Navegação por assunto */}
       <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent px-3 py-4">
-        {/* Seção Principal */}
-        <div className="mb-2">
-          {!isCollapsed && (
-            <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
-              Principal
-            </p>
+        <nav className="flex flex-col gap-1" aria-label="Menu principal">
+          {isCollapsed ? (
+            itensDoMenu(menuVisivel).map((item) => (
+              <NavigationItem key={item.href} item={item} isActive={rotaAtiva(pathname, item.href)} isCollapsed badge={contadorDe(item.href) || undefined} />
+            ))
+          ) : (
+            <RamoMenu nos={menuVisivel} pathname={pathname} isCollapsed={false} forcaAberto={buscando} abertos={abertos} alterna={alterna} contadorDe={contadorDe} />
           )}
-          <nav className="flex flex-col gap-0.5">
-            {(searchQuery ? filteredNavItems : NAV_ITEMS).map((item) => (
-              <NavigationItem
-                key={item.href}
-                item={item}
-                isActive={pathname === item.href}
-                isCollapsed={isCollapsed}
-                badge={contadorDe(item.href) || undefined}
-              />
-            ))}
-          </nav>
-        </div>
-
-        {/* Seção Administração */}
-        <div className="mt-6 mb-2">
-          <div className="relative mb-3">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-zinc-800/50" />
-            </div>
-            {!isCollapsed && (
-              <div className="relative flex justify-center">
-                <span className="px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-600 bg-zinc-950 rounded-full border border-zinc-800/50">
-                  Administração
-                </span>
-              </div>
-            )}
-          </div>
-          <nav className="flex flex-col gap-0.5">
-            {(searchQuery ? filteredAdminItems : adminItens).map((item) => (
-              <NavigationItem
-                key={item.href}
-                item={item}
-                isActive={pathname === item.href}
-                isCollapsed={isCollapsed}
-              />
-            ))}
-          </nav>
-        </div>
+          {buscando && !menuVisivel.length && <p className="px-3 py-2 text-xs text-zinc-500">Nada encontrado.</p>}
+        </nav>
       </div>
 
       {/* Footer - Configurações e Logout */}
@@ -571,9 +480,9 @@ const Sidebar: React.FC = () => {
       {/* ===== Mobile Bottom Navigation ===== */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-zinc-900/95 backdrop-blur-xl border-t border-zinc-800/50 z-30 safe-area-bottom">
         <div className="flex items-center justify-around px-2 py-2">
-          {NAV_ITEMS.slice(0, 5).map((item) => {
+          {ROTAS_BARRA_INFERIOR.map((href) => itensDoMenu(menu).find((i) => i.href === href)).filter((i): i is ItemMenu => !!i).map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href;
+            const isActive = rotaAtiva(pathname, item.href);
             return (
               <Link
                 key={item.href}
