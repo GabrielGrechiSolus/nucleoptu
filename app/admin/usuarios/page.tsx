@@ -166,8 +166,8 @@ function UsuariosAdminPage() {
       )}
       {erro && <div className="rel-notice rel-notice-error">{erro}</div>}
 
-      <section className="rel-box flex flex-wrap items-end gap-3">
-        <label className="rel-field rel-label min-w-[220px] flex-1">
+      <section className="rel-box rel-filters">
+        <label className="rel-field rel-label rel-filter-wide">
           Pesquisar
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-500" />
@@ -192,7 +192,7 @@ function UsuariosAdminPage() {
             <option value="">Todos</option><option value="sim">Sim</option><option value="nao">Não</option>
           </select>
         </label>
-        <span className="ml-auto text-xs text-zinc-400">{filtrados.length} de {usuarios.length} usuário(s)</span>
+        <span className="rel-desc">{filtrados.length} de {usuarios.length} usuário(s)</span>
       </section>
 
       <section className="rel-table-wrap">

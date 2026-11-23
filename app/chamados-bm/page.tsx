@@ -2,9 +2,11 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
-import { ExternalLink, Inbox, RefreshCcw, Search, X } from 'lucide-react';
+import { ExternalLink, Inbox, RefreshCcw, Search } from 'lucide-react';
 import { auth, db } from '../../firebase';
 import withAuth from '../components/withAuth';
+import Link from 'next/link';
+import TelaDetalhe, { useDetalheNaUrl } from '../components/TelaDetalhe';
 import { SortTh, sortRows, useSort } from '../components/SortableTable';
 import { lerChaveBm } from '../chamados/bmChave';
 import { ROTULO_PRIORIDADE, ROTULO_SECAO, atencaoDe, concluido, diasDesde, ehReport, pontuacao, reportsAtivos, reportsPorNumero, type Atencao, type CartaoQuadro } from '../chamados/bmQuadro';
@@ -51,7 +53,7 @@ function ChamadosBmPage() {
   const [fTipo, setFTipo] = useState('');
   const [incluiPr, setIncluiPr] = useState(false);
   const [semNumero, setSemNumero] = useState(false);
-  const [aberto, setAberto] = useState<CartaoQuadro | null>(null);
+  const url = useDetalheNaUrl('cartao');
   const { sort, toggleSort } = useSort({ key: 'relevancia', dir: 'desc' });
   const [agora] = useState(() => Date.now());
 
@@ -146,6 +148,68 @@ function ChamadosBmPage() {
     { id: 'todos', rotulo: 'Todos' },
   ];
 
+  const aberto = useMemo(() => (url.valor ? cartoes.find((c) => String(c.cardId) === url.valor) ?? null : null), [cartoes, url.valor]);
+
+  if (url.valor && carregando) return <p className="rel-desc">Carregando...</p>;
+
+  if (aberto) {
+    const pontosAtencao = atencaoDe(aberto, reportsDe(aberto), agora);
+    const reportsAbertos = reportsAtivos(reportsDe(aberto));
+    return (
+      <TelaDetalhe
+        onVoltar={url.voltar}
+        rotuloVoltar="Voltar à lista"
+        cabecalho={
+          <>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rel-mono">{aberto.numero || `cartão ${aberto.cardId}`}</span>
+                <span className={`rel-tag ${concluido(aberto) ? 'rel-tag-ok' : 'rel-tag-info'}`}>{aberto.coluna}</span>
+              </div>
+              <h1 className="rel-strong mt-1 text-xl">{aberto.titulo}</h1>
+            </div>
+            <a href={aberto.url} target="_blank" rel="noreferrer" className="rel-btn rel-btn-primary">Abrir cartão no BM <ExternalLink className="h-4 w-4" /></a>
+          </>
+        }
+      >
+        <section className="rel-box">
+          <div className="rel-grid rel-grid-s2 rel-grid-3">
+            {[
+              ['Fase', ROTULO_SECAO[aberto.secao] ?? '—'],
+              ['Tipo', aberto.tipo || '—'],
+              ['Responsável', aberto.responsavel || 'Sem responsável'],
+              ['Prioridade', aberto.prioridade ? ROTULO_PRIORIDADE[aberto.prioridade] : '—'],
+              ['Prazo', dataBr(aberto.prazo)],
+              ['Criado em', dataBr(aberto.criadoEm)],
+              ['Atualizado em', dataBr(aberto.atualizadoEm)],
+              ['Na coluna desde', dataBr(aberto.naColunaDesde)],
+            ].map(([k, v]) => (
+              <div key={k} className="rel-field"><span className="rel-label">{k}</span><span className="rel-value">{v}</span></div>
+            ))}
+          </div>
+        </section>
+        {pontosAtencao.length > 0 && (
+          <section className="rel-box">
+            <h3 className="rel-subtitle">Pontos de atenção</h3>
+            <div className="flex flex-wrap gap-1">
+              {pontosAtencao.map((a) => <span key={a} className={`rel-tag ${COR_ATENCAO[a]}`}>{ROTULO_ATENCAO[a]}</span>)}
+            </div>
+          </section>
+        )}
+        {reportsAbertos.length > 0 && (
+          <section className="rel-box">
+            <h3 className="rel-subtitle">Reports abertos</h3>
+            <ul className="rel-list">
+              {reportsAbertos.map((r) => (
+                <li key={r.cardId}><a href={r.url} target="_blank" rel="noreferrer" className="rel-link inline-flex items-center gap-1">{r.titulo} <ExternalLink className="h-3 w-3" /></a> <span className="rel-desc">({r.coluna}{r.responsavel ? `, ${r.responsavel}` : ''})</span></li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </TelaDetalhe>
+    );
+  }
+
   return (
     <div className="rel-page mx-auto max-w-7xl">
       <header className="rel-box flex flex-wrap items-center justify-between gap-3">
@@ -174,8 +238,8 @@ function ChamadosBmPage() {
       </div>
 
       <section className="rel-box">
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="rel-field rel-label min-w-[220px] flex-1">
+        <div className="rel-filters">
+          <label className="rel-field rel-label rel-filter-wide">
             Pesquisar
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4" style={{ color: 'var(--rel-muted)' }} />
@@ -184,21 +248,21 @@ function ChamadosBmPage() {
           </label>
           <label className="rel-field rel-label">
             Responsável
-            <select value={fResp} onChange={(e) => setFResp(e.target.value)} className="rel-input max-w-[220px]">
+            <select value={fResp} onChange={(e) => setFResp(e.target.value)} className="rel-input">
               <option value="">Todos</option>
               {responsaveis.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </label>
           <label className="rel-field rel-label">
             Coluna
-            <select value={fColuna} onChange={(e) => setFColuna(e.target.value)} className="rel-input max-w-[220px]">
+            <select value={fColuna} onChange={(e) => setFColuna(e.target.value)} className="rel-input">
               <option value="">Todas</option>
               {colunas.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </label>
           <label className="rel-field rel-label">
             Tipo
-            <select value={fTipo} onChange={(e) => setFTipo(e.target.value)} className="rel-input max-w-[200px]">
+            <select value={fTipo} onChange={(e) => setFTipo(e.target.value)} className="rel-input">
               <option value="">Todos</option>
               {tipos.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
@@ -238,9 +302,9 @@ function ChamadosBmPage() {
               const atencao = atencaoDe(c, rep, agora);
               const pontos = pontuacao(c, rep, agora);
               return (
-                <tr key={c.cardId} onClick={() => setAberto(c)} className="rel-row">
+                <tr key={c.cardId} onClick={() => url.abrir(String(c.cardId))} className="rel-row">
                   <td className="hidden px-3 py-2 md:table-cell"><span className={`rel-tag ${pontos >= 50 ? 'rel-tag-error' : pontos >= 20 ? 'rel-tag-alert' : ''}`}>{Math.round(pontos)}</span></td>
-                  <td className="rel-mono whitespace-nowrap px-3 py-2">{c.numero || '—'}</td>
+                  <td className="rel-mono whitespace-nowrap px-3 py-2"><Link href={url.hrefDe(String(c.cardId))} onClick={(e) => e.stopPropagation()} className="rel-link">{c.numero || '—'}</Link></td>
                   <td className="max-w-[420px] px-3 py-2"><div className="rel-strong">{c.titulo}</div><div className="rel-desc">{c.tipo || '—'}</div></td>
                   <td className="px-3 py-2"><span className={`rel-tag ${concluido(c) ? 'rel-tag-ok' : 'rel-tag-info'}`}>{c.coluna || ROTULO_SECAO[c.secao] || '—'}</span></td>
                   <td className="hidden px-3 py-2 sm:table-cell">{c.responsavel || '—'}</td>
@@ -263,60 +327,6 @@ function ChamadosBmPage() {
           </tbody>
         </table>
       </section>
-
-      {aberto && (
-        <div className="rel-backdrop" onClick={() => setAberto(null)}>
-          <div className="rel-modal rel-modal-sm" onClick={(e) => e.stopPropagation()}>
-            <header className="rel-modal-head">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rel-mono">{aberto.numero || `cartão ${aberto.cardId}`}</span>
-                  <span className={`rel-tag ${concluido(aberto) ? 'rel-tag-ok' : 'rel-tag-info'}`}>{aberto.coluna}</span>
-                </div>
-                <h2 className="rel-strong mt-1 text-lg">{aberto.titulo}</h2>
-              </div>
-              <button onClick={() => setAberto(null)} aria-label="Fechar" className="rel-btn rel-btn-icon"><X className="h-5 w-5" /></button>
-            </header>
-            <div className="rel-modal-body">
-              <div className="rel-grid rel-grid-s2">
-                {[
-                  ['Fase', ROTULO_SECAO[aberto.secao] ?? '—'],
-                  ['Tipo', aberto.tipo || '—'],
-                  ['Responsável', aberto.responsavel || 'Sem responsável'],
-                  ['Prioridade', aberto.prioridade ? ROTULO_PRIORIDADE[aberto.prioridade] : '—'],
-                  ['Prazo', dataBr(aberto.prazo)],
-                  ['Criado em', dataBr(aberto.criadoEm)],
-                  ['Atualizado em', dataBr(aberto.atualizadoEm)],
-                  ['Na coluna desde', dataBr(aberto.naColunaDesde)],
-                ].map(([k, v]) => (
-                  <div key={k} className="rel-field"><span className="rel-label">{k}</span><span className="rel-value">{v}</span></div>
-                ))}
-              </div>
-              {atencaoDe(aberto, reportsDe(aberto), agora).length > 0 && (
-                <div className="rel-box">
-                  <h3 className="rel-subtitle">Pontos de atenção</h3>
-                  <div className="flex flex-wrap gap-1">
-                    {atencaoDe(aberto, reportsDe(aberto), agora).map((a) => <span key={a} className={`rel-tag ${COR_ATENCAO[a]}`}>{ROTULO_ATENCAO[a]}</span>)}
-                  </div>
-                </div>
-              )}
-              {reportsAtivos(reportsDe(aberto)).length > 0 && (
-                <div className="rel-box">
-                  <h3 className="rel-subtitle">Reports abertos</h3>
-                  <ul className="rel-list">
-                    {reportsAtivos(reportsDe(aberto)).map((r) => (
-                      <li key={r.cardId}><a href={r.url} target="_blank" rel="noreferrer" className="rel-link inline-flex items-center gap-1">{r.titulo} <ExternalLink className="h-3 w-3" /></a> <span className="rel-desc">({r.coluna}{r.responsavel ? `, ${r.responsavel}` : ''})</span></li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-            <div className="rel-modal-foot justify-end">
-              <a href={aberto.url} target="_blank" rel="noreferrer" className="rel-btn rel-btn-primary">Abrir cartão no BM <ExternalLink className="h-4 w-4" /></a>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

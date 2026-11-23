@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ExternalLink, X } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
+import TelaDetalhe from '../components/TelaDetalhe';
 import { htmlParaTexto } from '../chamados/bm';
 import type { Chamado } from '../chamados/parse';
 import type { RegistroBm } from '../chamados/bmRegistro';
@@ -22,7 +23,7 @@ function Secao({ titulo, aside, children }: { titulo: string; aside?: React.Reac
   );
 }
 
-export default function ProcessoModal({ chamado, registro, onClose, onGravado }: { chamado: Chamado; registro: RegistroBm; onClose: () => void; onGravado: () => void }) {
+export default function ProcessoTela({ chamado, registro, onVoltar, rotuloVoltar, onGravado }: { chamado: Chamado; registro: RegistroBm; onVoltar: () => void; rotuloVoltar?: string; onGravado: () => void }) {
   const cardId = registro.cardId ?? 0;
   const [estado, setEstado] = useState<EstadoProcesso | null>(null);
   const [erro, setErro] = useState('');
@@ -173,26 +174,51 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
   const progresso = criterios.length ? Math.round((totalMarcados / criterios.length) * 100) : 100;
 
   return (
-    <div className="rel-backdrop" onClick={onClose}>
-      <div className="rel-modal" onClick={(e) => e.stopPropagation()}>
-        <header className="rel-modal-head">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rel-mono">{chamado.numero}</span>
-              <span className="rel-tag rel-tag-info">{colunaAtual}</span>
-              {registro.resumo && (
-                <a href={registro.resumo.url} target="_blank" rel="noreferrer" className="rel-link inline-flex items-center gap-1 text-xs">
-                  Abrir cartão <ExternalLink className="h-3 w-3" />
-                </a>
-              )}
-            </div>
-            <h2 className="rel-strong mt-1 text-xl">{chamado.assunto}</h2>
-            <p className="rel-desc">Escolha o que atualizar no cartão. Nada é gravado sem a sua confirmação.</p>
+    <TelaDetalhe
+      onVoltar={onVoltar}
+      rotuloVoltar={rotuloVoltar}
+      cabecalho={
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rel-mono">{chamado.numero}</span>
+            <span className="rel-tag rel-tag-info">{colunaAtual}</span>
+            {registro.resumo && (
+              <a href={registro.resumo.url} target="_blank" rel="noreferrer" className="rel-link inline-flex items-center gap-1 text-xs">
+                Abrir cartão <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
           </div>
-          <button onClick={onClose} aria-label="Fechar" className="rel-btn rel-btn-icon"><X className="h-5 w-5" /></button>
-        </header>
-
-        <div className="rel-modal-body">
+          <h1 className="rel-strong mt-1 text-xl">{chamado.assunto}</h1>
+          <p className="rel-desc">Escolha o que atualizar no cartão. Nada é gravado sem a sua confirmação.</p>
+        </div>
+      }
+      rodape={
+        <>
+          <span className="rel-desc">A gravação fica registrada no BM em nome do dono da chave.</span>
+          <div className="flex gap-2">
+            <button onClick={carrega} disabled={carregando || trabalhando} className="rel-btn rel-btn-ghost">Reler do BM</button>
+            <button onClick={revisar} disabled={!estado || trabalhando || quantidade === 0} className="rel-btn rel-btn-primary">{trabalhando ? 'Aguarde...' : `Revisar alterações${quantidade ? ` (${quantidade})` : ''}`}</button>
+          </div>
+        </>
+      }
+    >
+      <>
+          {simulacao && (
+            <Secao titulo="Confirmar gravação no Businessmap">
+              <p className="rel-desc mb-3">As alterações abaixo serão feitas no cartão {chamado.numero}, nesta ordem, em nome do dono da chave.</p>
+              <ol className="list-decimal pl-5">
+                {simulacao.map((r, i) => <li key={i} className="rel-value">{r.descricao}</li>)}
+              </ol>
+              <details className="rel-details">
+                <summary>Ver as requisições exatas</summary>
+                <pre className="rel-pre mt-2">{simulacao.map((r) => `${r.metodo} ${r.caminho}\n${r.corpo === undefined ? '' : JSON.stringify(r.corpo)}`).join('\n\n')}</pre>
+              </details>
+              <div className="mt-4 flex flex-wrap justify-end gap-2">
+                <button onClick={() => setSimulacao(null)} disabled={trabalhando} className="rel-btn rel-btn-ghost">Cancelar</button>
+                <button onClick={gravar} disabled={trabalhando} className="rel-btn rel-btn-primary">{trabalhando ? 'Gravando...' : 'Confirmar e gravar'}</button>
+              </div>
+            </Secao>
+          )}
           {carregando && <p className="rel-desc">Lendo o cartão no Businessmap...</p>}
           {erro && <p className="rel-notice rel-notice-error">{erro}</p>}
           {estado?.card.bloqueado && <p className="rel-notice rel-notice-alert">O cartão está bloqueado no BM: não é possível mover enquanto estiver assim.</p>}
@@ -324,42 +350,7 @@ export default function ProcessoModal({ chamado, registro, onClose, onGravado }:
               </aside>
             </div>
           )}
-        </div>
-
-        <footer className="rel-modal-foot">
-          <span className="rel-desc">A gravação fica registrada no BM em nome do dono da chave.</span>
-          <div className="flex gap-2">
-            <button onClick={carrega} disabled={carregando || trabalhando} className="rel-btn rel-btn-ghost">Reler do BM</button>
-            <button onClick={revisar} disabled={!estado || trabalhando || quantidade === 0} className="rel-btn rel-btn-primary">{trabalhando ? 'Aguarde...' : `Revisar alterações${quantidade ? ` (${quantidade})` : ''}`}</button>
-          </div>
-        </footer>
-
-        {simulacao && (
-          <div className="rel-backdrop rel-backdrop-top" onClick={() => !trabalhando && setSimulacao(null)}>
-            <div className="rel-modal rel-modal-sm" onClick={(e) => e.stopPropagation()}>
-              <div className="rel-modal-head">
-                <div>
-                  <h3 className="rel-strong text-lg">Confirmar gravação no Businessmap</h3>
-                  <p className="rel-desc">As alterações abaixo serão feitas no cartão {chamado.numero}, nesta ordem, em nome do dono da chave.</p>
-                </div>
-              </div>
-              <div className="rel-modal-body">
-                <ol className="list-decimal pl-5">
-                  {simulacao.map((r, i) => <li key={i} className="rel-value">{r.descricao}</li>)}
-                </ol>
-                <details className="rel-details">
-                  <summary>Ver as requisições exatas</summary>
-                  <pre className="rel-pre mt-2">{simulacao.map((r) => `${r.metodo} ${r.caminho}\n${r.corpo === undefined ? '' : JSON.stringify(r.corpo)}`).join('\n\n')}</pre>
-                </details>
-              </div>
-              <div className="rel-modal-foot justify-end">
-                <button onClick={() => setSimulacao(null)} disabled={trabalhando} className="rel-btn rel-btn-ghost">Cancelar</button>
-                <button onClick={gravar} disabled={trabalhando} className="rel-btn rel-btn-primary">{trabalhando ? 'Gravando...' : 'Confirmar e gravar'}</button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+      </>
+    </TelaDetalhe>
   );
 }

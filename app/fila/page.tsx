@@ -2,8 +2,10 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import withAuth from '../components/withAuth';
+import Link from 'next/link';
+import TelaDetalhe, { useDetalheNaUrl } from '../components/TelaDetalhe';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import { ListChecks, Search, X } from 'lucide-react';
+import { ListChecks, Search } from 'lucide-react';
 import { db } from '../../firebase';
 import { usePessoa } from '../components/usePessoa';
 import { SortTh, sortRows, useSort } from '../components/SortableTable';
@@ -22,7 +24,7 @@ function FilaPage() {
   const [busca, setBusca] = useState('');
   const [fStatus, setFStatus] = useState<'' | StatusAplicacao>('');
   const [ocultaFechados, setOcultaFechados] = useState(true);
-  const [aberto, setAberto] = useState<string | null>(null);
+  const url = useDetalheNaUrl('pedido');
   const { sort, toggleSort } = useSort({ key: 'atualizado', dir: 'desc' });
 
   useEffect(() => {
@@ -70,7 +72,7 @@ function FilaPage() {
     });
   }, [itens, aba, busca, fStatus, ocultaFechados, sort, pessoa.uid, pessoa.gitUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const selecionado = itens.find((v) => v.id === aberto) ?? null;
+  const selecionado = itens.find((v) => v.id === url.valor) ?? null;
 
   const abas: { id: Aba; rotulo: string; dica: string }[] = [
     { id: 'aplicar', rotulo: 'Para eu aplicar', dica: 'Pedidos abertos ou em aplicação dos PRs que você fez' },
@@ -78,6 +80,39 @@ function FilaPage() {
     { id: 'meus', rotulo: 'Meus pedidos', dica: 'Pedidos que você abriu' },
     { id: 'todos', rotulo: 'Todos', dica: 'Toda a fila' },
   ];
+
+
+  if (selecionado) {
+    return (
+      <TelaDetalhe
+        onVoltar={url.voltar}
+        rotuloVoltar="Voltar à fila"
+        cabecalho={
+          <div className="min-w-0">
+            <div className="rel-mono">{selecionado.chamadoNumero}</div>
+            <h1 className="rel-strong text-xl">{selecionado.cliente}</h1>
+            <p className="rel-desc">{selecionado.assunto}</p>
+          </div>
+        }
+      >
+        <section className="rel-box">
+          <dl className="rel-grid rel-grid-s2">
+            <div className="rel-field"><dt className="rel-label">Status</dt><dd><span className={`rounded px-2 py-0.5 text-xs ${estiloStatus[selecionado.aplicacao]}`}>{ROTULO_STATUS[selecionado.aplicacao]}</span></dd></div>
+            <div className="rel-field"><dt className="rel-label">Pedido por</dt><dd className="rel-value">{selecionado.criadoPorNome || selecionado.criadoPorEmail}</dd></div>
+            <div className="rel-field sm:col-span-2"><dt className="rel-label">Correção</dt><dd className="rel-value">{selecionado.contextoNumero} — {selecionado.contextoAssunto}</dd></div>
+            <div className="rel-field sm:col-span-2"><dt className="rel-label">Quem aplica (dono do PR)</dt><dd className="rel-value">{selecionado.donoNomes.join(', ') || 'não informado'}{!pessoa.semGit && selecionado.donoLogins.length ? ` (${selecionado.donoLogins.join(', ')})` : ''}</dd></div>
+            {!pessoa.semGit && <div className="rel-field sm:col-span-2"><dt className="rel-label">PRs</dt><dd className="rel-value font-mono text-xs">{selecionado.prs.join(', ') || '—'}</dd></div>}
+            {selecionado.observacao && <div className="rel-field sm:col-span-2"><dt className="rel-label">Observação</dt><dd className="rel-value">{selecionado.observacao}</dd></div>}
+          </dl>
+          <div className="mt-4"><BotoesAcao v={selecionado} /></div>
+        </section>
+        <section className="rel-box">
+          <h3 className="rel-subtitle">Histórico</h3>
+          <Historico itens={selecionado.historico} />
+        </section>
+      </TelaDetalhe>
+    );
+  }
 
   return (
     <div className="rel-page mx-auto max-w-7xl">
@@ -109,8 +144,8 @@ function FilaPage() {
         ))}
       </div>
 
-      <section className="rel-box flex flex-wrap items-end gap-3">
-        <label className="rel-field rel-label min-w-[220px] flex-1">
+      <section className="rel-box rel-filters">
+        <label className="rel-field rel-label rel-filter-wide">
           Pesquisar
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-500" />
@@ -119,16 +154,16 @@ function FilaPage() {
         </label>
         <label className="rel-field rel-label">
           Status
-          <select value={fStatus} onChange={(e) => setFStatus(e.target.value as '' | StatusAplicacao)} className="rel-input max-w-[220px]">
+          <select value={fStatus} onChange={(e) => setFStatus(e.target.value as '' | StatusAplicacao)} className="rel-input">
             <option value="">Todos</option>
             {STATUS_FILA.map((s) => <option key={s} value={s}>{ROTULO_STATUS_CURTO[s]}</option>)}
           </select>
         </label>
-        <label className="flex items-center gap-2 text-xs text-zinc-400">
+        <label className="rel-check-inline">
           <input type="checkbox" checked={ocultaFechados} onChange={(e) => setOcultaFechados(e.target.checked)} />
           Ocultar concluídos e cancelados
         </label>
-        <span className="ml-auto text-xs text-zinc-400">{filtrados.length} pedido(s)</span>
+        <span className="rel-desc">{filtrados.length} pedido(s)</span>
       </section>
 
       <section className="rel-table-wrap">
@@ -151,8 +186,8 @@ function FilaPage() {
             {filtrados.map((v) => {
               const precisaDeMim = (ehDono(v, eu) && v.donoLogins.length > 0 && (v.aplicacao === 'aberto' || v.aplicacao === 'aplicando')) || (v.aplicacao === 'aplicado' && ehSolicitante(v, eu));
               return (
-                <tr key={v.id} onClick={() => setAberto(v.id)} className={`rel-row ${precisaDeMim ? 'bg-sky-500/5' : ''}`}>
-                  <td className="rel-mono whitespace-nowrap px-3 py-2">{v.chamadoNumero}</td>
+                <tr key={v.id} onClick={() => url.abrir(v.id)} className={`rel-row ${precisaDeMim ? 'bg-sky-500/5' : ''}`}>
+                  <td className="rel-mono whitespace-nowrap px-3 py-2"><Link href={url.hrefDe(v.id)} onClick={(e) => e.stopPropagation()} className="rel-link">{v.chamadoNumero}</Link></td>
                   <td className="px-3 py-2"><div className="font-medium">{v.cliente}</div><div className="max-w-[320px] truncate text-xs text-zinc-400">{v.assunto}</div></td>
                   <td className="hidden px-3 py-2 md:table-cell"><span className="font-mono text-zinc-300">{v.contextoNumero}</span><div className="max-w-[260px] truncate text-xs text-zinc-400">{v.contextoAssunto}</div></td>
                   <td className="hidden px-3 py-2 text-zinc-300 lg:table-cell">{v.donoNomes.join(', ') || '—'}</td>
@@ -165,32 +200,6 @@ function FilaPage() {
           </tbody>
         </table>
       </section>
-
-      {selecionado && (
-        <div className="fixed inset-0 z-40 flex justify-end bg-black/60" onClick={() => setAberto(null)}>
-          <aside className="h-full w-full max-w-xl overflow-y-auto border-l border-zinc-700 bg-zinc-950 p-4 sm:p-5" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div>
-                <div className="font-mono text-sky-300">{selecionado.chamadoNumero}</div>
-                <h2 className="text-lg font-semibold">{selecionado.cliente}</h2>
-                <p className="rel-desc">{selecionado.assunto}</p>
-              </div>
-              <button onClick={() => setAberto(null)} className="rounded p-1 hover:bg-zinc-800"><X className="h-5 w-5" /></button>
-            </div>
-            <dl className="mb-4 grid grid-cols-2 gap-3 text-sm">
-              <div><dt className="text-xs text-zinc-500">Status</dt><dd><span className={`rounded px-2 py-0.5 text-xs ${estiloStatus[selecionado.aplicacao]}`}>{ROTULO_STATUS[selecionado.aplicacao]}</span></dd></div>
-              <div><dt className="text-xs text-zinc-500">Pedido por</dt><dd>{selecionado.criadoPorNome || selecionado.criadoPorEmail}</dd></div>
-              <div className="col-span-2"><dt className="text-xs text-zinc-500">Correção</dt><dd>{selecionado.contextoNumero} — {selecionado.contextoAssunto}</dd></div>
-              <div className="col-span-2"><dt className="text-xs text-zinc-500">Quem aplica (dono do PR)</dt><dd>{selecionado.donoNomes.join(', ') || 'não informado'}{!pessoa.semGit && selecionado.donoLogins.length ? ` (${selecionado.donoLogins.join(', ')})` : ''}</dd></div>
-              {!pessoa.semGit && <div className="col-span-2"><dt className="text-xs text-zinc-500">PRs</dt><dd className="font-mono text-xs">{selecionado.prs.join(', ') || '—'}</dd></div>}
-              {selecionado.observacao && <div className="col-span-2"><dt className="text-xs text-zinc-500">Observação</dt><dd>{selecionado.observacao}</dd></div>}
-            </dl>
-            <div className="mb-4"><BotoesAcao v={selecionado} /></div>
-            <h3 className="mb-2 text-sm font-semibold">Histórico</h3>
-            <Historico itens={selecionado.historico} />
-          </aside>
-        </div>
-      )}
     </div>
   );
 }

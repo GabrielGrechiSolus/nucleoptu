@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import withAuth from '../components/withAuth';
 import { collection, doc, getDocs, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
-import { FolderSearch, Search, Upload, RefreshCcw, X, FileText, Copy } from 'lucide-react';
+import { FolderSearch, Search, Upload, RefreshCcw, FileText, Copy } from 'lucide-react';
 import { Chamado, lerPasta, ROTULO_SITUACAO, ROTULO_TIPO } from './parse';
 import { CAMPOS_REGRA, MODELO_REGRA } from './modelo';
 import { SortTh, sortRows, useSort } from '../components/SortableTable';
@@ -16,6 +16,8 @@ import { chamadosDaPessoa, soDigitos, type RegistroBm } from './bmRegistro';
 import { lerRegistrosBm, sincronizaBm } from './bmSync';
 import { lerChaveBm } from './bmChave';
 import DetalheChamado from './DetalheChamado';
+import Link from 'next/link';
+import TelaDetalhe, { useDetalheNaUrl, useDetalheNoHistorico } from '../components/TelaDetalhe';
 import { previsaoDe } from './previsao';
 import { EVENTO_DADOS_ATUALIZADOS } from '../components/AtualizaAoEntrar';
 import { reportsAtivos, reportsPorNumero, type CartaoQuadro } from './bmQuadro';
@@ -169,12 +171,12 @@ function ChamadosPage() {
   const [fModulo, setFModulo] = useState('');
   const [fAutor, setFAutor] = useState('');
   const [fRevision, setFRevision] = useState('');
-  const [aberto, setAberto] = useState<Chamado | null>(null);
+  const urlChamado = useDetalheNaUrl('chamado');
+  const urlModelo = useDetalheNaUrl('modelo');
   const [previa, setPrevia] = useState<Chamado[] | null>(null);
   const [gravando, setGravando] = useState(false);
   const [substituir, setSubstituir] = useState(false);
   const [msg, setMsg] = useState('');
-  const [mostraModelo, setMostraModelo] = useState(false);
   const [mostraImportar, setMostraImportar] = useState(false);
   const pastaRef = useRef<HTMLInputElement>(null);
   const [caminho, setCaminho] = useState('C:/RepositorioGit/claude/contextos_prs');
@@ -359,10 +361,6 @@ function ChamadosPage() {
     setAba('todos');
   };
 
-  const abrir = (c: Chamado) => {
-    setAberto(c);
-  };
-
   const copiarModelo = async () => {
     try {
       await navigator.clipboard.writeText(MODELO_REGRA);
@@ -379,6 +377,129 @@ function ChamadosPage() {
     { id: 'regras', rotulo: 'Regras e orientações' },
   ];
 
+  const aberto = useMemo(() => (urlChamado.valor ? itens.find((c) => c.id === urlChamado.valor) ?? null : null), [itens, urlChamado.valor]);
+  const mostraModelo = urlModelo.valor === '1';
+  const voltarPrevia = useDetalheNoHistorico(!!previa, () => {
+    setPrevia(null);
+    setSubstituir(false);
+  });
+
+  if ((urlChamado.valor || mostraModelo) && carregando) return <p className="rel-desc">Carregando...</p>;
+
+  if (aberto) {
+    return (
+      <DetalheChamado
+        key={aberto.id}
+        c={aberto}
+        previsao={previsaoDe(aberto, previsaoGlobal)}
+        semGit={semGit}
+        registro={registros[soDigitos(aberto.numero)]}
+        temChave={temChave}
+        atualizando={atualizandoUm}
+        onAtualizar={async () => {
+          setAtualizandoUm(true);
+          await sincronizarBm([aberto], true);
+          setAtualizandoUm(false);
+        }}
+        onVoltar={urlChamado.voltar}
+        Md={Md}
+      />
+    );
+  }
+
+  if (previa) {
+    const sobra = itens.filter((i) => !previa.some((p) => p.id === i.id)).length;
+    return (
+      <TelaDetalhe
+        onVoltar={voltarPrevia}
+        rotuloVoltar="Voltar à lista"
+        cabecalho={
+          <div>
+            <h1 className="rel-title">Importar {previa.length} chamado(s)</h1>
+            <p className="rel-desc">Chamados que já existem serão atualizados com o conteúdo atual das pastas.</p>
+          </div>
+        }
+        rodape={
+          <>
+            <span className="rel-desc">{previa.length} chamado(s) na pasta escolhida.</span>
+            <div className="flex gap-2">
+              <button onClick={voltarPrevia} disabled={gravando} className="rel-btn rel-btn-ghost">Cancelar</button>
+              <button onClick={gravar} disabled={gravando} className="rel-btn rel-btn-primary">{gravando ? 'Gravando...' : 'Gravar'}</button>
+            </div>
+          </>
+        }
+      >
+        <section className="rel-box">
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" className="mt-1" checked={substituir} onChange={(e) => setSubstituir(e.target.checked)} />
+            <span>
+              <strong>Substituir tudo:</strong> remover da lista os chamados que não estão nesta pasta.{' '}
+              {substituir
+                ? `Serão removidos ${sobra} chamado(s) da lista do sistema (as pastas no computador não são apagadas).`
+                : `${sobra} chamado(s) da lista não estão nesta pasta e serão mantidos.`}
+            </span>
+          </label>
+        </section>
+        <section className="rel-box">
+          <ul className="rel-list text-sm">
+            {previa.map((c) => (
+              <li key={c.id} className="flex flex-wrap justify-between gap-x-3 gap-y-1 border-b border-zinc-800 pb-2 last:border-0">
+                <span><span className="rel-mono">{c.numero}</span> {c.cliente} — {c.assunto}</span>
+                <span className="rel-desc whitespace-nowrap">{c.temRegra ? 'REGRA.md · ' : ''}{itens.some((i) => i.id === c.id) ? 'atualiza' : 'novo'}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </TelaDetalhe>
+    );
+  }
+
+  if (mostraModelo) {
+    return (
+      <TelaDetalhe
+        onVoltar={urlModelo.voltar}
+        rotuloVoltar="Voltar à lista"
+        cabecalho={
+          <>
+            <div className="min-w-0">
+              <h1 className="rel-title">Modelo de contexto (REGRA.md)</h1>
+              <p className="rel-desc">
+                Um arquivo <code>REGRA.md</code> dentro da pasta de cada chamado (por exemplo <code>568.361-unimed-limeira/REGRA.md</code>), escrito em linguagem de regra de negócio.
+                Depois, use “Importar contextos”.
+              </p>
+            </div>
+            <button onClick={copiarModelo} className="rel-btn rel-btn-primary"><Copy className="h-4 w-4" /> Copiar modelo</button>
+          </>
+        }
+      >
+        {msg && <div className="rel-notice">{msg}</div>}
+        <section className="rel-box">
+          <pre className="rel-pre rel-pre-lg">{MODELO_REGRA}</pre>
+        </section>
+        <section className="rel-box">
+          <h3 className="rel-subtitle">Campos do cabeçalho</h3>
+          <div className="rel-table-wrap">
+            <table className="w-full text-left text-xs">
+              <thead><tr><th className="px-3 py-2">Campo</th><th className="px-3 py-2">Valores</th><th className="px-3 py-2">Descrição</th></tr></thead>
+              <tbody>
+                {CAMPOS_REGRA.map((c) => (
+                  <tr key={c.campo} className="border-t border-zinc-800">
+                    <td className="px-3 py-2 font-mono text-sky-300">{c.campo}</td>
+                    <td className="px-3 py-2 font-mono text-zinc-300">{c.valores}</td>
+                    <td className="px-3 py-2 text-zinc-300">{c.descricao}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="rel-desc mt-3">
+            Sem tabela, rotina, branch, commit ou SQL no texto: a regra precisa entender sem abrir o banco ou o Delphi. Pastas sem REGRA.md continuam aparecendo, mas só com os dados lidos do CONTEXTO.md.
+          </p>
+        </section>
+      </TelaDetalhe>
+    );
+  }
+
   return (
     <div className="rel-page mx-auto max-w-7xl">
       <header className="rel-box flex flex-wrap items-center justify-between gap-3">
@@ -387,9 +508,9 @@ function ChamadosPage() {
           <p className="rel-desc">O que está em correção, o que já foi corrigido (e em qual revision saiu) e as regras que estavam escondidas.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => setMostraModelo(true)} className="rel-btn rel-btn-outline">
+          <Link href={urlModelo.hrefDe('1')} className="rel-btn rel-btn-outline">
             <FileText className="h-4 w-4" /> Modelo de contexto
-          </button>
+          </Link>
           <button onClick={carregar} className="rel-btn rel-btn-outline">
             <RefreshCcw className="h-4 w-4" /> Atualizar
           </button>
@@ -458,8 +579,8 @@ function ChamadosPage() {
       </div>
 
       <section className="rel-box">
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="rel-field rel-label min-w-[220px] flex-1">
+        <div className="rel-filters">
+          <label className="rel-field rel-label rel-filter-wide">
             Pesquisar
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-500" />
@@ -473,21 +594,21 @@ function ChamadosPage() {
           </label>
           <label className="rel-field rel-label">
             Módulo
-            <select value={fModulo} onChange={(e) => setFModulo(e.target.value)} className="rel-input max-w-[200px]">
+            <select value={fModulo} onChange={(e) => setFModulo(e.target.value)} className="rel-input">
               <option value="">Todos</option>
               {modulos.map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
           </label>
           <label className="rel-field rel-label">
             Autor do PR
-            <select value={fAutor} onChange={(e) => setFAutor(e.target.value)} className="rel-input max-w-[200px]">
+            <select value={fAutor} onChange={(e) => setFAutor(e.target.value)} className="rel-input">
               <option value="">Todos</option>
               {autoresLista.map((a) => <option key={a} value={a}>{a}</option>)}
             </select>
           </label>
           <label className="rel-field rel-label">
             Cliente
-            <select value={fCliente} onChange={(e) => setFCliente(e.target.value)} className="rel-input max-w-[200px]">
+            <select value={fCliente} onChange={(e) => setFCliente(e.target.value)} className="rel-input">
               <option value="">Todos</option>
               {clientes.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
@@ -511,7 +632,7 @@ function ChamadosPage() {
           </label>
           {temChave && !semGit && (
             <span className="flex flex-wrap items-center gap-2">
-              <select value={escopoBm} onChange={(e) => setEscopoBm(e.target.value as 'filtrados' | 'meus' | 'todos')} className="rel-input max-w-[220px]" disabled={!!progressoBm}>
+              <select value={escopoBm} onChange={(e) => setEscopoBm(e.target.value as 'filtrados' | 'meus' | 'todos')} className="rel-input" disabled={!!progressoBm}>
                 <option value="filtrados">Filtrados na tela ({filtrados.length})</option>
                 <option value="meus">Meus chamados</option>
                 <option value="todos">Todos os chamados</option>
@@ -564,8 +685,8 @@ function ChamadosPage() {
               </tr>
             )}
             {filtrados.map((c) => (
-              <tr key={c.id} onClick={() => abrir(c)} className="rel-row">
-                <td className="rel-mono whitespace-nowrap px-3 py-2">{c.numero}</td>
+              <tr key={c.id} onClick={() => urlChamado.abrir(c.id)} className="rel-row">
+                <td className="rel-mono whitespace-nowrap px-3 py-2"><Link href={urlChamado.hrefDe(c.id)} onClick={(e) => e.stopPropagation()} className="rel-link">{c.numero}</Link></td>
                 <td className="max-w-[360px] px-3 py-2">
                   <div className="rel-strong">{c.assunto}</div>
                   <div className="rel-desc">{c.cliente || '—'}</div>
@@ -594,98 +715,6 @@ function ChamadosPage() {
           </tbody>
         </table>
       </section>
-
-      {previa && (
-        <div className="rel-backdrop rel-backdrop-top">
-          <div className="rel-box max-h-[85vh] w-full max-w-2xl overflow-y-auto">
-            <h2 className="mb-1 text-lg font-semibold">Importar {previa.length} chamado(s)</h2>
-            <p className="mb-3 text-sm text-zinc-400">Chamados que já existem serão atualizados com o conteúdo atual das pastas.</p>
-            <label className="mb-3 flex items-start gap-2 rounded border border-zinc-700 p-3 text-sm">
-              <input type="checkbox" className="mt-1" checked={substituir} onChange={(e) => setSubstituir(e.target.checked)} />
-              <span>
-                <strong>Substituir tudo:</strong> remover da lista os chamados que não estão nesta pasta.
-                {' '}
-                {(() => {
-                  const sobra = itens.filter((i) => !previa.some((p) => p.id === i.id)).length;
-                  return substituir
-                    ? `Serão removidos ${sobra} chamado(s) da lista do sistema (as pastas no computador não são apagadas).`
-                    : `${sobra} chamado(s) da lista não estão nesta pasta e serão mantidos.`;
-                })()}
-              </span>
-            </label>
-            <ul className="mb-4 max-h-64 overflow-y-auto rounded border border-zinc-800 text-sm">
-              {previa.map((c) => (
-                <li key={c.id} className="flex justify-between gap-3 border-b border-zinc-800 px-3 py-1.5 last:border-0">
-                  <span><span className="font-mono text-sky-300">{c.numero}</span> {c.cliente} — {c.assunto}</span>
-                  <span className="whitespace-nowrap text-xs text-zinc-500">{c.temRegra ? 'REGRA.md · ' : ''}{itens.some((i) => i.id === c.id) ? 'atualiza' : 'novo'}</span>
-                </li>
-              ))}
-            </ul>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => { setPrevia(null); setSubstituir(false); }} disabled={gravando} className="rel-btn rel-btn-ghost">Cancelar</button>
-              <button onClick={gravar} disabled={gravando} className="rel-btn rel-btn-primary">{gravando ? 'Gravando...' : 'Gravar'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {mostraModelo && (
-        <div className="rel-backdrop rel-backdrop-top" onClick={() => setMostraModelo(false)}>
-          <div className="rel-box max-h-[90vh] w-full max-w-3xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-2 flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold">Modelo de contexto (REGRA.md)</h2>
-                <p className="text-sm text-zinc-400">
-                  Um arquivo <code>REGRA.md</code> dentro da pasta de cada chamado (por exemplo <code>568.361-unimed-limeira/REGRA.md</code>), escrito em linguagem de regra de negócio.
-                  Depois, use “Importar contextos”.
-                </p>
-              </div>
-              <button onClick={() => setMostraModelo(false)} className="rel-btn rel-btn-icon"><X className="h-5 w-5" /></button>
-            </div>
-            <div className="mb-3 flex gap-2">
-              <button onClick={copiarModelo} className="rel-btn rel-btn-primary"><Copy className="h-4 w-4" /> Copiar modelo</button>
-            </div>
-            <pre className="rel-pre rel-pre-lg mb-4">{MODELO_REGRA}</pre>
-            <h3 className="mb-2 text-sm font-semibold">Campos do cabeçalho</h3>
-            <div className="overflow-x-auto rounded border border-zinc-800">
-              <table className="w-full text-left text-xs">
-                <thead><tr><th className="px-3 py-2">Campo</th><th className="px-3 py-2">Valores</th><th className="px-3 py-2">Descrição</th></tr></thead>
-                <tbody>
-                  {CAMPOS_REGRA.map((c) => (
-                    <tr key={c.campo} className="border-t border-zinc-800">
-                      <td className="px-3 py-2 font-mono text-sky-300">{c.campo}</td>
-                      <td className="px-3 py-2 font-mono text-zinc-300">{c.valores}</td>
-                      <td className="px-3 py-2 text-zinc-300">{c.descricao}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="mt-3 text-xs text-zinc-400">
-              Sem tabela, rotina, branch, commit ou SQL no texto: a regra precisa entender sem abrir o banco ou o Delphi. Pastas sem REGRA.md continuam aparecendo, mas só com os dados lidos do CONTEXTO.md.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {aberto && (
-        <DetalheChamado
-          key={aberto.id}
-          c={aberto}
-          previsao={previsaoDe(aberto, previsaoGlobal)}
-          semGit={semGit}
-          registro={registros[soDigitos(aberto.numero)]}
-          temChave={temChave}
-          atualizando={atualizandoUm}
-          onAtualizar={async () => {
-            setAtualizandoUm(true);
-            await sincronizarBm([aberto], true);
-            setAtualizandoUm(false);
-          }}
-          onClose={() => setAberto(null)}
-          Md={Md}
-        />
-      )}
     </div>
   );
 }

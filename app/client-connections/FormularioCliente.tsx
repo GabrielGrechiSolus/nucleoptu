@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Eye, EyeOff, Plus, Trash2, X } from 'lucide-react';
+import { Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
+import TelaDetalhe from '../components/TelaDetalhe';
 import { PERFIS_CONTATO, PROTOCOLOS_VPN, ROTULO_PERFIL, ROTULO_TIPO_CONEXAO, TIPOS_CONEXAO, novaConexao, novoContato, validaCliente, type ClienteConexao, type Conexao, type ContatoTeams, type PerfilContato, type TipoConexao } from './modelo';
 
 function CampoSenha({ valor, onChange, rotulo, mantida }: { valor: string; onChange: (v: string) => void; rotulo: string; mantida?: boolean }) {
@@ -117,17 +118,26 @@ export default function FormularioCliente({ inicial, salvando, onSalvar, onCance
   };
 
   return (
-    <div className="rel-backdrop" onClick={() => !salvando && onCancelar()}>
-      <div className="rel-modal" onClick={(e) => e.stopPropagation()}>
-        <header className="rel-modal-head">
-          <div>
-            <h2 className="rel-strong text-xl">{inicial.id ? 'Editar cliente' : 'Novo cliente'}</h2>
-            <p className="rel-desc">Os dados ficam no banco e aparecem para todos os usuários.</p>
+    <TelaDetalhe
+      onVoltar={() => !salvando && onCancelar()}
+      rotuloVoltar="Voltar"
+      cabecalho={
+        <div>
+          <h1 className="rel-strong text-xl">{inicial.id ? 'Editar cliente' : 'Novo cliente'}</h1>
+          <p className="rel-desc">Os dados ficam no banco e aparecem para todos os usuários.</p>
+        </div>
+      }
+      rodape={
+        <>
+          <span className="rel-desc">As senhas são criptografadas no servidor e só aparecem quando alguém clica em mostrar ou copiar (cada consulta é registrada).</span>
+          <div className="flex gap-2">
+            <button type="button" onClick={onCancelar} disabled={salvando} className="rel-btn rel-btn-ghost">Cancelar</button>
+            <button type="button" onClick={salvar} disabled={salvando} className="rel-btn rel-btn-primary">{salvando ? 'Salvando...' : 'Salvar cliente'}</button>
           </div>
-          <button type="button" onClick={onCancelar} disabled={salvando} aria-label="Fechar" className="rel-btn rel-btn-icon"><X className="h-5 w-5" /></button>
-        </header>
-
-        <div className="rel-modal-body">
+        </>
+      }
+    >
+      <>
           {erro && <p className="rel-notice rel-notice-error">{erro}</p>}
 
           <section className="rel-box">
@@ -180,16 +190,7 @@ export default function FormularioCliente({ inicial, salvando, onSalvar, onCance
               {!c.contatos.length && <p className="rel-desc">Nenhum contato cadastrado. O perfil (técnica, regra de negócio ou gerente) é opcional.</p>}
             </div>
           </section>
-        </div>
-
-        <footer className="rel-modal-foot">
-          <span className="rel-desc">As senhas são criptografadas no servidor e só aparecem quando alguém clica em mostrar ou copiar (cada consulta é registrada).</span>
-          <div className="flex gap-2">
-            <button type="button" onClick={onCancelar} disabled={salvando} className="rel-btn rel-btn-ghost">Cancelar</button>
-            <button type="button" onClick={salvar} disabled={salvando} className="rel-btn rel-btn-primary">{salvando ? 'Salvando...' : 'Salvar cliente'}</button>
-          </div>
-        </footer>
-      </div>
-    </div>
+      </>
+    </TelaDetalhe>
   );
 }

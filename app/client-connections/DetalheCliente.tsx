@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Copy, Eye, EyeOff, MessageSquare, Pencil, Trash2, X } from 'lucide-react';
+import { Copy, Eye, EyeOff, MessageSquare, Pencil, Trash2 } from 'lucide-react';
+import TelaDetalhe from '../components/TelaDetalhe';
 import { revelaSenha } from './api';
 import { toast } from 'react-toastify';
 import { ROTULO_PERFIL, ROTULO_TIPO_CONEXAO, linkTeams, type ClienteConexao, type Conexao, type ContatoTeams } from './modelo';
@@ -128,53 +129,53 @@ function CartaoContato({ p }: { p: ContatoTeams }) {
   );
 }
 
-export default function DetalheCliente({ c, onEditar, onExcluir, onFechar }: { c: ClienteConexao; onEditar: () => void; onExcluir: () => void; onFechar: () => void }) {
+export default function DetalheCliente({ c, onEditar, onExcluir, onVoltar }: { c: ClienteConexao; onEditar: () => void; onExcluir: () => void; onVoltar: () => void }) {
   return (
-    <div className="rel-backdrop" onClick={onFechar}>
-      <div className="rel-modal" onClick={(e) => e.stopPropagation()}>
-        <header className="rel-modal-head">
+    <TelaDetalhe
+      onVoltar={onVoltar}
+      rotuloVoltar="Voltar aos clientes"
+      cabecalho={
+        <>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               {c.codigo && <span className="rel-mono">{c.codigo}</span>}
               <span className={`rel-tag ${c.status === 'ativo' ? 'rel-tag-ok' : ''}`}>{c.status === 'ativo' ? 'Ativo' : 'Inativo'}</span>
               {c.cidadeUf && <span className="rel-desc">{c.cidadeUf}</span>}
             </div>
-            <h2 className="rel-strong mt-1 text-xl">{c.nome}</h2>
+            <h1 className="rel-strong mt-1 text-xl">{c.nome}</h1>
             {c.descricao && <p className="rel-desc" style={{ whiteSpace: 'pre-wrap' }}>{c.descricao}</p>}
           </div>
-          <button type="button" onClick={onFechar} aria-label="Fechar" className="rel-btn rel-btn-icon"><X className="h-5 w-5" /></button>
-        </header>
-
-        <div className="rel-modal-body">
-          <section className="rel-box">
-            <h3 className="rel-subtitle">Conexões ({c.conexoes.length})</h3>
-            <div className="rel-list">
-              {c.conexoes.map((x) => <CartaoConexao key={x.id} c={x} clienteId={c.id} />)}
-              {!c.conexoes.length && <p className="rel-desc">Nenhuma conexão cadastrada.</p>}
-            </div>
-          </section>
-
-          <section className="rel-box">
-            <h3 className="rel-subtitle">Contatos do Teams ({c.contatos.length})</h3>
-            <div className="rel-list">
-              {c.contatos.map((p) => <CartaoContato key={p.id} p={p} />)}
-              {!c.contatos.length && <p className="rel-desc">Nenhum contato cadastrado.</p>}
-            </div>
-          </section>
-
-          {(c.atualizadoEm || c.criadoEm) && (
-            <p className="rel-desc">
-              {c.criadoEm && `Cadastrado em ${new Date(c.criadoEm).toLocaleDateString('pt-BR')}${c.criadoPor ? ` por ${c.criadoPor}` : ''}. `}
-              {c.atualizadoEm && `Última alteração em ${new Date(c.atualizadoEm).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}${c.atualizadoPor ? ` por ${c.atualizadoPor}` : ''}.`}
-            </p>
-          )}
-        </div>
-
-        <footer className="rel-modal-foot">
+        </>
+      }
+      rodape={
+        <>
           <button type="button" onClick={onExcluir} className="rel-btn rel-btn-ghost"><Trash2 className="h-4 w-4" /> Excluir</button>
           <button type="button" onClick={onEditar} className="rel-btn rel-btn-primary"><Pencil className="h-4 w-4" /> Editar</button>
-        </footer>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <section className="rel-box">
+        <h3 className="rel-subtitle">Conexões ({c.conexoes.length})</h3>
+        <div className="rel-list">
+          {c.conexoes.map((x) => <CartaoConexao key={x.id} c={x} clienteId={c.id} />)}
+          {!c.conexoes.length && <p className="rel-desc">Nenhuma conexão cadastrada.</p>}
+        </div>
+      </section>
+
+      <section className="rel-box">
+        <h3 className="rel-subtitle">Contatos do Teams ({c.contatos.length})</h3>
+        <div className="rel-list">
+          {c.contatos.map((p) => <CartaoContato key={p.id} p={p} />)}
+          {!c.contatos.length && <p className="rel-desc">Nenhum contato cadastrado.</p>}
+        </div>
+      </section>
+
+      {(c.atualizadoEm || c.criadoEm) && (
+        <p className="rel-desc">
+          {c.criadoEm && `Cadastrado em ${new Date(c.criadoEm).toLocaleDateString('pt-BR')}${c.criadoPor ? ` por ${c.criadoPor}` : ''}. `}
+          {c.atualizadoEm && `Última alteração em ${new Date(c.atualizadoEm).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}${c.atualizadoPor ? ` por ${c.atualizadoPor}` : ''}.`}
+        </p>
+      )}
+    </TelaDetalhe>
   );
 }

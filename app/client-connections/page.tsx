@@ -4,6 +4,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Network, Plus, Search } from 'lucide-react';
 import { toast } from 'react-toastify';
 import withAuth from '../components/withAuth';
+import Link from 'next/link';
+import { useDetalheNaUrl, useParametrosUrl } from '../components/TelaDetalhe';
 import { SortTh, sortRows, useSort } from '../components/SortableTable';
 import { excluiCliente, listaClientes, salvaCliente } from './api';
 import DetalheCliente from './DetalheCliente';
@@ -22,8 +24,9 @@ function ConexoesClientesPage() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const [filtros, setFiltros] = useState<FiltrosClientes>(FILTROS_CLIENTES_INICIAIS);
-  const [abertoId, setAbertoId] = useState('');
-  const [editando, setEditando] = useState<ClienteConexao | null>(null);
+  const urlCliente = useDetalheNaUrl('cliente');
+  const urlEditar = useDetalheNaUrl('editar');
+  const nav = useParametrosUrl();
   const [salvando, setSalvando] = useState(false);
   const [locais, setLocais] = useState(0);
   const { sort, toggleSort } = useSort({ key: 'nome', dir: 'asc' });
@@ -50,7 +53,8 @@ function ConexoesClientesPage() {
     }
   }, [carregar]);
 
-  const aberto = useMemo(() => clientes.find((c) => c.id === abertoId) ?? null, [clientes, abertoId]);
+  const aberto = useMemo(() => clientes.find((c) => c.id === urlCliente.valor) ?? null, [clientes, urlCliente.valor]);
+  const editando = useMemo(() => (urlEditar.valor === 'novo' ? novoCliente() : urlEditar.valor ? clientes.find((c) => c.id === urlEditar.valor) ?? null : null), [clientes, urlEditar.valor]);
 
   const lista = useMemo(
     () =>
@@ -70,9 +74,8 @@ function ConexoesClientesPage() {
     try {
       const salvo = await salvaCliente({ ...c, nome: c.nome.trim() });
       toast.success('Cliente salvo.');
-      setEditando(null);
       await carregar();
-      setAbertoId(salvo.id);
+      nav.vaiPara({ editar: null, cliente: salvo.id }, true);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -85,8 +88,8 @@ function ConexoesClientesPage() {
     try {
       await excluiCliente(c.id);
       toast.success('Cliente excluído.');
-      setAbertoId('');
       await carregar();
+      nav.vaiPara({ cliente: null, editar: null }, true);
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -107,6 +110,16 @@ function ConexoesClientesPage() {
 
   const altera = <K extends keyof FiltrosClientes>(k: K, v: FiltrosClientes[K]) => setFiltros((a) => ({ ...a, [k]: v }));
 
+  if ((urlCliente.valor || urlEditar.valor) && carregando) return <p className="rel-desc">Carregando...</p>;
+
+  if (editando) {
+    return <FormularioCliente key={editando.id || 'novo'} inicial={editando} salvando={salvando} onSalvar={salvar} onCancelar={urlEditar.voltar} />;
+  }
+
+  if (aberto) {
+    return <DetalheCliente c={aberto} onVoltar={urlCliente.voltar} onEditar={() => urlEditar.abrir(aberto.id)} onExcluir={() => excluir(aberto)} />;
+  }
+
   return (
     <div className="rel-page mx-auto max-w-7xl">
       <header className="rel-box flex flex-wrap items-center justify-between gap-3">
@@ -114,7 +127,7 @@ function ConexoesClientesPage() {
           <h1 className="rel-title"><Network className="h-5 w-5" /> Conexões de clientes</h1>
           <p className="rel-desc">Clientes, acessos remotos (AnyDesk, TeamViewer, Terminal Service e VPN) e contatos do Teams. Os dados ficam no banco e valem para todos os usuários.</p>
         </div>
-        <button type="button" onClick={() => setEditando(novoCliente())} className="rel-btn rel-btn-primary"><Plus className="h-4 w-4" /> Novo cliente</button>
+        <Link href={urlEditar.hrefDe('novo')} className="rel-btn rel-btn-primary"><Plus className="h-4 w-4" /> Novo cliente</Link>
       </header>
 
       {erro && <div className="rel-notice rel-notice-error">{erro}</div>}
@@ -127,8 +140,8 @@ function ConexoesClientesPage() {
       )}
 
       <section className="rel-box">
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="rel-field rel-label min-w-[220px] flex-1">
+        <div className="rel-filters">
+          <label className="rel-field rel-label rel-filter-wide">
             Pesquisar
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4" style={{ color: 'var(--rel-muted)' }} />
@@ -157,7 +170,9 @@ function ConexoesClientesPage() {
               {PERFIS_CONTATO.map((p) => <option key={p} value={p}>{ROTULO_PERFIL[p]}</option>)}
             </select>
           </label>
-          <button type="button" onClick={() => setFiltros(FILTROS_CLIENTES_INICIAIS)} className="rel-btn rel-btn-ghost">Limpar</button>
+          <div className="rel-filter-actions">
+            <button type="button" onClick={() => setFiltros(FILTROS_CLIENTES_INICIAIS)} className="rel-btn rel-btn-ghost">Limpar</button>
+          </div>
         </div>
         <p className="rel-desc mt-3">{lista.length} de {clientes.length} cliente(s)</p>
       </section>
@@ -180,8 +195,8 @@ function ConexoesClientesPage() {
             {lista.map((c) => {
               const r = resumoConexoes(c);
               return (
-                <tr key={c.id} onClick={() => setAbertoId(c.id)} className="rel-row">
-                  <td className="px-3 py-2"><div className="rel-strong">{c.nome}</div>{c.cidadeUf && <div className="rel-desc">{c.cidadeUf}</div>}</td>
+                <tr key={c.id} onClick={() => urlCliente.abrir(c.id)} className="rel-row">
+                  <td className="px-3 py-2"><div className="rel-strong"><Link href={urlCliente.hrefDe(c.id)} onClick={(e) => e.stopPropagation()}>{c.nome}</Link></div>{c.cidadeUf && <div className="rel-desc">{c.cidadeUf}</div>}</td>
                   <td className="rel-mono hidden px-3 py-2 sm:table-cell">{c.codigo || '—'}</td>
                   <td className="px-3 py-2">
                     <div className="flex flex-wrap gap-1">
@@ -203,11 +218,6 @@ function ConexoesClientesPage() {
           </tbody>
         </table>
       </section>
-
-      {aberto && !editando && (
-        <DetalheCliente c={aberto} onFechar={() => setAbertoId('')} onEditar={() => setEditando(aberto)} onExcluir={() => excluir(aberto)} />
-      )}
-      {editando && <FormularioCliente key={editando.id || 'novo'} inicial={editando} salvando={salvando} onSalvar={salvar} onCancelar={() => setEditando(null)} />}
     </div>
   );
 }

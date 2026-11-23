@@ -15,7 +15,9 @@ import { ListChecks, RefreshCcw } from 'lucide-react';
 import { concluido, ehReport, formataNumero, registroResumoDoCartao, reportsAtivos, reportsPorNumero, type CartaoQuadro } from '../chamados/bmQuadro';
 import { buscaEuBm, lerQuadroBm, type MetaQuadro } from '../chamados/bmQuadroSync';
 import type { EuBm } from '../chamados/bmChave';
-import ProcessoModal from './ProcessoModal';
+import ProcessoTela from './ProcessoTela';
+import Link from 'next/link';
+import { useDetalheNaUrl } from '../components/TelaDetalhe';
 import { EVENTO_DADOS_ATUALIZADOS } from '../components/AtualizaAoEntrar';
 import { permissaoProcessos } from './clienteProcesso';
 import { FILTROS_INICIAIS, filtrosAtivos, passaFiltros, type FiltrosProcessos } from './filtros';
@@ -59,11 +61,11 @@ function ProcessosPage() {
   const [erro, setErro] = useState('');
   const [permissao, setPermissao] = useState<{ permitido: boolean; motivo: string } | null>(null);
   const [filtros, setFiltros] = useState<FiltrosProcessos>(FILTROS_INICIAIS);
-  const [aberto, setAberto] = useState<Chamado | null>(null);
   const [quadro, setQuadro] = useState<CartaoQuadro[]>([]);
   const [metaQuadro, setMetaQuadro] = useState<MetaQuadro | null>(null);
   const [eu, setEu] = useState<EuBm | null>(null);
-  const [abertoSemPr, setAbertoSemPr] = useState<CartaoQuadro | null>(null);
+  const urlChamado = useDetalheNaUrl('chamado');
+  const urlCartao = useDetalheNaUrl('cartao');
   const { sort, toggleSort } = useSort({ key: 'numero', dir: 'desc' });
 
   const carregar = useCallback(async () => {
@@ -158,6 +160,10 @@ function ProcessosPage() {
 
   const altera = <K extends keyof FiltrosProcessos>(k: K, v: FiltrosProcessos[K]) => setFiltros((a) => ({ ...a, [k]: v }));
 
+  const aberto = useMemo(() => (urlChamado.valor ? itens.find((c) => soDigitos(c.numero) === urlChamado.valor) ?? null : null), [itens, urlChamado.valor]);
+  const abertoSemPr = useMemo(() => (urlCartao.valor ? quadro.find((c) => String(c.cardId) === urlCartao.valor) ?? null : null), [quadro, urlCartao.valor]);
+  const registroAberto = aberto ? registros[soDigitos(aberto.numero)] : undefined;
+
   if (permissao && !permissao.permitido) {
     return (
       <div className="rel-page mx-auto max-w-xl">
@@ -170,13 +176,34 @@ function ProcessosPage() {
     );
   }
 
+  if ((urlChamado.valor || urlCartao.valor) && carregando) {
+    return <p className="rel-desc">Carregando...</p>;
+  }
+
+  if (abertoSemPr) {
+    return (
+      <ProcessoTela
+        key={abertoSemPr.cardId}
+        chamado={chamadoMinimo(abertoSemPr)}
+        registro={{ chamado: abertoSemPr.numero || String(abertoSemPr.cardId), encontrado: true, cardId: abertoSemPr.cardId, resumo: registroResumoDoCartao(abertoSemPr), cartao: null, sincronizadoEm: metaQuadro?.sincronizadoEm ?? '', sincronizadoPor: metaQuadro?.por ?? '' }}
+        onVoltar={urlCartao.voltar}
+        rotuloVoltar="Voltar aos processos"
+        onGravado={carregar}
+      />
+    );
+  }
+
+  if (aberto && registroAberto) {
+    return <ProcessoTela key={aberto.id} chamado={aberto} registro={registroAberto} onVoltar={urlChamado.voltar} rotuloVoltar="Voltar aos processos" onGravado={() => reler(aberto)} />;
+  }
+
   return (
     <div className="rel-page">
       <section className="rel-box">
         <h1 className="rel-title rel-title-line"><ListChecks size={20} /> Processos do BM</h1>
         <p className="rel-desc mb-4">Preenche o texto de conclusão e os links a partir do Git, marca os critérios de saída que o Git comprova, comenta e move o cartão. Cada gravação pede a sua confirmação.</p>
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="rel-field min-w-[220px] flex-1">
+        <div className="rel-filters">
+          <div className="rel-field rel-filter-wide">
             <label className="rel-label" htmlFor="busca-processos">Pesquisar</label>
             <input id="busca-processos" value={filtros.busca} onChange={(e) => altera('busca', e.target.value)} placeholder="Chamado, assunto, cliente ou módulo" className="rel-input" />
           </div>
@@ -198,7 +225,7 @@ function ProcessosPage() {
           </label>
           <label className="rel-field rel-label">
             Coluna no BM
-            <select value={filtros.coluna} onChange={(e) => altera('coluna', e.target.value)} className="rel-input max-w-[220px]">
+            <select value={filtros.coluna} onChange={(e) => altera('coluna', e.target.value)} className="rel-input">
               <option value="">Todas</option>
               {opcoes.colunas.map((o) => <option key={o} value={o}>{o}</option>)}
             </select>
@@ -212,7 +239,7 @@ function ProcessosPage() {
           </label>
           <label className="rel-field rel-label">
             Cliente
-            <select value={filtros.cliente} onChange={(e) => altera('cliente', e.target.value)} className="rel-input max-w-[200px]">
+            <select value={filtros.cliente} onChange={(e) => altera('cliente', e.target.value)} className="rel-input">
               <option value="">Todos</option>
               {opcoes.clientes.map((o) => <option key={o} value={o}>{o}</option>)}
             </select>
@@ -233,8 +260,10 @@ function ProcessosPage() {
               <option value="nao">Não bloqueados</option>
             </select>
           </label>
-          <button onClick={() => setFiltros(FILTROS_INICIAIS)} disabled={filtrosAtivos(filtros) === 0} className="rel-btn rel-btn-ghost">Limpar filtros{filtrosAtivos(filtros) ? ` (${filtrosAtivos(filtros)})` : ''}</button>
-          <button onClick={carregar} disabled={carregando} className="rel-btn rel-btn-outline"><RefreshCcw size={14} /> Recarregar</button>
+          <div className="rel-filter-actions">
+            <button onClick={() => setFiltros(FILTROS_INICIAIS)} disabled={filtrosAtivos(filtros) === 0} className="rel-btn rel-btn-ghost">Limpar filtros{filtrosAtivos(filtros) ? ` (${filtrosAtivos(filtros)})` : ''}</button>
+            <button onClick={carregar} disabled={carregando} className="rel-btn rel-btn-outline"><RefreshCcw size={14} /> Recarregar</button>
+          </div>
         </div>
         <p className="rel-desc mt-3">{linhas.length} chamado(s) com PR e {semPr.length} sem PR nos filtros atuais.</p>
       </section>
@@ -259,8 +288,8 @@ function ProcessosPage() {
               <tr><td colSpan={5} className="rel-empty">{meus.length ? 'Nenhum chamado com esses filtros.' : 'Nenhum chamado seu com cartão do BM sincronizado. Use “Atualizar do BM” em Contexto de chamados e confira o usuário Git do perfil.'}</td></tr>
             )}
             {linhas.map((c) => (
-              <tr key={c.id} onClick={() => setAberto(c)} className="rel-row">
-                <td className="rel-mono whitespace-nowrap px-3 py-2">{c.numero}</td>
+              <tr key={c.id} onClick={() => urlChamado.abrir(soDigitos(c.numero))} className="rel-row">
+                <td className="rel-mono whitespace-nowrap px-3 py-2"><Link href={urlChamado.hrefDe(soDigitos(c.numero))} onClick={(e) => e.stopPropagation()} className="rel-link">{c.numero}</Link></td>
                 <td className="max-w-[420px] px-3 py-2"><div className="rel-strong">{c.assunto}</div><div className="rel-desc">{c.cliente || '—'}</div>{reportsAtivos(reports.get(soDigitos(c.numero))).length > 0 && <div className="mt-1"><span className="rel-tag rel-tag-error">Report {reportsAtivos(reports.get(soDigitos(c.numero))).map((r) => r.coluna).join(', ')}</span></div>}</td>
                 <td className="hidden px-3 py-2 md:table-cell">{c.situacao ? ROTULO_SITUACAO[c.situacao] : '—'}</td>
                 <td className="px-3 py-2"><BmColuna r={registros[soDigitos(c.numero)]?.resumo} /></td>
@@ -301,8 +330,8 @@ function ProcessosPage() {
             {semPr.map((c) => {
               const rep = reportsAtivos(reports.get(c.numero));
               return (
-                <tr key={c.cardId} onClick={() => setAbertoSemPr(c)} className="rel-row">
-                  <td className="rel-mono whitespace-nowrap px-3 py-2">{c.numero ? formataNumero(c.numero) : c.cardId}</td>
+                <tr key={c.cardId} onClick={() => urlCartao.abrir(String(c.cardId))} className="rel-row">
+                  <td className="rel-mono whitespace-nowrap px-3 py-2"><Link href={urlCartao.hrefDe(String(c.cardId))} onClick={(e) => e.stopPropagation()} className="rel-link">{c.numero ? formataNumero(c.numero) : c.cardId}</Link></td>
                   <td className="max-w-[420px] px-3 py-2"><div className="rel-strong">{c.titulo}</div><div className="rel-desc">{c.tipo || '—'}</div></td>
                   <td className="px-3 py-2"><span className={`rel-tag ${concluido(c) ? 'rel-tag-ok' : 'rel-tag-info'}`}>{c.coluna}</span></td>
                   <td className="px-3 py-2">
@@ -320,20 +349,6 @@ function ProcessosPage() {
         </table>
       </section>
       </>
-      )}
-
-      {abertoSemPr && (
-        <ProcessoModal
-          key={abertoSemPr.cardId}
-          chamado={chamadoMinimo(abertoSemPr)}
-          registro={{ chamado: abertoSemPr.numero || String(abertoSemPr.cardId), encontrado: true, cardId: abertoSemPr.cardId, resumo: registroResumoDoCartao(abertoSemPr), cartao: null, sincronizadoEm: metaQuadro?.sincronizadoEm ?? '', sincronizadoPor: metaQuadro?.por ?? '' }}
-          onClose={() => setAbertoSemPr(null)}
-          onGravado={carregar}
-        />
-      )}
-
-      {aberto && registros[soDigitos(aberto.numero)] && (
-        <ProcessoModal key={aberto.id} chamado={aberto} registro={registros[soDigitos(aberto.numero)]} onClose={() => setAberto(null)} onGravado={() => reler(aberto)} />
       )}
     </div>
   );

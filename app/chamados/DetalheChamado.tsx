@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ClipboardList, ExternalLink, FlaskConical, GitPullRequest, X } from 'lucide-react';
+import { ClipboardList, ExternalLink, FlaskConical, GitPullRequest } from 'lucide-react';
+import TelaDetalhe from '../components/TelaDetalhe';
 import { Chamado, ROTULO_SITUACAO, ROTULO_TIPO } from './parse';
 import Vinculos from './Vinculos';
 import BmPainel, { BmColuna } from './BmPainel';
@@ -51,7 +52,7 @@ export default function DetalheChamado({
   temChave,
   atualizando,
   onAtualizar,
-  onClose,
+  onVoltar,
   Md,
 }: {
   c: Chamado;
@@ -61,7 +62,7 @@ export default function DetalheChamado({
   temChave: boolean;
   atualizando: boolean;
   onAtualizar: () => void;
-  onClose: () => void;
+  onVoltar: () => void;
   Md: React.ComponentType<{ texto: string }>;
 }) {
   const [aba, setAba] = useState<Aba>('resumo');
@@ -77,32 +78,29 @@ export default function DetalheChamado({
   ];
 
   return (
-    <div className="rel-backdrop" onClick={onClose}>
-      <div className="rel-modal" onClick={(e) => e.stopPropagation()}>
-        <header className="rel-modal-head">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rel-mono">{c.numero}</span>
-              {c.situacao && <span className={`rel-tag ${estiloSituacao[c.situacao]}`}>{ROTULO_SITUACAO[c.situacao]}</span>}
-              {c.revision && <span className="rel-tag rel-tag-info">revision {c.revision}</span>}
-              {!c.revision && previsao && <span className="rel-tag rel-tag-alert">previsão {previsao}</span>}
-              <BmColuna r={registro?.resumo} />
-            </div>
-            <h2 className="rel-strong mt-1 text-xl">{c.assunto}</h2>
-            <p className="rel-desc">{c.cliente || '—'}</p>
+    <TelaDetalhe
+      onVoltar={onVoltar}
+      rotuloVoltar="Voltar à lista"
+      cabecalho={
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rel-mono">{c.numero}</span>
+            {c.situacao && <span className={`rel-tag ${estiloSituacao[c.situacao]}`}>{ROTULO_SITUACAO[c.situacao]}</span>}
+            {c.revision && <span className="rel-tag rel-tag-info">revision {c.revision}</span>}
+            {!c.revision && previsao && <span className="rel-tag rel-tag-alert">previsão {previsao}</span>}
+            <BmColuna r={registro?.resumo} />
           </div>
-          <button onClick={onClose} aria-label="Fechar" className="rel-btn rel-btn-icon"><X className="h-5 w-5" /></button>
-        </header>
-
-        <nav className="rel-tabs">
-          {abas.filter((a) => a.mostra).map((a) => (
-            <button key={a.id} onClick={() => setAba(a.id)} className={`rel-tab ${aba === a.id ? 'rel-tab-active' : ''}`}>
-              {a.rotulo}
-            </button>
-          ))}
-        </nav>
-
-        <div className="rel-modal-body">
+          <h1 className="rel-strong mt-1 text-xl">{c.assunto}</h1>
+          <p className="rel-desc">{c.cliente || '—'}</p>
+        </div>
+      }
+      abas={abas.filter((a) => a.mostra).map((a) => (
+        <button key={a.id} onClick={() => setAba(a.id)} className={`rel-tab ${aba === a.id ? 'rel-tab-active' : ''}`}>
+          {a.rotulo}
+        </button>
+      ))}
+    >
+      <>
           {aba === 'resumo' && (
             <div className="rel-grid rel-grid-2">
               <Cartao titulo="Identificação">
@@ -186,8 +184,7 @@ export default function DetalheChamado({
               <pre className="rel-pre rel-pre-lg" style={{ maxHeight: 'none' }}>{c.docs?.[docAtual] ?? ''}</pre>
             </div>
           )}
-        </div>
-      </div>
-    </div>
+      </>
+    </TelaDetalhe>
   );
 }

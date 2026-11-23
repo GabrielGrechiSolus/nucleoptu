@@ -98,6 +98,24 @@ html .rel-input:focus { outline: none; border-color: var(--rel-primary) !importa
 .rel-modal-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; background: var(--rel-bg); }
 .rel-modal-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--rel-line); }
 
+.rel-tela { gap: 16px; }
+.rel-tela-topo { display: flex; align-items: center; gap: 8px; }
+.rel-tela-cab { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.rel-tela-corpo { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.rel-tela-abas { border: 1px solid var(--rel-line); border-radius: 5px; padding: 0 12px; }
+.rel-tela-rodape { position: sticky; bottom: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 12px 16px; background: var(--rel-surface); border: 1px solid var(--rel-line); border-radius: 5px; box-shadow: var(--rel-shadow); color: var(--rel-text); }
+
+.rel-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px 16px; align-items: end; }
+.rel-filters > * { min-width: 0; }
+.rel-filters .rel-filter-wide { grid-column: span 2; }
+.rel-filters .rel-filter-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.rel-filters .rel-input { max-width: none; }
+.rel-filters .rel-check-inline { display: flex; align-items: center; gap: 8px; min-height: 38px; font-size: 0.85rem; color: var(--rel-muted); }
+@media (max-width: 440px) {
+  .rel-filters { grid-template-columns: minmax(0, 1fr); }
+  .rel-filters .rel-filter-wide { grid-column: auto; }
+}
+
 .rel-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 20px; border-bottom: 1px solid var(--rel-line); background: var(--rel-surface); }
 .rel-tab { padding: 10px 14px; margin-bottom: -1px; font-size: 0.85rem; color: var(--rel-muted); border-bottom: 2px solid transparent; background: transparent; cursor: pointer; }
 .rel-tab:hover { color: var(--rel-title); }
