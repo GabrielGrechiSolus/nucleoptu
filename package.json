@@ -7,9 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "jest",
-    "atlas:index": "python scripts/index-atlas.py",
-    "atlas:test-index": "python -m unittest discover -s scripts -p \"test_*.py\""
+    "test": "jest"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",

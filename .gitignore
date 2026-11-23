@@ -44,9 +44,6 @@ next-env.d.ts
 /.secrets/
 *firebase-adminsdk*.json
 
-# Cache do indexador Atlas
-/scripts/__pycache__/
-
-# Inventário e curadoria internos do Atlas (gerados/mantidos no servidor)
+# Dados locais do antigo Atlas Solus (funcionalidade removida; arquivos mantidos fora do Git)
 /data/atlas.json
 /data/atlas-curadoria.json
