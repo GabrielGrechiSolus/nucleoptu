@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Network, Plus, Search } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Network, Plus, Search, Upload } from 'lucide-react';
 import { toast } from 'react-toastify';
 import withAuth from '../components/withAuth';
 import Link from 'next/link';
@@ -10,7 +10,7 @@ import { SortTh, sortRows, useSort } from '../components/SortableTable';
 import { excluiCliente, listaClientes, salvaCliente } from './api';
 import DetalheCliente from './DetalheCliente';
 import FormularioCliente from './FormularioCliente';
-import { FILTROS_CLIENTES_INICIAIS, PERFIS_CONTATO, ROTULO_PERFIL, ROTULO_TIPO_CONEXAO, TIPOS_CONEXAO, filtraClientes, migraDadosLocais, novoCliente, resumoConexoes, type ClienteConexao, type FiltrosClientes, type PerfilContato, type TipoConexao } from './modelo';
+import { FILTROS_CLIENTES_INICIAIS, PERFIS_CONTATO, ROTULO_PERFIL, ROTULO_TIPO_CONEXAO, TIPOS_CONEXAO, filtraClientes, migraDadosLocais, novoCliente, previaImportacao, resumoConexoes, type ClienteConexao, type FiltrosClientes, type PerfilContato, type TipoConexao } from './modelo';
 
 const CHAVE_LOCAL = 'client_connections';
 
@@ -29,6 +29,8 @@ function ConexoesClientesPage() {
   const nav = useParametrosUrl();
   const [salvando, setSalvando] = useState(false);
   const [locais, setLocais] = useState(0);
+  const [importando, setImportando] = useState(false);
+  const arquivoRef = useRef<HTMLInputElement>(null);
   const { sort, toggleSort } = useSort({ key: 'nome', dir: 'asc' });
 
   const carregar = useCallback(async () => {
@@ -108,6 +110,40 @@ function ConexoesClientesPage() {
     }
   };
 
+  const importarArquivo = async (arquivo: File) => {
+    let bruto: unknown;
+    try {
+      bruto = JSON.parse(await arquivo.text());
+    } catch {
+      toast.error('O arquivo não é um JSON válido.');
+      return;
+    }
+    const previa = previaImportacao(bruto, clientes);
+    if (!previa.novos.length) {
+      toast.info(`Nada a importar: ${previa.repetidos.length} já cadastrado(s)${previa.invalidos ? `, ${previa.invalidos} inválido(s)` : ''}.`);
+      return;
+    }
+    const resumo = `Importar ${previa.novos.length} cliente(s) novo(s), com ${previa.conexoes} conexão(ões) (${previa.comSenha} com senha)?
+
+${previa.repetidos.length} já cadastrado(s) serão mantidos sem alteração${previa.invalidos ? ` e ${previa.invalidos} inválido(s) serão ignorados` : ''}. As senhas são criptografadas no servidor.`;
+    if (!window.confirm(resumo)) return;
+    setImportando(true);
+    let gravados = 0;
+    const falhas: string[] = [];
+    for (const c of previa.novos) {
+      try {
+        await salvaCliente(c);
+        gravados++;
+      } catch (e) {
+        falhas.push(`${c.nome}: ${(e as Error).message}`);
+      }
+    }
+    setImportando(false);
+    await carregar();
+    if (gravados) toast.success(`${gravados} cliente(s) importado(s).`);
+    if (falhas.length) toast.error(`${falhas.length} falha(s): ${falhas.slice(0, 3).join(' | ')}`);
+  };
+
   const altera = <K extends keyof FiltrosClientes>(k: K, v: FiltrosClientes[K]) => setFiltros((a) => ({ ...a, [k]: v }));
 
   if ((urlCliente.valor || urlEditar.valor) && carregando) return <p className="rel-desc">Carregando...</p>;
@@ -127,7 +163,21 @@ function ConexoesClientesPage() {
           <h1 className="rel-title"><Network className="h-5 w-5" /> Conexões de clientes</h1>
           <p className="rel-desc">Clientes, acessos remotos (AnyDesk, TeamViewer, Terminal Service e VPN) e contatos do Teams. Os dados ficam no banco e valem para todos os usuários.</p>
         </div>
-        <Link href={urlEditar.hrefDe('novo')} className="rel-btn rel-btn-primary"><Plus className="h-4 w-4" /> Novo cliente</Link>
+        <div className="flex flex-wrap gap-2">
+          <input
+            ref={arquivoRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(e) => {
+              const arquivo = e.target.files?.[0];
+              e.target.value = '';
+              if (arquivo) importarArquivo(arquivo);
+            }}
+          />
+          <button type="button" onClick={() => arquivoRef.current?.click()} disabled={importando} className="rel-btn rel-btn-outline"><Upload className="h-4 w-4" /> {importando ? 'Importando...' : 'Importar arquivo'}</button>
+          <Link href={urlEditar.hrefDe('novo')} className="rel-btn rel-btn-primary"><Plus className="h-4 w-4" /> Novo cliente</Link>
+        </div>
       </header>
 
       {erro && <div className="rel-notice rel-notice-error">{erro}</div>}

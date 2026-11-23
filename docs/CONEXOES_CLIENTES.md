@@ -25,3 +25,15 @@ Bloqueie o acesso direto do navegador às coleções, para que só a API (que us
 match /clientes_conexoes/{id} { allow read, write: if false; }
 match /auditoria_conexoes/{id} { allow read, write: if false; }
 ```
+
+## Dados que não podem ser cadastrados
+
+- Credenciais ficam **somente** no campo Senha da conexão, que é cifrado no servidor. Os demais campos de texto (nome, código, descrição, servidor, usuário, observação etc.) não aceitam segredos.
+- A trava (`app/client-connections/sensivel.ts`, chamada por `validaCliente`) vale no formulário, na importação por arquivo e na API. Ela recusa tokens do GitHub, chaves de serviço (AWS, Google, Slack, OpenAI, Stripe), chaves privadas, JWT, strings de conexão e dados de acesso a banco (JDBC, `usuario/senha@base`, TNS, `IDENTIFIED BY`), além de "senha:" ou "token:" escritos no texto. A mensagem diz o campo e o tipo de dado, nunca repete o valor.
+- Cadastros antigos que já tenham esse tipo de dado não são alterados pela trava: edite e apague o valor, e revogue a credencial exposta.
+
+## Importar clientes por arquivo
+
+- Em Conexões, **Importar arquivo** lê um JSON `{ "clientes": [...] }` (ou uma lista) no mesmo formato do cadastro, mostra o resumo (clientes novos, conexões e quantas têm senha) e pede confirmação.
+- Cliente que já existe com o mesmo nome (sem diferenciar maiúsculas) é mantido sem alteração; cliente inválido ou com dado sensível é ignorado. Arquivos com senhas não devem ser versionados (a pasta `data/importacao/` está no `.gitignore`).
+

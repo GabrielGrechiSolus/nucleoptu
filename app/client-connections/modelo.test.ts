@@ -1,4 +1,4 @@
-import { filtraClientes, FILTROS_CLIENTES_INICIAIS, linkTeams, migraDadosLocais, normalizaCliente, novaConexao, novoCliente, novoContato, resumoConexoes, validaCliente } from './modelo';
+import { previaImportacao, filtraClientes, FILTROS_CLIENTES_INICIAIS, linkTeams, migraDadosLocais, normalizaCliente, novaConexao, novoCliente, novoContato, resumoConexoes, validaCliente } from './modelo';
 
 const cliente = () => {
   const c = novoCliente();
@@ -76,5 +76,24 @@ describe('cadastro de clientes e conexões', () => {
     expect(m.conexoes.map((x) => x.tipo)).toEqual(['anydesk', 'terminal', 'vpn']);
     expect(m.contatos.map((p) => [p.perfil, p.teams])).toEqual([['gerente', 'g@x.com'], ['regra', '']]);
     expect(migraDadosLocais('x')).toEqual([]);
+  });
+});
+
+describe('importação de clientes por arquivo', () => {
+  const cliente = (nome: string, conexoes: Record<string, unknown>[] = [{ tipo: 'terminal', host: '10.0.0.1', senha: 'x' }]) => ({ nome, conexoes });
+
+  it('separa novos, repetidos (pelo nome, sem diferenciar maiúsculas) e inválidos', () => {
+    const p = previaImportacao({ clientes: [cliente('Novo A'), cliente('já existe'), cliente('Novo A'), cliente('X'), 'lixo', cliente('Sem host', [{ tipo: 'vpn', host: '' }])] }, [{ nome: 'Já Existe' }]);
+    expect(p.novos.map((c) => c.nome)).toEqual(['Novo A']);
+    expect(p.repetidos).toEqual(['já existe', 'Novo A']);
+    expect(p.invalidos).toBe(3);
+    expect(p.conexoes).toBe(1);
+    expect(p.comSenha).toBe(1);
+  });
+
+  it('aceita uma lista simples e arquivos fora do formato', () => {
+    expect(previaImportacao([cliente('Lista')], []).novos).toHaveLength(1);
+    expect(previaImportacao({ outro: 1 }, []).novos).toHaveLength(0);
+    expect(previaImportacao(null, []).novos).toHaveLength(0);
   });
 });

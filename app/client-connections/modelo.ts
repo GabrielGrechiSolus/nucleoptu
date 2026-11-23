@@ -1,3 +1,5 @@
+import { ORIENTACAO_SENSIVEL, achaDadoSensivel } from './sensivel';
+
 export type TipoConexao = 'anydesk' | 'teamviewer' | 'terminal' | 'vpn';
 export type PerfilContato = '' | 'tecnica' | 'regra' | 'gerente';
 export type StatusCliente = 'ativo' | 'inativo';
@@ -120,6 +122,20 @@ export function normalizaCliente(id: string, bruto: Record<string, unknown>): Cl
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+function textoSensivel(c: ClienteConexao): string | null {
+  const campos: [string, string][] = [['Nome do cliente', c.nome], ['Código', c.codigo], ['Cidade/UF', c.cidadeUf], ['Descrição', c.descricao]];
+  for (const x of c.conexoes) {
+    const r = ROTULO_TIPO_CONEXAO[x.tipo];
+    campos.push([`${r}: nome`, x.nome], [`${r}: ID de acesso`, x.idRemoto], [`${r}: servidor`, x.host], [`${r}: usuário`, x.usuario], [`${r}: domínio`, x.dominio], [`${r}: observação`, x.observacao]);
+  }
+  for (const p of c.contatos) campos.push(['Contato: nome', p.nome], ['Contato: cargo', p.cargo], ['Contato: observação', p.observacao]);
+  for (const [rotulo, valor] of campos) {
+    const achado = achaDadoSensivel(valor);
+    if (achado) return `${rotulo}: parece conter ${achado}. ${ORIENTACAO_SENSIVEL}`;
+  }
+  return null;
+}
+
 export function validaCliente(c: ClienteConexao): string | null {
   if (c.nome.trim().length < 2) return 'Informe o nome do cliente.';
   for (const x of c.conexoes) {
@@ -131,7 +147,50 @@ export function validaCliente(c: ClienteConexao): string | null {
     if (!p.nome.trim()) return 'Contato do Teams: informe o nome.';
     if (p.teams.trim() && !EMAIL.test(p.teams.trim())) return `Contato ${p.nome}: o endereço do Teams deve ser um e-mail válido.`;
   }
-  return null;
+  return textoSensivel(c);
+}
+
+export interface PreviaImportacao {
+  novos: ClienteConexao[];
+  repetidos: string[];
+  invalidos: number;
+  conexoes: number;
+  comSenha: number;
+}
+
+const chaveNome = (n: string) => n.trim().toLowerCase();
+
+// Lê um arquivo de importação ({ clientes: [...] } ou uma lista) e separa o que é novo do que já está cadastrado (pelo nome).
+export function previaImportacao(bruto: unknown, existentes: Pick<ClienteConexao, 'nome'>[]): PreviaImportacao {
+  const lista: unknown[] = Array.isArray(bruto) ? bruto : Array.isArray((bruto as { clientes?: unknown })?.clientes) ? (bruto as { clientes: unknown[] }).clientes : [];
+  const conhecidos = new Set(existentes.map((c) => chaveNome(c.nome)));
+  const novos: ClienteConexao[] = [];
+  const repetidos: string[] = [];
+  let invalidos = 0;
+  for (const item of lista) {
+    if (!item || typeof item !== 'object') {
+      invalidos++;
+      continue;
+    }
+    const c = normalizaCliente('', item as Record<string, unknown>);
+    if (validaCliente(c)) {
+      invalidos++;
+      continue;
+    }
+    if (conhecidos.has(chaveNome(c.nome))) {
+      repetidos.push(c.nome);
+      continue;
+    }
+    conhecidos.add(chaveNome(c.nome));
+    novos.push(c);
+  }
+  return {
+    novos,
+    repetidos,
+    invalidos,
+    conexoes: novos.reduce((n, c) => n + c.conexoes.length, 0),
+    comSenha: novos.reduce((n, c) => n + c.conexoes.filter((x) => x.senha).length, 0),
+  };
 }
 
 export function resumoConexoes(c: Pick<ClienteConexao, 'conexoes'>): Record<TipoConexao, number> {

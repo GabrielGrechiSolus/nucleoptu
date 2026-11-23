@@ -47,3 +47,6 @@ next-env.d.ts
 # Dados locais do antigo Atlas Solus (funcionalidade removida; arquivos mantidos fora do Git)
 /data/atlas.json
 /data/atlas-curadoria.json
+
+# Arquivos de importacao de conexoes (contem senhas)
+/data/importacao/
