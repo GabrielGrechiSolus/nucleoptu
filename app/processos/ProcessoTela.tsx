@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ExternalLink } from 'lucide-react';
 import TelaDetalhe from '../components/TelaDetalhe';
+import { posicaoNoFluxo } from './etapas';
 import { htmlParaTexto } from '../chamados/bm';
 import type { Chamado } from '../chamados/parse';
 import type { RegistroBm } from '../chamados/bmRegistro';
@@ -60,9 +61,7 @@ export default function ProcessoTela({ chamado, registro, onVoltar, rotuloVoltar
       setComentario('');
       setComentarioMarcado(false);
       setMoverMarcado(false);
-      const col = e.colunas.find((c) => c.id === e.card.colunaId);
-      const alvo = e.colunas.find((c) => c.posicao > (col?.posicao ?? 0) && (c.secao === 3 || /conclu/i.test(c.nome))) ?? e.colunas.find((c) => c.posicao > (col?.posicao ?? 0));
-      setDestino(alvo?.id ?? 0);
+      setDestino(posicaoNoFluxo(e.colunas, e.card.colunaId).proxima?.id ?? 0);
     },
     [chamado, links],
   );
@@ -119,6 +118,7 @@ export default function ProcessoTela({ chamado, registro, onVoltar, rotuloVoltar
   const linksEscolhidos = links.filter((l) => faltantes.has(l.url) && linksSel[l.url]);
   const descricaoDepois = useMemo(() => (estado ? anexaLinksNaDescricao(estado.descricaoHtml, linksEscolhidos) : ''), [estado, linksEscolhidos]);
 
+  const fluxo = useMemo(() => (estado ? posicaoNoFluxo(estado.colunas, estado.card.colunaId) : null), [estado]);
   const pendentes = criterios.filter((c) => !c.marcado && !criterioMarcado[c.itemId]);
   const totalMarcados = criterios.length - pendentes.length;
   const podeMover = !!estado && !estado.card.bloqueado && pendentes.length === 0 && destino > 0;
@@ -223,6 +223,35 @@ export default function ProcessoTela({ chamado, registro, onVoltar, rotuloVoltar
           {erro && <p className="rel-notice rel-notice-error">{erro}</p>}
           {estado?.card.bloqueado && <p className="rel-notice rel-notice-alert">O cartão está bloqueado no BM: não é possível mover enquanto estiver assim.</p>}
 
+          {fluxo && (
+            <Secao titulo="Etapa do fluxo" aside={<span className="rel-desc">{fluxo.feitas} de {fluxo.total} etapas</span>}>
+              <div className="rel-fluxo-resumo">
+                <div>
+                  <span className="rel-label">Onde estamos</span>
+                  <span><strong className="rel-strong">{fluxo.atual?.nome ?? '—'}</strong>{fluxo.atual && <span className="rel-desc"> · {fluxo.atual.fase}</span>}</span>
+                </div>
+                <div>
+                  <span className="rel-label">Próxima etapa</span>
+                  <span><strong className="rel-strong">{fluxo.proxima?.nome ?? 'Fim do fluxo'}</strong>{fluxo.proxima && <span className="rel-desc"> · {fluxo.proxima.fase}</span>}</span>
+                </div>
+              </div>
+              <ol className="rel-fluxo">
+                {fluxo.fases.map((f) => (
+                  <li key={f.nome} className="rel-fluxo-fase">
+                    <span className="rel-fluxo-titulo">{f.nome}</span>
+                    <div className="rel-fluxo-etapas">
+                      {f.etapas.map((e) => (
+                        <span key={e.id} className={`rel-etapa rel-etapa-${e.situacao}`} aria-current={e.situacao === 'atual' ? 'step' : undefined}>{e.nome}{e.situacao === 'proxima' ? ' →' : ''}</span>
+                      ))}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              {fluxo.proxima && pendentes.length > 0 && <p className="rel-notice rel-notice-alert mt-3">Para seguir para {fluxo.proxima.nome}, faltam {pendentes.length} critério(s) de saída desta etapa.</p>}
+              {fluxo.proxima && pendentes.length === 0 && !estado?.card.bloqueado && <p className="rel-notice rel-notice-ok mt-3">Critérios de saída cumpridos: o cartão pode seguir para {fluxo.proxima.nome}.</p>}
+            </Secao>
+          )}
+
           {estado && (
             <div className="rel-split">
               <div className="rel-stack">
@@ -326,10 +355,10 @@ export default function ProcessoTela({ chamado, registro, onVoltar, rotuloVoltar
                 <Secao titulo="Mover o cartão">
                   <label className="rel-check">
                     <input type="checkbox" checked={moverMarcado && podeMover} disabled={!podeMover} onChange={(e) => setMoverMarcado(e.target.checked)} />
-                    <span className="rel-strong">Mover para</span>
+                    <span className="rel-strong">Mover para{fluxo?.proxima && destino === fluxo.proxima.id ? ' a próxima etapa' : ''}</span>
                   </label>
                   <select value={destino} onChange={(e) => setDestino(Number(e.target.value))} className="rel-input mt-2" aria-label="Coluna de destino">
-                    {estado.colunas.filter((c) => c.id !== estado.card.colunaId).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                    {estado.colunas.filter((c) => c.id !== estado.card.colunaId).map((c) => <option key={c.id} value={c.id}>{c.nome}{c.id === fluxo?.proxima?.id ? ' (próxima etapa)' : ''}</option>)}
                   </select>
                   {!podeMover && (
                     <p className="rel-notice rel-notice-alert mt-3">

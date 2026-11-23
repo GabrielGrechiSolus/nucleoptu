@@ -26,6 +26,13 @@
 - **Correção:** não espera o aceite do entendimento para fechar; o documento de evidência de testes é obrigatório. **Demais desenvolvimentos:** o aceite da evidência de testes continua obrigatório.
 - Na conferência do card: "PR informado" só fica OK com o campo Git PR preenchido (PR apenas no contexto gera atenção); o item "Fluxo do atendimento" mostra o reviewer técnico e a regra de fechamento pelo tipo do card (`fluxoDoAtendimento`, em `app/chamados/bm.ts`: tipo com "correção", "hotfix" ou "issue" = correção; tipo vazio gera atenção). O app apenas informa; não confere o reviewer no GitHub.
 
+## Etapa do fluxo no processo do BM
+
+- A tela do processo mostra, antes das seções de gravação, **onde estamos** (coluna atual e a fase) e a **próxima etapa**, com o fluxo completo agrupado por fase: Entendimento e Validação, Análise, Revisão, Desenvolvimento, QA/Testes, Merge & Release, Documentação e Concluído. Feitas, atual e próxima aparecem em cores diferentes.
+- A ordem vem das colunas do quadro (posição no BM); a fase é deduzida do nome da coluna (`app/processos/etapas.ts`). Coluna nova com nome fora do padrão aparece em "Outras etapas".
+- O destino padrão de "Mover o cartão" é a próxima etapa (antes era a próxima coluna de entrega/conclusão). Qualquer outra coluna continua disponível na lista.
+- Um aviso diz se faltam critérios de saída para seguir para a próxima etapa ou se o cartão já pode avançar.
+
 ## Chamados sem PR e reports (quadro do BM)
 
 - A página **Chamados sem PR (BM)** lista os cartões do quadro do BM que não têm PR, inclusive os concluídos. Os dados ficam no Firestore (coleções `bm_quadro` e `bm_quadro_meta`), então todos leem; só quem tem a chave do BM atualiza, pelo botão "Atualizar do BM" ou automaticamente ao entrar.

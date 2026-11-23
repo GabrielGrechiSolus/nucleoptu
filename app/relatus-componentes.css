@@ -116,6 +116,17 @@ html .rel-input:focus { outline: none; border-color: var(--rel-primary) !importa
   .rel-filters .rel-filter-wide { grid-column: auto; }
 }
 
+.rel-fluxo-resumo { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 14px; }
+.rel-fluxo-resumo > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rel-fluxo { display: flex; flex-wrap: wrap; gap: 12px 18px; list-style: none; margin: 0; padding: 0; }
+.rel-fluxo-fase { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.rel-fluxo-titulo { color: var(--rel-muted); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.rel-fluxo-etapas { display: flex; flex-wrap: wrap; gap: 6px; }
+.rel-etapa { padding: 4px 10px; border: 1px solid var(--rel-line); border-radius: 4px; background: var(--rel-bg); color: var(--rel-muted); font-size: 0.75rem; line-height: 1.4; }
+.rel-etapa-feita { border-color: transparent; background: var(--rel-success-soft); color: var(--rel-success); }
+.rel-etapa-atual { border-color: var(--rel-primary); background: var(--rel-primary); color: #fff; font-weight: 600; }
+.rel-etapa-proxima { border: 1px dashed var(--rel-primary); color: var(--rel-primary); font-weight: 500; }
+
 .rel-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 20px; border-bottom: 1px solid var(--rel-line); background: var(--rel-surface); }
 .rel-tab { padding: 10px 14px; margin-bottom: -1px; font-size: 0.85rem; color: var(--rel-muted); border-bottom: 2px solid transparent; background: transparent; cursor: pointer; }
 .rel-tab:hover { color: var(--rel-title); }
