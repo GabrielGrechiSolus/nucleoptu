@@ -76,6 +76,7 @@ export default function NotificacoesPrs() {
   const primeira = useRef(true);
   const avisados = useRef<Set<string>>(new Set());
   const cacheCartao = useRef<Map<string, RegistroDoCartao>>(new Map());
+  const totalNaoLidasRef = useRef(0);
 
   useEffect(() => {
     const atualizaUsuarioBm = () => setBmId(lerEuBm()?.id ?? 0);
@@ -223,6 +224,30 @@ export default function NotificacoesPrs() {
   const itens = useMemo(() => montaNotificacoes(prs, registros, lidos), [prs, registros, lidos]);
   const novas = naoLidas(itens).length;
   const novasBm = avisosBm.filter((n) => !n.lida).length;
+  const totalNaoLidas = novas + novasBm;
+
+  useEffect(() => {
+    totalNaoLidasRef.current = totalNaoLidas;
+  }, [totalNaoLidas]);
+
+  useEffect(() => {
+    const tituloOriginal = document.title;
+    let exibindoAviso = false;
+    const timer = window.setInterval(() => {
+      const total = totalNaoLidasRef.current;
+      if (!total) {
+        exibindoAviso = false;
+        if (document.title !== tituloOriginal) document.title = tituloOriginal;
+        return;
+      }
+      exibindoAviso = !exibindoAviso;
+      document.title = exibindoAviso ? `🔔 (${total}) Notificações não lidas` : tituloOriginal;
+    }, 900);
+    return () => {
+      window.clearInterval(timer);
+      document.title = tituloOriginal;
+    };
+  }, []);
 
   const marca = (ids: string[]) => {
     const proximo = new Set([...lidos, ...ids]);
@@ -244,14 +269,14 @@ export default function NotificacoesPrs() {
       <button
         type="button"
         onClick={() => setAberto((v) => !v)}
-        aria-label={novas + novasBm ? `Notificações: ${novas + novasBm} nova(s)` : 'Notificações'}
+        aria-label={totalNaoLidas ? `Notificações: ${totalNaoLidas} nova(s)` : 'Notificações'}
         aria-expanded={aberto}
         title="Notificações"
         className="relative inline-flex h-9 w-9 items-center justify-center rounded-full text-[#454343] transition-colors hover:bg-[#00518C]/10 hover:text-[#00518C]"
       >
         <Bell size={20} />
-        {novas + novasBm > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">{novas + novasBm > 9 ? '9+' : novas + novasBm}</span>
+        {totalNaoLidas > 0 && (
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">{totalNaoLidas > 9 ? '9+' : totalNaoLidas}</span>
         )}
       </button>
 

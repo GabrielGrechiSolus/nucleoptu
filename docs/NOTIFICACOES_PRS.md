@@ -1,6 +1,7 @@
 # Notificação de PRs mergeados
 
 - O mesmo sino também mostra mudanças nos cartões do BM atribuídos à pessoa vinculada no Businessmap. A primeira leitura do quadro cria uma referência sem gerar alertas retroativos; mudanças posteriores aparecem na lista e em aviso na tela.
+- Enquanto houver notificação não lida, o título da guia alterna entre o título original e a quantidade de avisos pendentes. Ao ler todas, o título original é restaurado.
 - Cada categoria de evento do BM tem cor própria: atribuição, troca de responsável, bloqueio, etapa, prazo, prioridade e outras atualizações. Os avisos ficam por usuário no navegador e podem ser marcados como lidos.
 - Para reconhecer os cartões pessoais, o perfil precisa ter uma chave do BM validada neste navegador. A lista é atualizada pelos dados do quadro sincronizados no Firestore; a mudança só chega quando o quadro é sincronizado no NucleoPTU.
 
