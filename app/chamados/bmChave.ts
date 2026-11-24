@@ -47,4 +47,5 @@ export function gravaEuBm(eu: EuBm | null) {
   } catch {
     return;
   }
+  aviso();
 }
