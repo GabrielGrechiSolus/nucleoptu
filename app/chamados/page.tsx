@@ -173,6 +173,7 @@ function ChamadosPage() {
   const [fRevision, setFRevision] = useState('');
   const urlChamado = useDetalheNaUrl('chamado');
   const urlModelo = useDetalheNaUrl('modelo');
+  const urlBusca = useDetalheNaUrl('busca');
   const [previa, setPrevia] = useState<Chamado[] | null>(null);
   const [gravando, setGravando] = useState(false);
   const [substituir, setSubstituir] = useState(false);
@@ -225,6 +226,10 @@ function ChamadosPage() {
   useEffect(() => {
     carregar();
   }, [carregar]);
+
+  useEffect(() => {
+    if (urlBusca.valor) setBusca(urlBusca.valor);
+  }, [urlBusca.valor]);
 
   useEffect(() => {
     lerQuadroBm().then((q) => setQuadro(q.cartoes)).catch(() => undefined);

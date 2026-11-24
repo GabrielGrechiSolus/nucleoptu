@@ -11,7 +11,7 @@ import { Award, BellRing, Building2, Coffee, ExternalLink, HelpCircle, LoaderCir
 import { FaCoffee, FaDesktop, FaUserAstronaut, FaUserCircle, FaUserGraduate, FaUserNinja, FaUserTie } from 'react-icons/fa';
 
 type Status = 'online' | 'ocupado' | 'ausente' | 'nao-perturbe' | 'ferias' | 'folga' | 'pausa';
-type Pessoa = { uid: string; name: string; email?: string; avatar?: string; homeOfficeDays?: number[]; status?: Status; lastSeenAt?: any; workingOn?: { titulo: string; tipo: string; url: string }; };
+type Pessoa = { uid: string; name: string; email?: string; avatar?: string; homeOfficeDays?: number[]; mesaId?: string; assentoId?: string; status?: Status; lastSeenAt?: any; workingOn?: { titulo: string; tipo: string; url: string }; };
 type Fonte = { tipo: string; id: string; titulo: string; url: string };
 type PedidoAjuda = { id: string; ownerUid: string; ownerName: string; texto: string; trabalho?: Fonte; members?: string[]; status: 'aberta' | 'resolvida' | 'arquivada' | 'fechada'; createdAt?: any };
 type ConviteCafe = { id: string; anfitriaoUid: string; anfitriaoNome: string; convidados: string[]; mensagem?: string; aceitaram?: string[]; recusaram?: string[]; criadoEm?: any };
@@ -23,6 +23,14 @@ const STATUS: { value: Status; label: string; color: string }[] = [
 ];
 const ativo = (p: Pessoa) => !!p.status && !!p.lastSeenAt?.toMillis && Date.now() - p.lastSeenAt.toMillis() < 90000;
 const AVATARES = [FaUserAstronaut, FaUserTie, FaUserGraduate, FaUserNinja, FaUserCircle];
+const MESAS = ['mesa-1', 'mesa-2', 'mesa-3'].map((id, indice) => ({
+  id,
+  nome: `Mesa ${indice + 1}`,
+  lados: [
+    { id: 'norte', lugares: Array.from({ length: 5 }, (_, i) => ({ id: `${id}-n${i + 1}`, nome: `N${i + 1}` })) },
+    { id: 'sul', lugares: Array.from({ length: 5 }, (_, i) => ({ id: `${id}-s${i + 1}`, nome: `S${i + 1}` })) },
+  ],
+}));
 const avatarDa = (p: Pessoa) => {
   if (p.avatar) return <img src={p.avatar} alt="" className="h-full w-full object-cover"/>;
   const chave = p.uid || p.name || '?';
@@ -45,10 +53,12 @@ function EscritorioPage() {
   const [vinculoAjudaId, setVinculoAjudaId] = useState('');
   const [vinculoAjudaManual, setVinculoAjudaManual] = useState(false);
   const [vinculoAjudaTexto, setVinculoAjudaTexto] = useState('');
+  const [buscaVinculoAjuda, setBuscaVinculoAjuda] = useState('');
   const [editandoPedido, setEditandoPedido] = useState<string | null>(null);
   const [textoEditado, setTextoEditado] = useState('');
   const [vinculoEditado, setVinculoEditado] = useState('');
   const [filtro, setFiltro] = useState('');
+  const [tipoTrabalho, setTipoTrabalho] = useState('');
   const [erro, setErro] = useState('');
   const [erroUsuarios, setErroUsuarios] = useState('');
   const [salvando, setSalvando] = useState(false);
@@ -58,6 +68,8 @@ function EscritorioPage() {
   const [selecionadosCafe, setSelecionadosCafe] = useState<string[]>([]);
   const [mensagemCafe, setMensagemCafe] = useState('');
   const [enviandoCafe, setEnviandoCafe] = useState(false);
+  const [salvandoAssento, setSalvandoAssento] = useState(false);
+  const [mensagemAssento, setMensagemAssento] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -86,7 +98,17 @@ function EscritorioPage() {
     const aActive = ativo(a) ? 0 : 1, bActive = ativo(b) ? 0 : 1;
     return aActive - bActive || (a.name || '').localeCompare(b.name || '');
   }), [pessoasComPresenca]);
-  const filtraFontes = fontes.filter(f => (f.tipo === 'PR' || f.tipo === 'Cartão BM' || f.tipo === 'Contexto') && f.titulo.toLowerCase().includes(filtro.toLowerCase())).slice(0,40);
+  const filtraFontes = fontes.filter(f => {
+    const q = filtro.trim().toLocaleLowerCase('pt-BR');
+    return (f.tipo === 'PR' || f.tipo === 'Cartão BM' || f.tipo === 'Contexto')
+      && (!tipoTrabalho || f.tipo === tipoTrabalho)
+      && (!q || `${f.id} ${f.tipo} ${f.titulo} ${f.url}`.toLocaleLowerCase('pt-BR').includes(q));
+  }).slice(0, 60);
+  const fontesAjuda = fontes.filter(f => {
+    const tipo = tipoVinculoAjuda === 'Chamado' ? 'Contexto' : tipoVinculoAjuda;
+    const q = buscaVinculoAjuda.trim().toLocaleLowerCase('pt-BR');
+    return f.tipo === tipo && (!q || `${f.id} ${f.titulo} ${f.url}`.toLocaleLowerCase('pt-BR').includes(q));
+  }).slice(0, 100);
   const meuNome = user?.displayName || user?.email || 'Usuário';
 
   const atualizar = async (novoStatus: Status, novoWork?: Fonte | null) => {
@@ -110,10 +132,12 @@ function EscritorioPage() {
     if (!valor) return undefined;
     if (tipoVinculoAjuda === 'Chamado') {
       const numero = valor.replace(/^#/, '');
-      return { tipo:'Chamado', id:numero, titulo:`Chamado #${numero}`, url:'/chamados' };
+      const contexto = fontes.find(f => f.tipo === 'Contexto' && (f.id === numero || f.titulo.includes(numero)));
+      return contexto ? { ...contexto, tipo: 'Chamado' } : { tipo:'Chamado', id:numero, titulo:`Chamado #${numero}`, url:`/chamados?busca=${encodeURIComponent(numero)}` };
     }
     if (tipoVinculoAjuda === 'PR') return { tipo:'PR', id:valor, titulo:`PR ${valor}`, url:/^https?:\/\//i.test(valor) ? valor : '/fila' };
-    return { tipo:'Cartão BM', id:valor, titulo:`Cartão BM ${valor}`, url:/^https?:\/\//i.test(valor) ? valor : `/chamados-bm?cartao=${encodeURIComponent(valor)}` };
+    const bm = fontes.find(f => f.tipo === 'Cartão BM' && f.id === valor.replace(/^#/, ''));
+    return bm || { tipo:'Cartão BM', id:valor, titulo:`Cartão BM ${valor}`, url:/^https?:\/\//i.test(valor) ? valor : `/chamados-bm?cartao=${encodeURIComponent(valor.replace(/^#/, ''))}` };
   };
 
   const pedirAjuda = async () => {
@@ -158,8 +182,52 @@ function EscritorioPage() {
   const diaHoje = new Date().getDay();
   const homeHoje = (p: Pessoa) => p.homeOfficeDays?.includes(diaHoje) === true;
   const naCopa = desks.filter(p => ativo(p) && p.status === 'pausa');
-  const naAreaTrabalho = desks.filter(p => p.status !== 'pausa');
   const meusConvites = convitesCafe.filter(c => c.anfitriaoUid === user?.uid || c.convidados.includes(user?.uid || ''));
+  const pessoaNoAssento = (mesaId: string, assentoId: string) => pessoasComPresenca.find(p => p.mesaId === mesaId && p.assentoId === assentoId);
+
+  const escolherAssento = async (mesaId: string, assentoId: string) => {
+    if (!user || salvandoAssento) return;
+    const ocupante = pessoaNoAssento(mesaId, assentoId);
+    if (ocupante && ocupante.uid !== user.uid) {
+      setMensagemAssento(`${ocupante.name || ocupante.email || 'Outra pessoa'} já está nesse lugar.`);
+      return;
+    }
+    setSalvandoAssento(true);
+    setMensagemAssento('');
+    try {
+      await setDoc(doc(db, 'profiles', user.uid), { mesaId, assentoId }, { merge: true });
+      setPessoas(atual => atual.map(p => p.uid === user.uid ? { ...p, mesaId, assentoId } : p));
+      setMensagemAssento(`Seu lugar agora é ${MESAS.find(m => m.id === mesaId)?.nome}, assento ${assentoId.split('-').at(-1)}.`);
+    } catch (e: any) {
+      setMensagemAssento(`Não foi possível salvar seu lugar (${e.code || 'Firestore'}).`);
+    } finally {
+      setSalvandoAssento(false);
+    }
+  };
+
+  const renderAssento = (mesa: typeof MESAS[number], assento: { id: string; nome: string }) => {
+    const ocupante = pessoaNoAssento(mesa.id, assento.id);
+    if (!ocupante) return (
+      <button key={assento.id} type="button" className="office-plan-seat office-plan-seat-empty" disabled={salvandoAssento} onClick={() => void escolherAssento(mesa.id, assento.id)} title={`Escolher ${mesa.nome}, lugar ${assento.nome}`}>
+        <span className="office-plan-avatar office-plan-avatar-empty"><span>+</span></span>
+        <small>{assento.nome}</small>
+      </button>
+    );
+    const online = ativo(ocupante);
+    const info = STATUS.find(s => s.value === ocupante.status);
+    const conteudo = <>
+      <span className="office-plan-avatar" style={{ borderColor: online ? info?.color || '#16a34a' : '#9ca3af', opacity: online ? 1 : .56 }}>
+        {avatarDa(ocupante)}<i style={{ background: online ? info?.color || '#16a34a' : '#9ca3af' }}/>
+      </span>
+      <strong title={ocupante.name || ocupante.email}>{ocupante.name || ocupante.email || 'Usuário'}</strong>
+      <small>{online ? info?.label || 'Disponível' : 'Offline'}</small>
+    </>;
+    return ocupante.uid === user?.uid
+      ? <div key={assento.id} className="office-plan-seat office-plan-seat-occupied" title={`Você · ${mesa.nome}, lugar ${assento.nome}`}>{conteudo}<button type="button" className="office-plan-change" onClick={() => setMensagemAssento('Clique em um lugar vazio para mudar sua posição.')}>Trocar lugar</button></div>
+      : <a key={assento.id} className="office-plan-seat office-plan-seat-occupied" href={`/chat?para=${encodeURIComponent(ocupante.uid)}`} title={`Abrir conversa com ${ocupante.name || ocupante.email}`}>
+          {conteudo}
+        </a>;
+  };
 
   const enviarConviteCafe = async () => {
     if (!user || !selecionadosCafe.length) return;
@@ -207,7 +275,18 @@ function EscritorioPage() {
       <section className="rel-box border border-[var(--rel-line)]">
         <div className="rel-section-head"><div><h2 className="font-semibold">Escritório da equipe</h2><p className="rel-desc">{emAtividade} pessoa(s) com presença recente</p></div></div>
         <div className="office-floor mt-4">
-      <section className="office-zone office-zone-work"><div className="office-zone-heading"><Building2 size={18}/><div><h3>Estações de trabalho</h3><p>Avatares mostram a presença e a tarefa atual.</p></div></div><div className="office-desks">{naAreaTrabalho.map(renderMesa)}{!desks.length && <p className="rel-empty col-span-full">As mesas vão ganhar vida quando a equipe acessar o NucleoPTU.</p>}</div></section>
+      <section className="office-zone office-zone-work"><div className="office-zone-heading"><Building2 size={18}/><div><h3>Planta do escritório</h3><p>Escolha um lugar vazio. Clique no avatar de um colega para abrir uma conversa individual.</p></div></div>
+        <div className="office-plan" aria-label="Planta baixa com três mesas compartilhadas">
+          <div className="office-plan-wall"><span>JANELAS</span><span className="office-plan-plant">🌿</span><span className="office-plan-plant">🌿</span></div>
+          <div className="office-plan-tables">{MESAS.map(mesa => <section key={mesa.id} className="office-plan-table-group" aria-label={mesa.nome}>
+            <div className="office-plan-seats">{mesa.lados[0].lugares.map(assento => renderAssento(mesa, assento))}</div>
+            <div className="office-plan-tabletop"><span>{mesa.nome.toUpperCase()}</span><small>Estação compartilhada</small></div>
+            <div className="office-plan-seats">{mesa.lados[1].lugares.map(assento => renderAssento(mesa, assento))}</div>
+          </section>)}</div>
+          <div className="office-plan-legend"><span><i className="office-legend-dot is-online"/> Presença recente</span><span><i className="office-legend-dot is-offline"/> Offline</span><span>{salvandoAssento ? 'Salvando seu lugar...' : mensagemAssento || (self?.mesaId && self?.assentoId ? `Seu lugar: ${MESAS.find(m => m.id === self.mesaId)?.nome || self.mesaId}, ${self.assentoId.split('-').pop()}` : 'Você ainda não escolheu um lugar')}</span></div>
+        </div>
+        {!desks.some(p => p.mesaId && p.assentoId) && <p className="office-plan-empty">Ainda ninguém escolheu um lugar. Selecione um assento vazio para marcar o seu.</p>}
+      </section>
           <section className="office-zone office-zone-meeting"><div className="office-zone-heading"><Users size={18}/><div><h3>Sala de reunião</h3><p>Convide a equipe pelo botão no topo.</p></div></div><div className="office-meeting-table"><span/><span/><span/><span/></div></section>
           <section className="office-zone office-zone-coffee"><div className="office-zone-heading"><Coffee size={18}/><div><h3>Copa</h3><p>Quem está em pausa aparece por aqui.</p></div></div><div className="office-desks">{naCopa.map(renderMesa)}{!naCopa.length && <p className="office-zone-empty">A copa está tranquila. Convide alguém para um café ☕</p>}</div></section>
         </div>
@@ -215,9 +294,9 @@ function EscritorioPage() {
       <section className="rel-box border border-[var(--rel-line)]">
         <div className="rel-section-head"><div><h2 className="font-semibold">Minha mesa</h2><p className="rel-desc">Atualize seu status e o que está fazendo agora.</p></div></div>
         <label className="rel-field mt-4"><span className="rel-label">Meu status</span><select className="rel-input" value={status} onChange={e=>void atualizar(e.target.value as Status)}>{STATUS.map(s=><option value={s.value} key={s.value}>{s.label}</option>)}</select></label>
-        <div className="rel-field mt-3"><label className="rel-label" htmlFor="busca-trabalho">Estou trabalhando em</label><input id="busca-trabalho" className="rel-input" placeholder="Buscar PR, cartão BM ou chamado..." value={filtro} onChange={e=>setFiltro(e.target.value)}/>{filtro.trim() && <div className="mt-2 max-h-56 space-y-1 overflow-y-auto rounded-lg border border-[var(--rel-line)] bg-[var(--rel-surface)] p-1" role="listbox" aria-label="Referências encontradas">{filtraFontes.length ? filtraFontes.map(f=>{const classe=f.tipo==='PR'?'rel-ref-tag-pr':f.tipo==='Cartão BM'?'rel-ref-tag-bm':'rel-ref-tag-chamado';return <button key={f.tipo+f.id} type="button" role="option" aria-selected={trabalhoId===f.tipo+':'+f.id} onClick={()=>setTrabalhoId(f.tipo+':'+f.id)} className="flex w-full items-start gap-2 rounded-md px-2 py-2 text-left hover:bg-[var(--rel-bg)]"><span className={'rel-ref-tag '+classe}>{f.tipo}</span><span className="min-w-0 flex-1 truncate text-sm">{f.titulo}</span>{trabalhoId===f.tipo+':'+f.id&&<span className="text-xs text-[var(--rel-primary)]">Selecionado</span>}</button>}) : <p className="px-3 py-2 text-sm text-[var(--rel-muted)]">{fontes.length ? 'Nenhuma PR, BM ou chamado corresponde à busca.' : 'Nenhuma referência foi carregada. Verifique o acesso às coleções de chamados e BM.'}</p>}</div>}{trabalhoId && <p className="mt-1 text-xs text-[var(--rel-muted)]">{(() => {const f=fontes.find(x=>x.tipo+':'+x.id===trabalhoId);return f?`Selecionado: ${f.tipo} · ${f.titulo}`:'Referência selecionada';})()}</p>}</div>
+        <div className="rel-field mt-3"><label className="rel-label" htmlFor="busca-trabalho">Estou trabalhando em</label><div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px]"><input id="busca-trabalho" className="rel-input" placeholder="Buscar por número, título, cliente ou repo..." value={filtro} onChange={e=>setFiltro(e.target.value)}/><select className="rel-input" value={tipoTrabalho} onChange={e=>setTipoTrabalho(e.target.value)}><option value="">Todos os tipos</option><option value="Contexto">Contextos</option><option value="PR">PRs</option><option value="Cartão BM">Cartões BM</option></select></div>{(filtro.trim() || tipoTrabalho) && <div className="mt-2 max-h-56 space-y-1 overflow-y-auto rounded-lg border border-[var(--rel-line)] bg-[var(--rel-surface)] p-1" role="listbox" aria-label="Referências encontradas">{filtraFontes.length ? filtraFontes.map(f=>{const classe=f.tipo==='PR'?'rel-ref-tag-pr':f.tipo==='Cartão BM'?'rel-ref-tag-bm':'rel-ref-tag-chamado';return <button key={f.tipo+f.id} type="button" role="option" aria-selected={trabalhoId===f.tipo+':'+f.id} onClick={()=>setTrabalhoId(f.tipo+':'+f.id)} className="flex w-full items-start gap-2 rounded-md px-2 py-2 text-left hover:bg-[var(--rel-bg)]"><span className={'rel-ref-tag '+classe}>{f.tipo}</span><span className="min-w-0 flex-1 truncate text-sm">{f.titulo}</span><span className="shrink-0 text-xs text-[var(--rel-muted)]">{f.id}</span>{trabalhoId===f.tipo+':'+f.id&&<span className="text-xs text-[var(--rel-primary)]">Selecionado</span>}</button>}) : <p className="px-3 py-2 text-sm text-[var(--rel-muted)]">{fontes.length ? 'Nenhuma referência corresponde aos filtros.' : 'Nenhuma referência foi carregada. Verifique o acesso às coleções de chamados e BM.'}</p>}</div>}{trabalhoId && <p className="mt-1 text-xs text-[var(--rel-muted)]">{(() => {const f=fontes.find(x=>x.tipo+':'+x.id===trabalhoId);return f?`Selecionado: ${f.tipo} · ${f.titulo}`:'Referência selecionada';})()}</p>}</div>
         <button className="rel-btn rel-btn-outline mt-2 w-full" disabled={!trabalhoId} onClick={()=>void salvarTrabalho()}>Atualizar meu trabalho</button>
-        <div className="mt-5 border-t border-[var(--rel-line)] pt-4"><h3 className="flex items-center gap-2 font-semibold"><HelpCircle size={17}/> Pedir ajuda</h3><p className="rel-desc mt-1">Descreva o que precisa e vincule um PR, cartão BM ou número de chamado.</p><textarea className="rel-input mt-3 min-h-20" placeholder="No que você precisa de ajuda?" value={textoAjuda} onChange={e=>setTextoAjuda(e.target.value)}/><select className="rel-input mt-2" value={tipoVinculoAjuda} onChange={e=>{setTipoVinculoAjuda(e.target.value as typeof tipoVinculoAjuda);setVinculoAjudaId('');setVinculoAjudaTexto('');}}><option value="Chamado">Chamado</option><option value="PR">PR do Git</option><option value="Cartão BM">Cartão do BM</option></select><label className="rel-check mt-2"><input type="checkbox" checked={vinculoAjudaManual} onChange={e=>{setVinculoAjudaManual(e.target.checked);setVinculoAjudaId('');setVinculoAjudaTexto('');}}/><span className="rel-check-body"><strong>Informar vínculo manualmente</strong><span className="rel-check-note">Também pode enviar somente o número do chamado.</span></span></label>{vinculoAjudaManual ? <input className="rel-input mt-2" placeholder={tipoVinculoAjuda === 'Chamado' ? 'Número do chamado' : tipoVinculoAjuda === 'PR' ? 'URL da PR ou repositório#número' : 'ID ou URL do cartão BM'} value={vinculoAjudaTexto} onChange={e=>setVinculoAjudaTexto(e.target.value)}/> : <select className="rel-input mt-2" value={vinculoAjudaId} onChange={e=>setVinculoAjudaId(e.target.value)}><option value="">Vincular item cadastrado (opcional)</option>{fontes.filter(f=>f.tipo===(tipoVinculoAjuda==='Chamado'?'Contexto':tipoVinculoAjuda)).map(f=><option key={f.tipo+f.id} value={f.id}>{f.titulo}</option>)}</select>}<button className="rel-btn rel-btn-primary mt-2 w-full" disabled={salvando || !textoAjuda.trim()} onClick={()=>void pedirAjuda()}>{salvando?<LoaderCircle className="animate-spin" size={16}/>:<Send size={16}/>} Abrir sala de ajuda</button></div>
+        <div className="mt-5 border-t border-[var(--rel-line)] pt-4"><h3 className="flex items-center gap-2 font-semibold"><HelpCircle size={17}/> Pedir ajuda</h3><p className="rel-desc mt-1">Descreva o que precisa e vincule um PR, cartão BM ou número de chamado.</p><textarea className="rel-input mt-3 min-h-20" placeholder="No que você precisa de ajuda?" value={textoAjuda} onChange={e=>setTextoAjuda(e.target.value)}/><select className="rel-input mt-2" value={tipoVinculoAjuda} onChange={e=>{setTipoVinculoAjuda(e.target.value as typeof tipoVinculoAjuda);setVinculoAjudaId('');setVinculoAjudaTexto('');setBuscaVinculoAjuda('');}}><option value="Chamado">Chamado</option><option value="PR">PR do Git</option><option value="Cartão BM">Cartão do BM</option></select><label className="rel-check mt-2"><input type="checkbox" checked={vinculoAjudaManual} onChange={e=>{setVinculoAjudaManual(e.target.checked);setVinculoAjudaId('');setVinculoAjudaTexto('');setBuscaVinculoAjuda('');}}/><span className="rel-check-body"><strong>Informar vínculo manualmente</strong><span className="rel-check-note">Também pode enviar somente o número do chamado.</span></span></label>{vinculoAjudaManual ? <input className="rel-input mt-2" placeholder={tipoVinculoAjuda === 'Chamado' ? 'Número do chamado' : tipoVinculoAjuda === 'PR' ? 'URL da PR ou repositório#número' : 'ID ou URL do cartão BM'} value={vinculoAjudaTexto} onChange={e=>setVinculoAjudaTexto(e.target.value)}/> : <><input className="rel-input mt-2" placeholder="Filtrar por número, título, cliente ou repositório..." value={buscaVinculoAjuda} onChange={e=>setBuscaVinculoAjuda(e.target.value)}/><select className="rel-input mt-2" value={vinculoAjudaId} onChange={e=>setVinculoAjudaId(e.target.value)}><option value="">Vincular item cadastrado (opcional)</option>{fontesAjuda.map(f=><option key={f.tipo+f.id} value={f.id}>{f.titulo}</option>)}</select>{buscaVinculoAjuda && !fontesAjuda.length && <p className="rel-desc mt-1">Nenhum item corresponde à busca. Você pode informar o vínculo manualmente.</p>}</>}<button className="rel-btn rel-btn-primary mt-2 w-full" disabled={salvando || !textoAjuda.trim()} onClick={()=>void pedirAjuda()}>{salvando?<LoaderCircle className="animate-spin" size={16}/>:<Send size={16}/>} Abrir sala de ajuda</button></div>
         <p className="mt-3 text-xs text-[var(--rel-muted)]"><ExternalLink className="mr-1 inline" size={12}/> A convocação aparece no chat da equipe para vocês combinarem o horário.</p>
       </section>
     </div>

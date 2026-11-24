@@ -64,11 +64,25 @@ export async function carregarFontesChat() {
       snap.docs.forEach(d => { const item = mapear(d.id, d.data()); if (item?.titulo) fontes.push({ tipo, id: d.id, ...item }); });
     } catch { /* sem permissão, os demais tipos seguem disponíveis */ }
   };
+  const carregarContextosEPrs = async () => {
+    try {
+      const snap = await getDocs(collection(db, 'chamados'));
+      snap.docs.forEach((docChamado) => {
+        const d = docChamado.data();
+        const numero = String(d.numero || docChamado.id);
+        fontes.push({ tipo: 'Contexto', id: docChamado.id, titulo: `Chamado ${numero} · ${d.cliente || ''} · ${d.assunto || ''}`.trim(), url: `/chamados?chamado=${encodeURIComponent(docChamado.id)}` });
+        (Array.isArray(d.prs) ? d.prs : []).forEach((pr: Record<string, any>) => {
+          if (!pr?.numero) return;
+          const repo = pr.repo ? `${pr.repo} ` : '';
+          fontes.push({ tipo: 'PR', id: `${pr.repo || 'repo'}#${pr.numero}`, titulo: `${repo}#${pr.numero} · ${d.numero || docChamado.id} · ${d.assunto || ''}`.trim(), url: pr.url || `/chamados?chamado=${encodeURIComponent(docChamado.id)}` });
+        });
+      });
+    } catch { /* os demais tipos continuam pesquisáveis */ }
+  };
   await Promise.all([
-    carregar('chamados', 'Contexto', (id, d) => ({ titulo: `#${d.numero || id} · ${d.cliente || ''} · ${d.assunto || ''}`, url: '/chamados' })),
-    carregar('chamados', 'PR', (id, d) => { const pr = Array.isArray(d.prs) ? d.prs[0] : null; return pr ? { titulo: `PR #${pr.numero} · chamado ${d.numero || id}`, url: pr.url || '/fila' } : null; }),
+    carregarContextosEPrs(),
     carregar('chamados_bm', 'Cartão BM', (id, d) => d.encontrado ? { titulo: `BM #${d.cardId || id} · ${d.resumo?.titulo || d.cartao?.titulo || d.chamado || ''}`, url: `/chamados-bm?cartao=${d.cardId || ''}` } : null),
-    carregar('bm_quadro', 'Cartão BM', (id, d) => ({ titulo: `BM #${d.cardId || id} · ${d.titulo || d.title || ''}`, url: `/chamados-bm?cartao=${d.cardId || id}` })),
+    carregar('bm_quadro', 'Cartão BM', (id, d) => ({ titulo: `BM #${d.cardId || id} · ${d.numero || d.chamado || ''} · ${d.titulo || d.title || ''}`.trim(), url: `/chamados-bm?cartao=${encodeURIComponent(String(d.cardId || id))}` })),
     carregar('notices', 'Aviso', (id, d) => d.active === false ? null : ({ titulo: d.title || 'Aviso', url: `/notice-board/${id}` })),
     carregar('usefulLinks', 'Link', (id, d) => ({ titulo: d.title || d.name || 'Link útil', url: d.url || '/links' })),
   ]);
@@ -82,7 +96,8 @@ export async function carregarFontesChat() {
       }
     }
   } catch { /* conexões indisponíveis não bloqueiam as demais menções */ }
-  return [...new Map(fontes.map(f => [`${f.tipo}:${f.id}`, f])).values()].slice(0, 500);
+  return [...new Map(fontes.map(f => [`${f.tipo}:${f.id}`, f])).values()]
+    .sort((a, b) => a.tipo.localeCompare(b.tipo, 'pt-BR') || a.titulo.localeCompare(b.titulo, 'pt-BR'));
 }
 
 
@@ -95,6 +110,8 @@ export async function carregarUsuariosNucleo() {
       name: String(perfil.name || perfil.displayName || perfil.email || 'Usuário'),
       email: String(perfil.email || ''),
       avatar: String(perfil.avatar || ''),
+      mesaId: String(perfil.mesaId || ''),
+      assentoId: String(perfil.assentoId || ''),
       homeOfficeDays: Array.isArray(perfil.homeOfficeDays)
         ? perfil.homeOfficeDays.filter((dia: unknown): dia is number => Number.isInteger(dia) && Number(dia) >= 0 && Number(dia) <= 6)
         : [],

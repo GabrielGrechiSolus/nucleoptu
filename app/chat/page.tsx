@@ -1,17 +1,18 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { addDoc, collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
 import { useAuth } from '../AuthContext';
 import { db } from '../../firebase';
 import withAuth from '../components/withAuth';
 import { carregarFontesChat, carregarUsuariosNucleo, salvarStatusLocal } from '../components/PersonalizacaoPresenca';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Award, Link2, LoaderCircle, MessageCircle, Paperclip, Send, Smile, Users, Sparkles, X, Trash2 } from 'lucide-react';
 
 type Status = 'online' | 'ocupado' | 'ausente' | 'nao-perturbe' | 'ferias' | 'folga' | 'pausa';
 type Pessoa = { uid: string; name: string; email?: string; avatar?: string; homeOfficeDays?: number[]; status?: Status; lastSeenAt?: any };
 type Referencia = { tipo: string; id: string; titulo: string; url: string };
-type Mensagem = { id: string; uid: string; autor: string; texto: string; tipo: 'mensagem' | 'elogio' | 'reuniao'; paraUid?: string; paraNome?: string; refs: Referencia[]; createdAt?: any };
+type Mensagem = { id: string; uid: string; autor: string; texto: string; tipo: 'mensagem' | 'elogio' | 'reuniao' | 'aceno'; paraUid?: string; paraNome?: string; conversaId?: string; salaId?: string; refs: Referencia[]; createdAt?: any };
 type TurnoGemini = { role: 'user' | 'assistant'; text: string };
 
 const STATUS: { value: Status; label: string; cor: string }[] = [
@@ -24,10 +25,14 @@ const STATUS: { value: Status; label: string; cor: string }[] = [
   { value: 'pausa', label: 'Em pausa', cor: '#9ca3af' },
 ];
 const presente = (p: Pessoa) => !!p.status && !!p.lastSeenAt?.toMillis && Date.now() - p.lastSeenAt.toMillis() < 90000;
+const idConversa = (a: string, b: string) => `dm_${[a, b].sort().join('__')}`;
 
 function ChatPage() {
   const { user } = useAuth();
+  const router = useRouter();
+  const parametros = useSearchParams();
   const [salaId, setSalaId] = useState<string | null>(null);
+  const [destinoUid, setDestinoUid] = useState('');
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
   const [perfis, setPerfis] = useState<Pessoa[]>([]);
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
@@ -35,6 +40,7 @@ function ChatPage() {
   const [refs, setRefs] = useState<Referencia[]>([]);
   const [fontes, setFontes] = useState<Referencia[]>([]);
   const [busca, setBusca] = useState('');
+  const [tipoFonte, setTipoFonte] = useState('');
   const [abrirRefs, setAbrirRefs] = useState(false);
   const [modoElogio, setModoElogio] = useState(false);
   const [paraUid, setParaUid] = useState('');
@@ -48,7 +54,10 @@ function ChatPage() {
   const [geminiCarregando, setGeminiCarregando] = useState(false);
   const [geminiErro, setGeminiErro] = useState('');
 
-  useEffect(() => { setSalaId(new URLSearchParams(window.location.search).get('sala')); }, []);
+  useEffect(() => {
+    setSalaId(parametros.get('sala'));
+    setDestinoUid(parametros.get('para') || '');
+  }, [parametros]);
 
   useEffect(() => {
     if (!user) return;
@@ -56,20 +65,45 @@ function ChatPage() {
     let perfisCancelado = false;
     void carregarUsuariosNucleo().then(lista => { if (!perfisCancelado) setPerfis(lista); }).catch((e: any) => setErroUsuarios('Não foi possível carregar os usuários cadastrados (' + (e.code || 'Firestore') + ').'));
     const unsubPerfis = () => { perfisCancelado = true; };
-    const q = query(collection(db, 'chat_messages'), orderBy('createdAt', 'desc'), limit(100));
-    const unsubMensagens = onSnapshot(q, snap => setMensagens(snap.docs.map(d => ({ id: d.id, ...d.data() } as Mensagem)).reverse()), e => setErro('Não foi possível carregar o chat: ' + (e.code || 'erro de acesso ao Firestore')));
     let localStatus: Status = 'online';
     try { localStatus = (localStorage.getItem('nucleoptu.presenca.' + user.uid) as Status) || 'online'; } catch { /* opcional */ }
     if (STATUS.some(s => s.value === localStatus)) setStatus(localStatus);
     void carregarFontesChat().then(setFontes);
-    return () => { unsubPessoas(); unsubPerfis(); unsubMensagens(); };
+    return () => { unsubPessoas(); unsubPerfis(); };
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const mensagens = collection(db, 'chat_messages');
+    const q = salaId
+      ? query(mensagens, where('salaId', '==', salaId), limit(150))
+      : destinoUid
+        ? query(mensagens, where('conversaId', '==', idConversa(user.uid, destinoUid)), limit(150))
+        : query(mensagens, orderBy('createdAt', 'desc'), limit(150));
+    return onSnapshot(q, snap => {
+      const lista = snap.docs.map(d => ({ id: d.id, ...d.data() } as Mensagem));
+      lista.sort((a, b) => (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0));
+      setMensagens(lista);
+    }, e => setErro('Não foi possível carregar o chat: ' + (e.code || 'erro de acesso ao Firestore')));
+  }, [user, salaId, destinoUid]);
 
   const usuarios = useMemo(() => { const mapa = new Map(perfis.map(p => [p.uid,p])); pessoas.forEach(p => mapa.set(p.uid,{...mapa.get(p.uid),...p})); return [...mapa.values()].sort((a,b)=>(a.name||a.email||'').localeCompare(b.name||b.email||'')); }, [perfis,pessoas]);
   const listaOnline = useMemo(() => usuarios.filter(presente), [usuarios]);
-  const mensagensVisiveis = useMemo(() => salaId ? mensagens.filter(m => (m as Mensagem & { salaId?: string }).salaId === salaId) : mensagens.filter(m => !(m as Mensagem & { salaId?: string }).salaId), [mensagens, salaId]);
-  const fontesFiltradas = useMemo(() => fontes.filter(f => !refs.some(r => r.tipo === f.tipo && r.id === f.id) && (!busca || f.titulo.toLocaleLowerCase('pt-BR').includes(busca.toLocaleLowerCase('pt-BR')) || f.tipo.toLowerCase().includes(busca.toLowerCase()))).slice(0, 30), [fontes, refs, busca]);
+  const mensagensVisiveis = useMemo(() => salaId
+    ? mensagens.filter(m => m.salaId === salaId)
+    : destinoUid
+      ? mensagens.filter(m => m.conversaId === (user ? idConversa(user.uid, destinoUid) : ''))
+      : mensagens.filter(m => !m.salaId && !m.conversaId), [mensagens, salaId, destinoUid, user]);
+  const fontesFiltradas = useMemo(() => {
+    const termo = busca.trim().toLocaleLowerCase('pt-BR');
+    return fontes
+      .filter(f => !refs.some(r => r.tipo === f.tipo && r.id === f.id))
+      .filter(f => !tipoFonte || f.tipo === tipoFonte)
+      .filter(f => !termo || `${f.tipo} ${f.id} ${f.titulo} ${f.url}`.toLocaleLowerCase('pt-BR').includes(termo))
+      .slice(0, 60);
+  }, [fontes, refs, busca, tipoFonte]);
   const meuNome = user?.displayName || user?.email || 'Usuário';
+  const pessoaDestino = usuarios.find(p => p.uid === destinoUid);
 
   const mudarStatus = async (novo: Status) => {
     if (!user) return;
@@ -79,11 +113,12 @@ function ChatPage() {
   };
 
   const enviar = async () => {
-    if (!user || (!texto.trim() && !refs.length) || (modoElogio && !paraUid)) return;
+    if (!user || (!texto.trim() && !refs.length) || (modoElogio && !destinoUid && !paraUid)) return;
     setEnviando(true); setErro('');
     try {
       const destino = usuarios.find(p => p.uid === paraUid);
-      await addDoc(collection(db, 'chat_messages'), { uid: user.uid, autor: meuNome, texto: texto.trim(), tipo: modoElogio ? 'elogio' : 'mensagem', ...(destino ? { paraUid: destino.uid, paraNome: destino.name } : {}), ...(salaId ? { salaId } : {}), refs, createdAt: serverTimestamp() });
+      const destinatario = destinoUid ? pessoaDestino : modoElogio ? destino : undefined;
+      await addDoc(collection(db, 'chat_messages'), { uid: user.uid, autor: meuNome, texto: texto.trim(), tipo: modoElogio ? 'elogio' : 'mensagem', ...(destinatario ? { paraUid: destinatario.uid, paraNome: destinatario.name } : {}), ...(destinoUid && pessoaDestino && !salaId ? { conversaId: idConversa(user.uid, destinoUid) } : {}), ...(salaId ? { salaId } : {}), refs, createdAt: serverTimestamp() });
       setTexto(''); setRefs([]); setModoElogio(false); setParaUid(''); setAbrirRefs(false);
     } catch (e: any) { setErro('Não foi possível enviar a mensagem (' + (e.code || 'Firestore') + ').'); }
     finally { setEnviando(false); }
@@ -129,14 +164,14 @@ function ChatPage() {
       </header>
       <div className="grid min-h-[65vh] gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="rel-box border border-[var(--rel-line)] p-0">
-          <div className="flex items-center justify-between border-b border-[var(--rel-line)] px-4 py-3"><h2 className="flex items-center gap-2 font-semibold"><Users size={17}/> Pessoas</h2><span className="rel-tag rel-tag-ok">{listaOnline.length} presentes</span></div>
-          <div className="max-h-[60vh] space-y-1 overflow-y-auto p-2">{usuarios.map(p => { const s = STATUS.find(x => x.value === p.status); const online = !!presente(p); return <div key={p.uid} className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-[var(--rel-bg)]">
+          <div className="border-b border-[var(--rel-line)] px-3 py-3"><h2 className="mb-2 flex items-center justify-between gap-2 font-semibold"><span className="flex items-center gap-2"><Users size={17}/> Pessoas</span><span className="rel-tag rel-tag-ok">{listaOnline.length} presentes</span></h2><button className={'rel-btn rel-btn-sm w-full justify-start ' + (!destinoUid && !salaId ? 'rel-btn-primary' : 'rel-btn-ghost')} onClick={() => router.push('/chat')}><MessageCircle size={15}/> Conversa geral</button></div>
+          <div className="max-h-[60vh] space-y-1 overflow-y-auto p-2">{usuarios.map(p => { const s = STATUS.find(x => x.value === p.status); const online = !!presente(p); const proprioUsuario = p.uid === user?.uid; return <button type="button" key={p.uid} disabled={proprioUsuario} onClick={() => router.push('/chat?para=' + encodeURIComponent(p.uid))} className={'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-[var(--rel-bg)] disabled:cursor-default disabled:opacity-70 ' + (destinoUid === p.uid ? 'bg-[var(--rel-bg)] ring-1 ring-[var(--rel-line)]' : '')}>
             <div className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--rel-primary-soft)] text-sm font-semibold text-[var(--rel-primary)]">{p.avatar ? <img src={p.avatar} alt="" className="h-full w-full object-cover"/> : (p.name || '?').slice(0,1).toUpperCase()}<i className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[var(--rel-surface)]" style={{ background: online ? s?.cor || '#16a34a' : '#9ca3af' }}/></div>
             <div className="min-w-0"><p className="truncate text-sm font-medium">{p.name || p.email || 'Usuário'}{p.uid === user?.uid ? ' (você)' : ''}</p><p className="text-xs text-[var(--rel-muted)]">{online ? s?.label || 'Disponível' : 'Offline'}{p.homeOfficeDays?.includes(new Date().getDay()) ? ' · Home office hoje' : ' · Sem home office hoje'}</p></div>
-          </div>; })}{!usuarios.length && <p className="rel-empty">{erroUsuarios || 'Ainda não há usuários cadastrados no NucleoPTU.'}</p>}</div>
+          </button>; })}{!usuarios.length && <p className="rel-empty">{erroUsuarios || 'Ainda não há usuários cadastrados no NucleoPTU.'}</p>}</div>
         </aside>
         <section className="rel-box flex min-h-[65vh] flex-col border border-[var(--rel-line)] p-0">
-          <div className="border-b border-[var(--rel-line)] px-5 py-3"><h2 className="font-semibold">{salaId ? 'Sala de ajuda' : 'Conversa geral'}</h2><p className="rel-desc">{salaId ? 'Conversa dos participantes desta sala' : 'Últimas 100 mensagens'}</p></div>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--rel-line)] px-5 py-3"><div><h2 className="font-semibold">{salaId ? 'Sala de ajuda' : pessoaDestino ? `Conversa individual com ${pessoaDestino.name || pessoaDestino.email}` : destinoUid ? 'Conversa individual' : 'Conversa geral'}</h2><p className="rel-desc">{salaId ? 'Conversa dos participantes desta sala' : destinoUid ? 'Conversa direta entre você e esta pessoa' : 'Últimas mensagens da equipe'}</p></div>{destinoUid && <button className="rel-btn rel-btn-ghost rel-btn-sm" onClick={() => router.push('/chat')}>Abrir conversa geral</button>}</div>
           <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">{erro && <div className="rel-notice rel-notice-error">{erro}</div>}{mensagensVisiveis.map(m => <article key={m.id} className="flex gap-3">
             <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--rel-primary-soft)] text-sm font-bold text-[var(--rel-primary)]">{m.autor.slice(0,1).toUpperCase()}</div>
             <div className="min-w-0 flex-1 rounded-xl border border-[var(--rel-line)] bg-[var(--rel-bg)] px-4 py-3"><div className="mb-1 flex flex-wrap items-center gap-2"><strong className="text-sm">{m.autor}</strong>{m.tipo === 'elogio' && <span className="rel-tag rel-tag-ok"><Award size={12}/> elogiou {m.paraNome}</span>}<time className="text-xs text-[var(--rel-muted)]">{m.createdAt?.toDate ? m.createdAt.toDate().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : 'agora'}</time></div>
@@ -144,11 +179,11 @@ function ChatPage() {
             </div>
           </article>)}{!mensagensVisiveis.length && <div className="rel-empty py-16"><MessageCircle className="mx-auto mb-2"/><p>Comece a conversa com a equipe.</p></div>}</div>
           <div className="border-t border-[var(--rel-line)] p-3 sm:p-4">
-            {modoElogio && <div className="mb-3 flex flex-wrap items-center gap-2"><span className="rel-tag rel-tag-ok"><Award size={13}/> Elogio para</span><select className="rel-input !w-auto" value={paraUid} onChange={e => setParaUid(e.target.value)}><option value="">Escolha uma pessoa</option>{usuarios.filter(p => p.uid !== user?.uid).map(p => <option key={p.uid} value={p.uid}>{p.name || p.email}{p.homeOfficeDays?.includes(new Date().getDay()) ? ' · Home office hoje' : ' · Sem home office hoje'}</option>)}</select><button className="rel-btn rel-btn-ghost rel-btn-sm" onClick={() => setModoElogio(false)}>Cancelar</button></div>}
+            {modoElogio && <div className="mb-3 flex flex-wrap items-center gap-2"><span className="rel-tag rel-tag-ok"><Award size={13}/> Elogio para</span>{destinoUid ? <strong>{pessoaDestino?.name || pessoaDestino?.email || 'Colega'}</strong> : <select className="rel-input !w-auto" value={paraUid} onChange={e => setParaUid(e.target.value)}><option value="">Escolha uma pessoa</option>{usuarios.filter(p => p.uid !== user?.uid).map(p => <option key={p.uid} value={p.uid}>{p.name || p.email}{p.homeOfficeDays?.includes(new Date().getDay()) ? ' · Home office hoje' : ' · Sem home office hoje'}</option>)}</select>}<button className="rel-btn rel-btn-ghost rel-btn-sm" onClick={() => { setModoElogio(false); setParaUid(''); }}>Cancelar</button></div>}
             {refs.length > 0 && <div className="mb-2 flex flex-wrap gap-2">{refs.map((r,i) => <span key={i} className="rel-tag rel-tag-info">{r.tipo}: {r.titulo}<button aria-label="Remover referência" className="ml-1" onClick={() => setRefs(refs.filter((_,n) => n !== i))}>×</button></span>)}</div>}
-            {abrirRefs && <div className="mb-3 rounded-lg border border-[var(--rel-line)] bg-[var(--rel-surface)] p-3"><div className="mb-2 flex items-center gap-2"><input autoFocus className="rel-input" placeholder="Buscar contexto, PR, BM, aviso, link ou conexão..." value={busca} onChange={e => setBusca(e.target.value)}/><button className="rel-btn rel-btn-ghost rel-btn-sm" onClick={() => setAbrirRefs(false)}>Fechar</button></div><div className="max-h-48 space-y-1 overflow-auto">{fontesFiltradas.map((f,i) => <button key={f.tipo+f.id+i} onClick={() => { setRefs([...refs, f]); setBusca(''); }} className="flex w-full items-start gap-2 rounded-md px-2 py-2 text-left hover:bg-[var(--rel-bg)]"><span className={'rel-ref-tag '+(f.tipo==='PR'?'rel-ref-tag-pr':f.tipo==='Cartão BM'?'rel-ref-tag-bm':'rel-ref-tag-chamado')}>{f.tipo}</span><span className="text-sm">{f.titulo}</span></button>)}{!fontesFiltradas.length && <p className="rel-desc p-2">Nenhuma referência encontrada. Fontes também podem exigir permissão de leitura.</p>}</div></div>}
-            <textarea className="rel-input min-h-20" placeholder={modoElogio ? 'Escreva um elogio para a pessoa...' : 'Escreva uma mensagem para a equipe...'} value={texto} onChange={e => setTexto(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void enviar(); } }}/>
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-2"><div className="flex flex-wrap gap-2"><button className="rel-btn rel-btn-ghost rel-btn-sm" onClick={() => { setAbrirRefs(!abrirRefs); setBusca(''); }}><Paperclip size={15}/> Mencionar item</button><button className={'rel-btn rel-btn-sm ' + (modoElogio ? 'rel-btn-primary' : 'rel-btn-ghost')} onClick={() => setModoElogio(!modoElogio)}><Smile size={15}/> Fazer elogio</button></div><button className="rel-btn rel-btn-primary" disabled={enviando || (!texto.trim() && !refs.length) || (modoElogio && !paraUid)} onClick={() => void enviar()}>{enviando ? <LoaderCircle className="animate-spin" size={16}/> : <Send size={16}/>} Enviar</button></div>
+            {abrirRefs && <div className="mb-3 rounded-lg border border-[var(--rel-line)] bg-[var(--rel-surface)] p-3"><div className="mb-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px_auto]"><input autoFocus className="rel-input" placeholder="Buscar por número, título, cliente ou repositório..." value={busca} onChange={e => setBusca(e.target.value)}/><select className="rel-input" value={tipoFonte} onChange={e => setTipoFonte(e.target.value)}><option value="">Todos os tipos</option>{[...new Set(fontes.map(f => f.tipo))].sort().map(tipo => <option key={tipo} value={tipo}>{tipo}</option>)}</select><button className="rel-btn rel-btn-ghost rel-btn-sm" onClick={() => { setAbrirRefs(false); setTipoFonte(''); }}>Fechar</button></div><div className="max-h-56 space-y-1 overflow-auto">{fontesFiltradas.map((f,i) => <button key={f.tipo+f.id+i} onClick={() => { setRefs([...refs, f]); setBusca(''); }} className="flex w-full items-start gap-2 rounded-md px-2 py-2 text-left hover:bg-[var(--rel-bg)]"><span className={'rel-ref-tag '+(f.tipo==='PR'?'rel-ref-tag-pr':f.tipo==='Cartão BM'?'rel-ref-tag-bm':'rel-ref-tag-chamado')}>{f.tipo}</span><span className="min-w-0 flex-1 text-sm">{f.titulo}</span><span className="shrink-0 text-xs text-[var(--rel-muted)]">{f.id}</span></button>)}{!fontesFiltradas.length && <p className="rel-desc p-2">Nenhuma referência encontrada. Confira a permissão de leitura das coleções de origem.</p>}</div></div>}
+            <textarea className="rel-input min-h-20" placeholder={modoElogio ? 'Escreva um elogio para a pessoa...' : pessoaDestino ? `Mensagem para ${pessoaDestino.name || pessoaDestino.email}...` : 'Escreva uma mensagem para a equipe...'} value={texto} onChange={e => setTexto(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void enviar(); } }}/>
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2"><div className="flex flex-wrap gap-2"><button className="rel-btn rel-btn-ghost rel-btn-sm" onClick={() => { setAbrirRefs(!abrirRefs); setBusca(''); }}><Paperclip size={15}/> Mencionar item</button><button className={'rel-btn rel-btn-sm ' + (modoElogio ? 'rel-btn-primary' : 'rel-btn-ghost')} onClick={() => { setModoElogio(!modoElogio); setParaUid(''); }}><Smile size={15}/> Fazer elogio</button></div><button className="rel-btn rel-btn-primary" disabled={enviando || (!texto.trim() && !refs.length) || (modoElogio && !destinoUid && !paraUid) || (!!destinoUid && !pessoaDestino)} onClick={() => void enviar()}>{enviando ? <LoaderCircle className="animate-spin" size={16}/> : <Send size={16}/>} Enviar</button></div>
           </div>
         </section>
       </div>
