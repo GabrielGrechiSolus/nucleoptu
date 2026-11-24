@@ -72,7 +72,7 @@ export async function GET(req: Request) {
 
   // Perfil Sustentação não tem acesso ao Git. Sem conseguir confirmar o perfil, nega (fail closed).
   const perfil = await tipoDePerfil(login_.uid ?? '', login_.token ?? '');
-  if (!perfil.ok) return NextResponse.json({ erro: 'Não foi possível confirmar o seu perfil agora. Tente novamente.' }, { status: 503 });
+  if (!perfil.ok) return NextResponse.json({ erro: perfil.status ? `Não foi possível confirmar o seu perfil no Firestore (HTTP ${perfil.status}). Tente novamente.` : 'Não foi possível confirmar o seu perfil no Firestore. Confira a configuração do projeto e tente novamente.' }, { status: 503 });
   if (perfil.tipo === 'sustentacao') return NextResponse.json({ erro: 'O perfil Sustentação não tem acesso ao Git.' }, { status: 403 });
 
   const params = new URL(req.url).searchParams;

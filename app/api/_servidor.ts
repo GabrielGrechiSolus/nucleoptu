@@ -33,20 +33,20 @@ export async function verificaFirebase(req: Request): Promise<{ ok: boolean; ema
 
 // Tipo do perfil (profiles/{uid}.noticeType) lido pela API REST do Firestore com o próprio login da pessoa,
 // então vale a mesma regra de acesso do Firestore. Sem documento de perfil, o tipo é vazio.
-export async function tipoDePerfil(uid: string, idToken: string): Promise<{ ok: boolean; tipo: string }> {
+export async function tipoDePerfil(uid: string, idToken: string): Promise<{ ok: boolean; tipo: string; status?: number }> {
   const projeto = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-  if (!projeto || !uid) return { ok: false, tipo: '' };
+  if (!projeto || !uid) return { ok: false, tipo: '', status: 0 };
   try {
     const r = await fetch(`https://firestore.googleapis.com/v1/projects/${projeto}/databases/(default)/documents/profiles/${encodeURIComponent(uid)}`, {
       headers: { Authorization: `Bearer ${idToken}` },
       cache: 'no-store',
     });
     if (r.status === 404) return { ok: true, tipo: '' };
-    if (!r.ok) return { ok: false, tipo: '' };
+    if (!r.ok) return { ok: false, tipo: '', status: r.status };
     const j = (await r.json()) as { fields?: { noticeType?: { stringValue?: string } } };
     return { ok: true, tipo: j.fields?.noticeType?.stringValue ?? '' };
   } catch {
-    return { ok: false, tipo: '' };
+    return { ok: false, tipo: '', status: 0 };
   }
 }
 
@@ -77,7 +77,7 @@ export async function exigeGit(req: Request): Promise<AcessoGit> {
   if (!login.ok) return { ok: false, status: 401, erro: login.motivo ?? 'Entre no sistema.' };
   // Perfil Sustentação não tem acesso ao Git. Sem conseguir confirmar o perfil, nega (fail closed).
   const perfil = await tipoDePerfil(login.uid ?? '', login.token ?? '');
-  if (!perfil.ok) return { ok: false, status: 503, erro: 'Não foi possível confirmar o seu perfil agora. Tente novamente.' };
+  if (!perfil.ok) return { ok: false, status: 503, erro: perfil.status ? `Não foi possível confirmar o seu perfil no Firestore (HTTP ${perfil.status}). Tente novamente.` : 'Não foi possível confirmar o seu perfil no Firestore. Confira a configuração do projeto e tente novamente.' };
   if (perfil.tipo === 'sustentacao') return { ok: false, status: 403, erro: 'O perfil Sustentação não tem acesso ao Git.' };
   const token = await githubToken();
   if (!token) return { ok: false, status: 503, erro: 'O servidor não tem acesso ao GitHub. Configure GITHUB_TOKEN no .env.local ou entre com `gh auth login` na máquina do servidor.' };

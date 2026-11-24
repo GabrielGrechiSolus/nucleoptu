@@ -14,6 +14,7 @@ export default function RevisionDashboard() {
   const [revisoes, setRevisoes] = useState<Revision[]>([]);
   const [chamados, setChamados] = useState<Chamado[]>([]);
   const [aberta, setAberta] = useState<number | null>(null);
+  const [mostrarMais, setMostrarMais] = useState(false);
   const [busca, setBusca] = useState('');
   const [filtroRepo, setFiltroRepo] = useState('todos');
   const [carregando, setCarregando] = useState(true);
@@ -66,6 +67,7 @@ export default function RevisionDashboard() {
     return corresponde && (filtroRepo === 'todos' || p.repo === filtroRepo);
   });
   const repos = aberta === null ? [] : [...new Set((porRevision.get(aberta) ?? []).map((p) => p.repo))].sort();
+  const revisoesVisiveis = mostrarMais ? revisoes : revisoes.slice(0, 1);
 
   return (
     <section className="mb-8 rounded-2xl border border-slate-700 bg-slate-900/70 p-5 text-white shadow-lg">
@@ -79,7 +81,7 @@ export default function RevisionDashboard() {
       {erro && <p className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">{erro}</p>}
       {carregando ? <p className="text-sm text-slate-400">Carregando revisions…</p> : !revisoes.length ? <p className="text-sm text-slate-400">Nenhuma revision publicada foi retornada pela API.</p> : (
         <div className="space-y-2">
-          {revisoes.map((r) => {
+          {revisoesVisiveis.map((r) => {
             const expandida = aberta === r.numero;
             const prs = porRevision.get(r.numero) ?? [];
             return <div key={r.numero} className="overflow-hidden rounded-xl border border-slate-700 bg-slate-800/50">
@@ -96,6 +98,7 @@ export default function RevisionDashboard() {
               </div>}
             </div>;
           })}
+          {revisoes.length > 1 && <button type="button" onClick={() => { setMostrarMais((v) => !v); setAberta(null); }} className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium text-sky-300 hover:border-sky-400 hover:bg-slate-800">{mostrarMais ? 'Mostrar menos' : 'Mostrar mais'}</button>}
         </div>
       )}
     </section>

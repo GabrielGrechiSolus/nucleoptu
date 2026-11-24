@@ -22,8 +22,10 @@ const chaveLidos = (uid: string) => `nucleoptu.prsmergeados.${uid}`;
 const chaveCommits = (uid: string) => `nucleoptu.commits.${uid}`;
 const chaveSnapshotBm = (uid: string) => `nucleoptu.bm.snapshot.${uid}`;
 const chaveAvisosBm = (uid: string) => `nucleoptu.bm.notificacoes.${uid}`;
+const chaveReunioes = (uid: string) => `nucleoptu.office.meetings.${uid}`;
 
 interface NotificacaoCommit { id: string; repo: string; sha: string; mensagem: string; url: string; em: string; lida: boolean }
+interface NotificacaoReuniao { id: string; anfitriaoUid: string; anfitriaoNome: string; criadaEm: string; lida: boolean }
 
 function leCommits(uid: string): NotificacaoCommit[] | null {
   try { const bruto = localStorage.getItem(chaveCommits(uid)); return bruto ? JSON.parse(bruto) as NotificacaoCommit[] : null; } catch { return null; }
@@ -79,6 +81,7 @@ export default function NotificacoesPrs() {
   const [registros, setRegistros] = useState<Record<string, RegistroDoCartao>>({});
   const [lidos, setLidos] = useState<Set<string>>(new Set());
   const [commits, setCommits] = useState<NotificacaoCommit[]>([]);
+  const [reunioes, setReunioes] = useState<NotificacaoReuniao[]>([]);
   const [avisosBm, setAvisosBm] = useState<NotificacaoBm[]>([]);
   const [bmId, setBmId] = useState(0);
   const [aberto, setAberto] = useState(false);
@@ -96,6 +99,46 @@ export default function NotificacoesPrs() {
     window.addEventListener('nucleoptu-bm-chave', atualizaUsuarioBm);
     return () => window.removeEventListener('nucleoptu-bm-chave', atualizaUsuarioBm);
   }, []);
+
+  useEffect(() => {
+    if (!pessoa.carregado || !pessoa.uid) return;
+    let primeiraLeitura = true;
+    const carregaSalvas = (): NotificacaoReuniao[] => {
+      try { return JSON.parse(localStorage.getItem(chaveReunioes(pessoa.uid)) ?? '[]') as NotificacaoReuniao[]; } catch { return []; }
+    };
+    const parar = onSnapshot(collection(db, 'office_meetings'), (snap) => {
+      const salvas = carregaSalvas();
+      const porId = new Map(salvas.map((n) => [n.id, n]));
+      const atuais: NotificacaoReuniao[] = [];
+      for (const d of snap.docs) {
+        const dado = d.data();
+        if (dado.status !== 'aberta' || dado.anfitriaoUid === pessoa.uid) continue;
+        const criadaEm = typeof dado.criadaEm?.toDate === 'function' ? dado.criadaEm.toDate().toISOString() : '';
+        const anterior = porId.get(d.id);
+        const recente = Date.now() - Date.parse(criadaEm || '2000-01-01') < 8 * 60 * 60_000;
+        const item = { id: d.id, anfitriaoUid: String(dado.anfitriaoUid ?? ''), anfitriaoNome: String(dado.anfitriaoNome ?? 'Equipe'), criadaEm, lida: anterior?.lida ?? (!recente) };
+        atuais.push(item);
+        if (!primeiraLeitura && !anterior) toast.info(<div className="text-sm"><strong>Convocação para reunião</strong><div>{item.anfitriaoNome} chamou a equipe.</div><Link href={`/chat?sala=${encodeURIComponent(item.id)}`} className="underline">Entrar na sala</Link></div>, { autoClose: 12000 });
+      }
+      atuais.sort((a, b) => Date.parse(b.criadaEm) - Date.parse(a.criadaEm));
+      setReunioes(atuais);
+      try { localStorage.setItem(chaveReunioes(pessoa.uid), JSON.stringify(atuais.slice(0, 100))); } catch { /* armazenamento local indisponível */ }
+      primeiraLeitura = false;
+    });
+    return () => parar();
+  }, [pessoa.carregado, pessoa.uid]);
+
+  useEffect(() => {
+    if (!pessoa.uid) return;
+    const sincronizaLeitura = () => {
+      setLidos(leLidos(pessoa.uid) ?? new Set());
+      try { setAvisosBm(JSON.parse(localStorage.getItem(chaveAvisosBm(pessoa.uid)) ?? '[]') as NotificacaoBm[]); } catch { setAvisosBm([]); }
+      try { setCommits(JSON.parse(localStorage.getItem(chaveCommits(pessoa.uid)) ?? '[]') as NotificacaoCommit[]); } catch { setCommits([]); }
+      try { setReunioes(JSON.parse(localStorage.getItem(chaveReunioes(pessoa.uid)) ?? '[]') as NotificacaoReuniao[]); } catch { setReunioes([]); }
+    };
+    window.addEventListener('nucleoptu:notifications-updated', sincronizaLeitura);
+    return () => window.removeEventListener('nucleoptu:notifications-updated', sincronizaLeitura);
+  }, [pessoa.uid]);
 
   useEffect(() => {
     if (!pessoa.carregado || !pessoa.uid || !bmId) return;
@@ -260,7 +303,8 @@ export default function NotificacoesPrs() {
   const novas = naoLidas(itens).length;
   const novasBm = avisosBm.filter((n) => !n.lida).length;
   const novasCommits = commits.filter((c) => !c.lida).length;
-  const totalNaoLidas = novas + novasBm + novasCommits;
+  const novasReunioes = reunioes.filter((r) => !r.lida).length;
+  const totalNaoLidas = novas + novasBm + novasCommits + novasReunioes;
 
   useEffect(() => {
     totalNaoLidasRef.current = totalNaoLidas;
@@ -305,6 +349,13 @@ export default function NotificacoesPrs() {
     gravaCommits(pessoa.uid, proximos);
   };
 
+  const marcaReunioes = (ids: string[]) => {
+    const marcados = new Set(ids);
+    const proximas = reunioes.map((r) => marcados.has(r.id) ? { ...r, lida: true } : r);
+    setReunioes(proximas);
+    try { localStorage.setItem(chaveReunioes(pessoa.uid), JSON.stringify(proximas)); } catch { /* armazenamento indisponível */ }
+  };
+
   if (!ativo) return null;
 
   return (
@@ -327,12 +378,13 @@ export default function NotificacoesPrs() {
         <div role="dialog" aria-label="Notificações" className="fixed left-2 right-2 top-[64px] z-50 overflow-hidden rounded-lg border border-[#ebebf0] bg-white text-[#333333] shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-11 sm:w-[380px]">
           <div className="flex items-center justify-between gap-2 border-b border-[#ebebf0] px-4 py-3">
             <span className="flex items-center gap-2 text-sm font-semibold"><Bell size={16} className="text-[#00518C]" /> Notificações</span>
-            <button type="button" onClick={() => { marca(itens.map((n) => n.id)); marcaBm(avisosBm.map((n) => n.id)); marcaCommits(commits.map((n) => n.id)); }} disabled={!totalNaoLidas} className="text-xs text-[#00518C] hover:underline disabled:cursor-not-allowed disabled:opacity-40">Marcar todas como lidas</button>
+            <button type="button" onClick={() => { marca(itens.map((n) => n.id)); marcaBm(avisosBm.map((n) => n.id)); marcaCommits(commits.map((n) => n.id)); marcaReunioes(reunioes.map((n) => n.id)); }} disabled={!totalNaoLidas} className="text-xs text-[#00518C] hover:underline disabled:cursor-not-allowed disabled:opacity-40">Marcar todas como lidas</button>
           </div>
           <div className="max-h-[70vh] overflow-y-auto">
             {erro && <p className="border-b border-[#ebebf0] bg-amber-50 px-4 py-2 text-xs text-amber-800">{erro}</p>}
-            {!itens.length && !avisosBm.length && !commits.length && !erro && <p className="px-4 py-6 text-center text-sm text-[#777]">Nenhuma notificação.</p>}
+            {!itens.length && !avisosBm.length && !commits.length && !reunioes.length && !erro && <p className="px-4 py-6 text-center text-sm text-[#777]">Nenhuma notificação.</p>}
             <ul>
+              {reunioes.map((r) => <li key={`meeting-${r.id}`} className={`border-b border-[#ebebf0] px-4 py-3 ${r.lida ? '' : 'bg-amber-50'}`}><div className="flex items-start justify-between gap-2"><div><span className="mb-1 inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800"><Bell size={11}/> Reunião</span><div className="text-sm font-medium">{r.anfitriaoNome} chamou a equipe</div><div className="text-xs text-[#777]">{r.criadaEm ? tempoRelativo(r.criadaEm, agora) : 'agora'}</div></div>{!r.lida && <span className="mt-1 h-2 w-2 rounded-full bg-amber-600"/>}</div><div className="mt-2 flex items-center gap-3"><Link href={`/chat?sala=${encodeURIComponent(r.id)}`} onClick={() => marcaReunioes([r.id])} className="inline-flex items-center gap-1 rounded border border-amber-700 px-2 py-1 text-xs font-medium text-amber-800">Entrar na sala <ExternalLink size={12}/></Link>{!r.lida && <button type="button" onClick={() => marcaReunioes([r.id])} className="ml-auto text-xs text-[#777] hover:underline">Marcar como lida</button>}</div></li>)}
               {commits.map((c) => <li key={c.id} className={`border-b border-[#ebebf0] px-4 py-3 ${c.lida ? '' : 'bg-emerald-50'}`}>
                 <div className="flex items-start justify-between gap-2"><div className="min-w-0"><span className="mb-1 inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800"><GitCommit size={11} /> Commit novo · {c.repo}</span><div className="text-sm font-medium">{c.mensagem}</div><div className="text-xs text-[#777]">{c.sha.slice(0, 8)} · {c.em ? tempoRelativo(c.em, agora) : 'recente'}</div></div>{!c.lida && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-600" aria-label="não lida" />}</div>
                 <div className="mt-2 flex items-center gap-2"><a href={c.url} target="_blank" rel="noreferrer" onClick={() => marcaCommits([c.id])} className="inline-flex items-center gap-1 rounded border border-emerald-700 px-2 py-1 text-xs font-medium text-emerald-800">Abrir commit <ExternalLink size={12} /></a>{!c.lida && <button type="button" onClick={() => marcaCommits([c.id])} className="ml-auto text-xs text-[#777] hover:underline">Marcar como lida</button>}</div>

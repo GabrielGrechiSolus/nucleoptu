@@ -16,7 +16,8 @@ export async function POST(req: Request) {
   try {
     // O cartão é gravado inteiro (com Git) e a tela de Sustentação oculta o Git ao exibir; por isso quem tem perfil Sustentação não grava.
     const perfil = await tipoDePerfil(login.uid ?? '', login.token ?? '');
-    if (!perfil.ok || perfil.tipo === PERFIL_SEM_GIT) return NextResponse.json({ erro: 'O perfil Sustentação só visualiza os dados já sincronizados.' }, { status: 403 });
+    if (!perfil.ok) return NextResponse.json({ erro: perfil.status ? `Não foi possível confirmar o perfil no Firestore (HTTP ${perfil.status}); não foi feita uma nova leitura do cartão.` : 'Não foi possível confirmar o perfil no Firestore; não foi feita uma nova leitura do cartão.' }, { status: 503 });
+    if (perfil.tipo === PERFIL_SEM_GIT) return NextResponse.json({ erro: 'O perfil Sustentação só visualiza os dados já sincronizados.' }, { status: 403 });
     const { card, comentarios, vinculados } = await detalheDoCartao(chave, cardId, corpo.fresco === true);
     // o cartão precisa ser o do chamado informado (evita usar a rota para ler cartões quaisquer)
     if (corpo.chamado && String(card.custom_id ?? '').replace(/\D/g, '') !== String(corpo.chamado).replace(/\D/g, '')) {

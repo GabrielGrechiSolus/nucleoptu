@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import withAuth from "../components/withAuth";
+import PersonalNotifications from "./PersonalNotifications";
 import { SortTh, sortRows, useSort } from "../components/SortableTable";
 import {
   collection,
@@ -490,6 +491,8 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
           <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse delay-700" />
         </div>
       </div>
+
+      <PersonalNotifications />
 
       {/* Filtros com LED toggle */}
       <div className="space-y-3">
