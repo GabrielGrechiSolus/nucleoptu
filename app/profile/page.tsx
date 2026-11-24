@@ -53,6 +53,7 @@ interface UserProfile {
   bio: string;
   avatar: string;
   ledColor: string;
+  accentColor: string;
   email: string;
   gitUser: string; // usuário no GitHub; liga o usuário aos PRs (fila de aplicação)
   noticeType: "todos" | "analise" | "desenvolvimento" | "lideranca" | "sustentacao";
@@ -78,6 +79,7 @@ export default function ProfilePage() {
     bio: "",
     avatar: "",
     ledColor: "#00ff00",
+    accentColor: "#00518c",
     email: "",
     gitUser: "",
     noticeType: "todos",
@@ -125,6 +127,7 @@ export default function ProfilePage() {
           bio: data.bio || "",
           avatar: data.gitUser ? fotoDoGit(data.gitUser, 200) : data.avatar || user.photoURL || "",
           ledColor: data.ledColor || getRandomColor(),
+          accentColor: data.accentColor || "#00518c",
           email: user.email || "",
           gitUser: data.gitUser || "",
           noticeType: data.noticeType || "todos",
@@ -189,6 +192,7 @@ export default function ProfilePage() {
         bio: profile.bio,
         avatar: profile.avatar || preview,
         ledColor: profile.ledColor,
+        accentColor: profile.accentColor,
         email: user.email,
         gitUser: profile.gitUser.trim().replace(/^@/, ""),
         noticeType: profile.noticeType,
@@ -197,6 +201,7 @@ export default function ProfilePage() {
       };
 
       await setDoc(doc(db, "profiles", user.uid), profileData, { merge: true });
+      window.dispatchEvent(new Event("nucleoptu-perfil-salvo"));
       toast.success("Perfil atualizado com sucesso!");
     } catch (error) {
       console.error(error);
@@ -425,6 +430,23 @@ export default function ProfilePage() {
                     value={profile.ledColor}
                     onChange={(e) => setProfile(prev => ({ ...prev, ledColor: e.target.value }))}
                   />
+                </div>
+
+                <div className="rounded-xl border border-zinc-700 bg-zinc-800/40 p-4">
+                  <label className="text-sm font-medium text-zinc-200 flex items-center gap-2 mb-2">
+                    <span className="h-4 w-4 rounded-full border border-white/30" style={{ backgroundColor: profile.accentColor }} />
+                    Cor principal do site
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input type="color" aria-label="Cor principal do site" className="h-11 w-16 cursor-pointer rounded border border-zinc-600 bg-zinc-800 p-1" value={profile.accentColor} onChange={(e) => setProfile(prev => ({ ...prev, accentColor: e.target.value }))} />
+                    <div className="flex-1">
+                      <p className="text-xs text-zinc-400">Aplicada a botões, links, ícones, bordas e linhas de destaque nesta conta.</p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="rounded-md px-3 py-1.5 text-xs font-semibold text-white" style={{ backgroundColor: profile.accentColor }}>Prévia do botão</span>
+                        <span className="text-sm font-medium" style={{ color: profile.accentColor }}>Texto e ícone</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Notice Type */}

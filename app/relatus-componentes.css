@@ -166,3 +166,26 @@ html .rel-input:focus { outline: none; border-color: var(--rel-primary) !importa
 .rel-details { margin-top: 12px; }
 .rel-details summary { color: var(--rel-primary); font-size: 0.78rem; cursor: pointer; }
 .rel-details summary:hover { text-decoration: underline; }
+
+/* Preferência de destaque salva no perfil; mantém as cores semânticas de status. */
+html[data-user-accent] { --rel-primary: var(--user-accent); --rel-primary-dark: color-mix(in srgb, var(--user-accent), #000 24%); --rel-primary-soft: color-mix(in srgb, var(--user-accent), transparent 88%); }
+html[data-user-accent] .rel-title, html[data-user-accent] .rel-link, html[data-user-accent] .rel-tab-active { color: var(--user-accent) !important; }
+html[data-user-accent] .rel-tab-active { border-bottom-color: var(--user-accent) !important; }
+html[data-user-accent] .rel-btn-primary, html[data-user-accent] .rel-etapa-atual { background: var(--user-accent) !important; border-color: var(--user-accent) !important; }
+html[data-user-accent] [class~="bg-sky-500"], html[data-user-accent] [class~="bg-sky-600"], html[data-user-accent] [class~="bg-blue-600"] { background-color: var(--user-accent) !important; }
+html[data-user-accent] [class~="text-sky-400"], html[data-user-accent] [class~="text-sky-500"], html[data-user-accent] [class~="text-blue-400"], html[data-user-accent] [class*="text-[#00518C]"] { color: var(--user-accent) !important; }
+html[data-user-accent] [class*="border-sky-"], html[data-user-accent] [class*="border-blue-"] { border-color: color-mix(in srgb, var(--user-accent), white 42%) !important; }
+
+.office-floor { border: 1px solid var(--rel-line); border-radius: 8px; background-color: color-mix(in srgb, var(--rel-primary), var(--rel-bg) 94%); background-image: linear-gradient(90deg, color-mix(in srgb,var(--rel-line),transparent 25%) 1px,transparent 1px),linear-gradient(color-mix(in srgb,var(--rel-line),transparent 25%) 1px,transparent 1px); background-size: 28px 28px; }
+.office-desk { position:relative; display:flex; min-height:190px; flex-direction:column; align-items:center; justify-content:flex-start; padding:16px 12px 12px; border:1px solid var(--rel-line); border-radius:10px; background:var(--rel-surface); box-shadow:var(--rel-shadow); }
+.office-desk-me { outline:2px solid var(--rel-primary); outline-offset:1px; }
+.office-avatar-wrap { position:relative; }
+.office-avatar { display:grid; width:54px; height:54px; place-items:center; overflow:hidden; border:3px solid var(--rel-success); border-radius:50%; background:var(--rel-primary-soft); color:var(--rel-primary); font-weight:700; box-shadow:0 3px 10px #0002; }
+.office-presence { position:absolute; right:0; bottom:1px; width:13px; height:13px; border:2px solid var(--rel-surface); border-radius:50%; }
+.office-monitor { display:flex; width:74px; height:48px; flex-direction:column; align-items:center; justify-content:center; color:var(--rel-primary); }
+.office-monitor-icon { width:58px; height:42px; filter:drop-shadow(0 2px 1px #0002); }
+.office-monitor-stand { width:24px; height:5px; margin-top:-3px; border-bottom:3px solid var(--rel-shape); }
+.office-chair { position:absolute; top:73px; color:var(--rel-primary); opacity:.35; transform:scale(1.5); z-index:0; }
+.office-avatar-wrap { z-index:1; }
+.office-coffee { position:absolute; right:-18px; bottom:-9px; color:var(--rel-alert); }
+

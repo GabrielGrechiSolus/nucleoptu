@@ -6,6 +6,7 @@
  import 'react-toastify/dist/ReactToastify.css';
  import { AuthProvider } from "./AuthContext";
 import AtualizaAoEntrar from "./components/AtualizaAoEntrar";
+import PersonalizacaoPresenca from "./components/PersonalizacaoPresenca";
  
  const poppins = Poppins({
   weight: ["300", "400", "500", "600", "700"],
@@ -34,6 +35,7 @@ import AtualizaAoEntrar from "./components/AtualizaAoEntrar";
          <AuthProvider>
            <ToastContainer theme="light" autoClose={3000} />
            <AtualizaAoEntrar />
+           <PersonalizacaoPresenca />
            {children}
          </AuthProvider>
        </body>

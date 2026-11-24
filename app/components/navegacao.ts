@@ -1,5 +1,5 @@
 import type React from 'react';
-import { Bell, FolderSearch, Home, Inbox, Kanban, LifeBuoy, Link as LinkIcon, ListChecks, Network, ShieldCheck, Ticket, User, UserCog, Users } from 'lucide-react';
+import { Bell, FolderSearch, Home, Inbox, Kanban, LifeBuoy, Link as LinkIcon, ListChecks, MessageCircle, Network, ShieldCheck, Ticket, User, UserCog, Users, Building2 } from 'lucide-react';
 
 export interface ItemMenu {
   tipo: 'item';
@@ -32,6 +32,8 @@ export function montaMenu({ admin, processos }: OpcoesMenu): NoMenu[] {
   return [
     item('/home', 'Início', Home, 'text-sky-400'),
     item('/notice-board', 'Mural', Bell, 'text-rose-400'),
+    item('/chat', 'Chat da equipe', MessageCircle, 'text-sky-400'),
+    item('/escritorio', 'Escritório virtual', Building2, 'text-teal-400'),
     grupo('chamados', 'Chamados', Ticket, true, [
       item('/chamados', 'Contexto de chamados', FolderSearch, 'text-teal-400'),
       item('/fila', 'Fila de aplicação', ListChecks, 'text-sky-400'),
