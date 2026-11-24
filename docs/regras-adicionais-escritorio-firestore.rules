@@ -1,6 +1,9 @@
-// Regras adicionais para Chat e Escritório Virtual.
-// Mescle os blocos dentro de match /databases/{database}/documents existente.
-// Não substitua as regras atuais do projeto por este fragmento isolado.
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+// Regras para Chat e Escritório Virtual.
+// Antes de publicar, mescle aqui as regras das coleções já usadas pelo restante do site.
 
 function virtualOfficeAutenticado() {
   return request.auth != null;
@@ -44,12 +47,17 @@ match /chat_messages/{messageId} {
     && request.resource.data.keys().hasOnly([
       'uid', 'autor', 'texto', 'tipo', 'paraUid', 'paraNome', 'salaId', 'refs', 'createdAt'
     ]);
-  allow update, delete: if false;
+  allow update: if false;
+  // O autor pode remover apenas a própria convocação de reunião.
+  allow delete: if virtualOfficeAutenticado()
+    && resource.data.uid == request.auth.uid
+    && resource.data.tipo == 'reuniao';
 }
 
 match /office_help/{roomId} {
   // A tela consulta somente salas abertas, condição exigida pela regra de leitura.
-  allow list: if virtualOfficeAutenticado() && resource.data.status == 'aberta';
+  allow list: if virtualOfficeAutenticado()
+    && (resource.data.status == 'aberta' || resource.data.ownerUid == request.auth.uid);
   allow get: if virtualOfficeAutenticado()
     && (resource.data.status == 'aberta' || request.auth.uid in resource.data.members);
   allow create: if virtualOfficeAutenticado()
@@ -64,14 +72,21 @@ match /office_help/{roomId} {
     && request.resource.data.keys().hasOnly([
       'ownerUid', 'ownerName', 'texto', 'trabalho', 'members', 'status', 'createdAt'
     ]);
-  // Cada usuário só pode incluir o próprio UID na lista de participantes.
-  allow update: if virtualOfficeAutenticado()
-    && resource.data.status == 'aberta'
-    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])
-    && request.resource.data.members is list
-    && request.resource.data.members.toSet()
-      == resource.data.members.toSet().union([request.auth.uid].toSet());
-  allow delete: if false;
+  // Participantes entram sem alterar o conteúdo. O autor pode editar, resolver, arquivar ou reabrir o próprio pedido.
+  allow update: if virtualOfficeAutenticado() && (
+    (resource.data.status == 'aberta'
+      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])
+      && request.resource.data.members is list
+      && request.resource.data.members.toSet()
+        == resource.data.members.toSet().union([request.auth.uid].toSet()))
+    || (resource.data.ownerUid == request.auth.uid
+      && request.resource.data.ownerUid == resource.data.ownerUid
+      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['texto', 'trabalho', 'status'])
+      && request.resource.data.texto is string
+      && request.resource.data.texto.size() <= 2000
+      && request.resource.data.status in ['aberta', 'resolvida', 'arquivada'])
+  );
+  allow delete: if virtualOfficeAutenticado() && resource.data.ownerUid == request.auth.uid;
 }
 
 match /office_coffee_invites/{inviteId} {
@@ -121,5 +136,8 @@ match /office_coffee_invites/{inviteId} {
       )
     );
   allow delete: if false;
+}
+
+  }
 }
 

@@ -140,7 +140,7 @@ const NoticesPage = () => {
     pdf: { icon: <FileText className="w-4 h-4" />, color: "bg-red-600", bgGradient: "from-red-600 to-red-700" },
     word: { icon: <File className="w-4 h-4" />, color: "bg-blue-600", bgGradient: "from-blue-600 to-blue-700" },
     excel: { icon: <BarChart2 className="w-4 h-4" />, color: "bg-green-600", bgGradient: "from-green-600 to-green-700" },
-    site: { icon: <Globe className="w-4 h-4" />, color: "bg-sky-500", bgGradient: "from-sky-500 to-sky-600" },
+    site: { icon: <Globe className="w-4 h-4" />, color: "bg-[var(--rel-primary)]", bgGradient: "from-[var(--rel-primary)] to-[var(--rel-primary-dark)]" },
   };
 
   const importanceConfig: Record<NonNullable<Notice["importance"]>, { color: string; bgColor: string; borderColor: string; icon: React.ReactNode; label: string }> = {
@@ -467,19 +467,19 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
   };
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 max-w-7xl mx-auto">
+    <div className="space-y-6 p-4 sm:p-6 max-w-7xl mx-auto" style={{ color: "var(--rel-text)" }}>
       {/* Header com LEDs */}
       <div className="relative">
         <div className="flex items-center gap-3 mb-2">
           <div className="relative">
-            <BellRing className="w-8 h-8 text-sky-400" />
+            <BellRing className="w-8 h-8 text-[var(--rel-primary)]" />
             <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-sky-400 to-purple-400 bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--rel-primary)]">
             Mural de Avisos
           </h1>
         </div>
-        <p className="text-zinc-400 text-sm">
+        <p className="text-[var(--rel-muted)] text-sm">
           {filtered.length} aviso(s) • {notices.filter(n => !n.readBy?.includes(user?.email || "") && n.active).length} não lidos
         </p>
         
@@ -495,14 +495,14 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
       <div className="space-y-3">
         <div className="flex flex-wrap gap-2">
           <div className="flex-1 min-w-[200px]">
-            <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 focus-within:border-sky-500 transition-all">
-              <Search className="w-4 h-4 text-zinc-400" />
+            <div className="flex items-center gap-2 bg-[var(--rel-surface)] border border-[var(--rel-line)] rounded-xl px-3 py-2 focus-within:border-[var(--rel-primary)] transition-all">
+              <Search className="w-4 h-4 text-[var(--rel-muted)]" />
               <input
                 type="text"
                 placeholder="Buscar aviso..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="bg-transparent outline-none w-full text-sm text-white placeholder-zinc-500"
+                className="bg-transparent outline-none w-full text-sm text-[var(--rel-text)] placeholder-[var(--rel-muted)]"
               />
             </div>
           </div>
@@ -511,8 +511,8 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
               showFilters || filterDate || statusFilter !== "all" || importanceFilter !== "all" || showInactive
-                ? "bg-sky-500/20 text-sky-400 border border-sky-500/30"
-                : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-300"
+                ? "bg-[var(--rel-primary-soft)] text-[var(--rel-primary)] border border-[var(--rel-primary)]"
+                : "bg-[var(--rel-surface)] border border-[var(--rel-line)] text-[var(--rel-muted)] hover:text-[var(--rel-text)]"
             }`}
           >
             <Filter className="w-4 h-4" />
@@ -528,22 +528,22 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
               exit={{ opacity: 0, height: 0 }}
               className="overflow-hidden"
             >
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 space-y-3">
+              <div className="bg-[var(--rel-surface)] border border-[var(--rel-line)] rounded-xl p-4 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  <div className="flex items-center gap-2 bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2">
-                    <Calendar className="w-4 h-4 text-zinc-400" />
+                  <div className="flex items-center gap-2 bg-[var(--rel-bg)] border border-[var(--rel-line)] rounded-xl px-3 py-2">
+                    <Calendar className="w-4 h-4 text-[var(--rel-muted)]" />
                     <input
                       type="date"
                       value={filterDate}
                       onChange={(e) => setFilterDate(e.target.value)}
-                      className="bg-transparent outline-none w-full text-sm text-white"
+                      className="bg-transparent outline-none w-full text-sm text-[var(--rel-text)]"
                     />
                   </div>
 
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value as any)}
-                    className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-sm text-white focus:outline-none focus:border-sky-500"
+                    className="px-3 py-2 bg-[var(--rel-bg)] border border-[var(--rel-line)] rounded-xl text-sm text-[var(--rel-text)] focus:outline-none focus:border-[var(--rel-primary)]"
                   >
                     <option value="all">Todos os status</option>
                     <option value="unread">Não lidos</option>
@@ -553,7 +553,7 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
                   <select
                     value={importanceFilter}
                     onChange={(e) => setImportanceFilter(e.target.value as any)}
-                    className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-sm text-white focus:outline-none focus:border-sky-500"
+                    className="px-3 py-2 bg-[var(--rel-bg)] border border-[var(--rel-line)] rounded-xl text-sm text-[var(--rel-text)] focus:outline-none focus:border-[var(--rel-primary)]"
                   >
                     <option value="all">Todas importâncias</option>
                     <option value="low">Baixa</option>
@@ -567,7 +567,7 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
                       className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm transition-all ${
                         showInactive
                           ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-                          : "bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-zinc-300"
+                          : "bg-[var(--rel-bg)] border border-[var(--rel-line)] text-[var(--rel-muted)] hover:text-[var(--rel-text)]"
                       }`}
                     >
                       {showInactive ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -583,21 +583,21 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setIsAdding(true)}
-            className="flex items-center gap-2 bg-gradient-to-r from-sky-600 to-sky-700 hover:from-sky-500 hover:to-sky-600 transition-all px-4 py-2 rounded-xl text-sm font-medium shadow-lg hover:shadow-xl"
+            className="flex items-center gap-2 bg-[var(--rel-primary)] hover:bg-[var(--rel-primary-dark)] text-[var(--user-accent-contrast,#ffffff)] transition-all px-4 py-2 rounded-xl text-sm font-medium shadow-lg hover:shadow-xl"
           >
             <Plus className="w-4 h-4" /> Novo Aviso
           </button>
 
           <button
             onClick={() => handleExportJSON(notices)}
-            className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 transition px-3 py-2 rounded-xl text-sm font-medium border border-zinc-700"
+            className="flex items-center gap-2 bg-[var(--rel-bg)] hover:bg-[var(--rel-bg)] transition px-3 py-2 rounded-xl text-sm font-medium border border-[var(--rel-line)]"
           >
             <Download className="w-4 h-4" /> Exportar
           </button>
 
           <button
             onClick={handleImportClick}
-            className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 transition px-3 py-2 rounded-xl text-sm font-medium border border-zinc-700"
+            className="flex items-center gap-2 bg-[var(--rel-bg)] hover:bg-[var(--rel-bg)] transition px-3 py-2 rounded-xl text-sm font-medium border border-[var(--rel-line)]"
           >
             <Upload className="w-4 h-4" /> Importar
           </button>
@@ -606,9 +606,9 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
       </div>
 
       {/* Lista de Avisos em grade */}
-      <div className="overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-900">
+      <div className="overflow-x-auto rounded-lg border border-[var(--rel-line)] bg-[var(--rel-surface)]">
         <table className="w-full text-left text-sm">
-          <thead className="text-xs uppercase text-zinc-400">
+          <thead className="text-xs uppercase text-[var(--rel-muted)]">
             <tr>
               <SortTh label="Lido" k="lido" sort={sort} onSort={toggleSort} className="w-14" />
               <SortTh label="Aviso" k="aviso" sort={sort} onSort={toggleSort} />
@@ -638,22 +638,22 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
                 <tr
                   key={item.id}
                   onClick={() => openNoticeDetails(item)}
-                  className={`cursor-pointer border-t border-zinc-800 hover:bg-zinc-800/40 ${!item.active ? "opacity-50" : ""}`}
+                  className={`cursor-pointer border-t border-[var(--rel-line)] hover:bg-[var(--rel-bg)]/40 ${!item.active ? "opacity-50" : ""}`}
                 >
                   <td className="px-3 py-2">
                     {!isRead && item.active && (
-                      <span title="Não lido" className="block h-2 w-2 rounded-full bg-sky-500" />
+                      <span title="Não lido" className="block h-2 w-2 rounded-full bg-[var(--rel-primary)]" />
                     )}
                   </td>
                   <td className="max-w-[420px] px-3 py-2">
-                    <div className={`truncate ${!isRead && item.active ? "font-semibold" : "font-medium"} text-zinc-100`}>
+                    <div className={`truncate ${!isRead && item.active ? "font-semibold" : "font-medium"} text-[var(--rel-text)]`}>
                       {item.title}
-                      {!item.active && <span className="ml-2 text-xs text-zinc-400">(inativo)</span>}
+                      {!item.active && <span className="ml-2 text-xs text-[var(--rel-muted)]">(inativo)</span>}
                     </div>
-                    {item.description && <div className="truncate text-xs text-zinc-400">{item.description}</div>}
+                    {item.description && <div className="truncate text-xs text-[var(--rel-muted)]">{item.description}</div>}
                   </td>
                   <td className="hidden px-3 py-2 md:table-cell">
-                    <span className="inline-flex items-center gap-1 text-xs uppercase text-zinc-400">
+                    <span className="inline-flex items-center gap-1 text-xs uppercase text-[var(--rel-muted)]">
                       {tipo.icon}
                       {item.type || "texto"}
                     </span>
@@ -670,8 +670,8 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
                       {importance.label}
                     </span>
                   </td>
-                  <td className="hidden px-3 py-2 text-zinc-400 lg:table-cell">{item.creatorEmail.split("@")[0]}</td>
-                  <td className="hidden whitespace-nowrap px-3 py-2 text-zinc-400 md:table-cell" title={formatDate(item.createdAt)}>
+                  <td className="hidden px-3 py-2 text-[var(--rel-muted)] lg:table-cell">{item.creatorEmail.split("@")[0]}</td>
+                  <td className="hidden whitespace-nowrap px-3 py-2 text-[var(--rel-muted)] md:table-cell" title={formatDate(item.createdAt)}>
                     {getRelativeTime(item.createdAt)}
                   </td>
                   <td className="px-3 py-2">
@@ -679,7 +679,7 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
                       {item.link && (
                         <button
                           onClick={(e) => { e.stopPropagation(); window.open(item.link, "_blank"); }}
-                          className="rounded bg-zinc-800/50 p-2 text-sky-400 hover:bg-zinc-700/50"
+                          className="rounded bg-[var(--rel-bg)] p-2 text-[var(--rel-primary)] hover:bg-[var(--rel-bg)]"
                           title="Abrir link"
                         >
                           <Globe className="h-4 w-4" />
@@ -719,7 +719,7 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
                                   setEditTarget(item.target || "todos");
                                   setIsEditing(true);
                                 }}
-                                className="rounded bg-sky-500/20 p-2 text-sky-400 hover:bg-sky-500/30"
+                                className="rounded bg-[var(--rel-primary-soft)] p-2 text-[var(--rel-primary)] hover:bg-[var(--rel-primary-soft)]"
                                 title="Editar"
                               >
                                 <Edit3 className="h-4 w-4" />
@@ -750,7 +750,7 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); handleOpenReadModal(item.readBy); }}
-                            className="rounded bg-zinc-700/50 p-2 text-zinc-400 hover:bg-zinc-700"
+                            className="rounded bg-[var(--rel-bg)] p-2 text-[var(--rel-muted)] hover:bg-[var(--rel-bg)]"
                             title="Ver quem leu"
                           >
                             <Users className="h-4 w-4" />
@@ -771,7 +771,7 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
         <div className="flex justify-center">
           <button
             onClick={showMore}
-            className="mt-2 px-6 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-sky-700 hover:from-sky-500 hover:to-sky-600 text-white text-sm font-medium transition-all shadow-lg hover:shadow-xl"
+            className="mt-2 px-6 py-2 rounded-xl bg-[var(--rel-primary)] hover:bg-[var(--rel-primary-dark)] text-[var(--user-accent-contrast,#ffffff)] text-sm font-medium transition-all shadow-lg hover:shadow-xl"
           >
             Mostrar mais ({Math.min(filtered.length, visibleCount + 6)} de {filtered.length})
           </button>
@@ -783,11 +783,11 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-center py-12 bg-zinc-900/50 border border-zinc-800 rounded-xl"
+          className="text-center py-12 bg-[var(--rel-surface)] border border-[var(--rel-line)] rounded-xl"
         >
-          <Bell className="w-12 h-12 mx-auto text-zinc-600 mb-3" />
-          <p className="text-zinc-400">Nenhum aviso encontrado</p>
-          <p className="text-zinc-500 text-sm mt-1">Tente ajustar os filtros ou criar um novo aviso</p>
+          <Bell className="w-12 h-12 mx-auto text-[var(--rel-muted)] mb-3" />
+          <p className="text-[var(--rel-muted)]">Nenhum aviso encontrado</p>
+          <p className="text-[var(--rel-muted)] text-sm mt-1">Tente ajustar os filtros ou criar um novo aviso</p>
         </motion.div>
       )}
 
@@ -795,9 +795,9 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
       <Dialog open={isAdding} onClose={() => setIsAdding(false)} className="relative z-50">
         <div className="fixed inset-0 bg-black/70" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
-          <Dialog.Panel className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md p-6 space-y-4">
-            <Dialog.Title className="text-xl font-bold text-white flex items-center gap-2">
-              <Plus className="w-5 h-5 text-sky-400" />
+          <Dialog.Panel className="bg-[var(--rel-surface)] border border-[var(--rel-line)] rounded-xl w-full max-w-md p-6 space-y-4">
+            <Dialog.Title className="text-xl font-bold text-[var(--rel-text)] flex items-center gap-2">
+              <Plus className="w-5 h-5 text-[var(--rel-primary)]" />
               Novo Aviso
             </Dialog.Title>
             
@@ -806,28 +806,28 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
               placeholder="Título *"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              className="w-full p-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:border-sky-500 focus:outline-none"
+              className="w-full p-2 rounded-lg bg-[var(--rel-bg)] border border-[var(--rel-line)] text-[var(--rel-text)] focus:border-[var(--rel-primary)] focus:outline-none"
             />
             <textarea
               placeholder="Descrição"
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
               rows={3}
-              className="w-full p-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:border-sky-500 focus:outline-none resize-none"
+              className="w-full p-2 rounded-lg bg-[var(--rel-bg)] border border-[var(--rel-line)] text-[var(--rel-text)] focus:border-[var(--rel-primary)] focus:outline-none resize-none"
             />
             <input
               type="text"
               placeholder="Link"
               value={newLink}
               onChange={(e) => setNewLink(e.target.value)}
-              className="w-full p-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:border-sky-500 focus:outline-none"
+              className="w-full p-2 rounded-lg bg-[var(--rel-bg)] border border-[var(--rel-line)] text-[var(--rel-text)] focus:border-[var(--rel-primary)] focus:outline-none"
             />
             
             <div className="grid grid-cols-2 gap-2">
               <select
                 value={newType}
                 onChange={(e) => setNewType(e.target.value as Notice["type"])}
-                className="p-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:border-sky-500 focus:outline-none"
+                className="p-2 rounded-lg bg-[var(--rel-bg)] border border-[var(--rel-line)] text-[var(--rel-text)] focus:border-[var(--rel-primary)] focus:outline-none"
               >
                 <option value="texto">Texto</option>
                 <option value="pdf">PDF</option>
@@ -838,7 +838,7 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
               <select
                 value={newImportance}
                 onChange={(e) => setNewImportance(e.target.value as Notice["importance"])}
-                className="p-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:border-sky-500 focus:outline-none"
+                className="p-2 rounded-lg bg-[var(--rel-bg)] border border-[var(--rel-line)] text-[var(--rel-text)] focus:border-[var(--rel-primary)] focus:outline-none"
               >
                 <option value="low">Baixa importância</option>
                 <option value="medium">Média importância</option>
@@ -847,7 +847,7 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
               <select
                 value={newTarget}
                 onChange={(e) => setNewTarget(e.target.value as Notice["target"])}
-                className="col-span-2 p-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:border-sky-500 focus:outline-none"
+                className="col-span-2 p-2 rounded-lg bg-[var(--rel-bg)] border border-[var(--rel-line)] text-[var(--rel-text)] focus:border-[var(--rel-primary)] focus:outline-none"
               >
                 <option value="todos">Todos</option>
                 <option value="analise">Análise</option>
@@ -858,10 +858,10 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setIsAdding(false)} className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white transition">
+              <button onClick={() => setIsAdding(false)} className="px-4 py-2 rounded-lg bg-[var(--rel-bg)] hover:bg-[var(--rel-bg)] text-[var(--rel-text)] transition">
                 Cancelar
               </button>
-              <button onClick={handleAdd} className="px-4 py-2 rounded-lg bg-gradient-to-r from-sky-600 to-sky-700 hover:from-sky-500 hover:to-sky-600 text-white transition">
+              <button onClick={handleAdd} className="px-4 py-2 rounded-lg bg-[var(--rel-primary)] hover:bg-[var(--rel-primary-dark)] text-[var(--user-accent-contrast,#ffffff)] transition">
                 Salvar
               </button>
             </div>
@@ -873,18 +873,18 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
       <Dialog open={!!selectedNotice} onClose={closeNoticeDetails} className="relative z-50">
         <div className="fixed inset-0 bg-black/70" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
-          <Dialog.Panel className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-4">
+          <Dialog.Panel className="bg-[var(--rel-surface)] border border-[var(--rel-line)] rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-4">
             {selectedNotice && (
               <>
                 <div className="flex justify-between items-start">
-                  <Dialog.Title className="text-2xl font-bold text-white">{selectedNotice.title}</Dialog.Title>
-                  <button onClick={closeNoticeDetails} className="text-zinc-400 hover:text-white text-2xl">&times;</button>
+                  <Dialog.Title className="text-2xl font-bold text-[var(--rel-text)]">{selectedNotice.title}</Dialog.Title>
+                  <button onClick={closeNoticeDetails} className="text-[var(--rel-muted)] hover:text-[var(--rel-text)] text-2xl">&times;</button>
                 </div>
                 
                 <div className="flex flex-wrap gap-2">
                   <div className={`bg-gradient-to-r ${typeConfig[selectedNotice.type || "texto"].bgGradient} px-2 py-1 rounded-lg flex items-center gap-1`}>
                     {typeConfig[selectedNotice.type || "texto"].icon}
-                    <span className="text-xs text-white uppercase">{selectedNotice.type}</span>
+                    <span className="text-xs text-[var(--rel-text)] uppercase">{selectedNotice.type}</span>
                   </div>
                   <div className={`${importanceConfig[selectedNotice.importance || "medium"].bgColor} px-2 py-1 rounded-lg flex items-center gap-1`}>
                     {importanceConfig[selectedNotice.importance || "medium"].icon}
@@ -892,7 +892,7 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
                       {importanceConfig[selectedNotice.importance || "medium"].label} importância
                     </span>
                   </div>
-                  <div className="bg-zinc-800 px-2 py-1 rounded-lg flex items-center gap-1">
+                  <div className="bg-[var(--rel-bg)] px-2 py-1 rounded-lg flex items-center gap-1">
                     {targetConfig[selectedNotice.target || "todos"].icon}
                     <span className={`text-xs ${targetConfig[selectedNotice.target || "todos"].color}`}>
                       Para: {targetConfig[selectedNotice.target || "todos"].label}
@@ -901,12 +901,12 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
                 </div>
                 
                 <div className="space-y-2 text-sm">
-                  <p className="text-zinc-400"><strong>Autor:</strong> {selectedNotice.creatorEmail}</p>
-                  <p className="text-zinc-400"><strong>Data:</strong> {formatDate(selectedNotice.createdAt)}</p>
+                  <p className="text-[var(--rel-muted)]"><strong>Autor:</strong> {selectedNotice.creatorEmail}</p>
+                  <p className="text-[var(--rel-muted)]"><strong>Data:</strong> {formatDate(selectedNotice.createdAt)}</p>
                   {selectedNotice.link && (
                     <p>
                       <strong>Link:</strong>{' '}
-                      <a href={selectedNotice.link} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300 underline">
+                      <a href={selectedNotice.link} target="_blank" rel="noopener noreferrer" className="text-[var(--rel-primary)] hover:text-[var(--rel-primary)] underline">
                         {selectedNotice.link}
                       </a>
                     </p>
@@ -914,8 +914,8 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
                 </div>
                 
                 {selectedNotice.description && (
-                  <div className="mt-4 p-4 bg-zinc-800/50 rounded-lg">
-                    <p className="text-zinc-300 whitespace-pre-wrap break-words">{selectedNotice.description}</p>
+                  <div className="mt-4 p-4 bg-[var(--rel-bg)] rounded-lg">
+                    <p className="text-[var(--rel-text)] whitespace-pre-wrap break-words">{selectedNotice.description}</p>
                   </div>
                 )}
               </>
@@ -928,25 +928,25 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
       <Dialog open={isEditing} onClose={() => setIsEditing(false)} className="relative z-50">
         <div className="fixed inset-0 bg-black/70" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
-          <Dialog.Panel className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md p-6 space-y-4">
-            <Dialog.Title className="text-xl font-bold text-white">Editar Aviso</Dialog.Title>
-            <input type="text" placeholder="Título" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="w-full p-2 rounded bg-zinc-800 text-white" />
-            <textarea placeholder="Descrição" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="w-full p-2 rounded bg-zinc-800 text-white" rows={3} />
-            <input type="text" placeholder="Link" value={editLink} onChange={(e) => setEditLink(e.target.value)} className="w-full p-2 rounded bg-zinc-800 text-white" />
+          <Dialog.Panel className="bg-[var(--rel-surface)] border border-[var(--rel-line)] rounded-xl w-full max-w-md p-6 space-y-4">
+            <Dialog.Title className="text-xl font-bold text-[var(--rel-text)]">Editar Aviso</Dialog.Title>
+            <input type="text" placeholder="Título" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="w-full p-2 rounded bg-[var(--rel-bg)] text-[var(--rel-text)]" />
+            <textarea placeholder="Descrição" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="w-full p-2 rounded bg-[var(--rel-bg)] text-[var(--rel-text)]" rows={3} />
+            <input type="text" placeholder="Link" value={editLink} onChange={(e) => setEditLink(e.target.value)} className="w-full p-2 rounded bg-[var(--rel-bg)] text-[var(--rel-text)]" />
             <div className="grid grid-cols-2 gap-2">
-              <select value={editType} onChange={(e) => setEditType(e.target.value as Notice["type"])} className="p-2 rounded bg-zinc-800 text-white">
+              <select value={editType} onChange={(e) => setEditType(e.target.value as Notice["type"])} className="p-2 rounded bg-[var(--rel-bg)] text-[var(--rel-text)]">
                 <option value="texto">Texto</option>
                 <option value="pdf">PDF</option>
                 <option value="word">Word</option>
                 <option value="excel">Excel</option>
                 <option value="site">Site</option>
               </select>
-              <select value={editImportance} onChange={(e) => setEditImportance(e.target.value as Notice["importance"])} className="p-2 rounded bg-zinc-800 text-white">
+              <select value={editImportance} onChange={(e) => setEditImportance(e.target.value as Notice["importance"])} className="p-2 rounded bg-[var(--rel-bg)] text-[var(--rel-text)]">
                 <option value="low">Baixa</option>
                 <option value="medium">Média</option>
                 <option value="high">Alta</option>
               </select>
-              <select value={editTarget} onChange={(e) => setEditTarget(e.target.value as Notice["target"])} className="col-span-2 p-2 rounded bg-zinc-800 text-white">
+              <select value={editTarget} onChange={(e) => setEditTarget(e.target.value as Notice["target"])} className="col-span-2 p-2 rounded bg-[var(--rel-bg)] text-[var(--rel-text)]">
                 <option value="todos">Todos</option>
                 <option value="analise">Análise</option>
                 <option value="desenvolvimento">Desenvolvimento</option>
@@ -955,8 +955,8 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
               </select>
             </div>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setIsEditing(false)} className="px-4 py-2 rounded bg-zinc-700 hover:bg-zinc-600">Cancelar</button>
-              <button onClick={handleEdit} className="px-4 py-2 rounded bg-sky-600 hover:bg-sky-700">Salvar</button>
+              <button onClick={() => setIsEditing(false)} className="px-4 py-2 rounded bg-[var(--rel-bg)] hover:bg-[var(--rel-surface)]">Cancelar</button>
+              <button onClick={handleEdit} className="px-4 py-2 rounded bg-[var(--rel-primary)] hover:bg-[var(--rel-primary-dark)] text-[var(--user-accent-contrast,#ffffff)]">Salvar</button>
             </div>
           </Dialog.Panel>
         </div>
@@ -965,11 +965,11 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
       <Dialog open={isDeleting} onClose={() => setIsDeleting(false)} className="relative z-50">
         <div className="fixed inset-0 bg-black/70" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
-          <Dialog.Panel className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md p-6 space-y-4">
+          <Dialog.Panel className="bg-[var(--rel-surface)] border border-[var(--rel-line)] rounded-xl w-full max-w-md p-6 space-y-4">
             <Dialog.Title className="text-xl font-bold text-red-400">Confirmar Exclusão</Dialog.Title>
-            <p className="text-zinc-300">Tem certeza que deseja deletar este aviso? Esta ação não pode ser desfeita.</p>
+            <p className="text-[var(--rel-text)]">Tem certeza que deseja deletar este aviso? Esta ação não pode ser desfeita.</p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setIsDeleting(false)} className="px-4 py-2 rounded bg-zinc-700 hover:bg-zinc-600">Cancelar</button>
+              <button onClick={() => setIsDeleting(false)} className="px-4 py-2 rounded bg-[var(--rel-bg)] hover:bg-[var(--rel-surface)]">Cancelar</button>
               <button onClick={handleDelete} className="px-4 py-2 rounded bg-red-600 hover:bg-red-700">Deletar</button>
             </div>
           </Dialog.Panel>
@@ -979,27 +979,27 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
       <Dialog open={readModalOpen} onClose={() => setReadModalOpen(false)} className="relative z-50">
         <div className="fixed inset-0 bg-black/70" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
-          <Dialog.Panel className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md p-6 space-y-4">
-            <Dialog.Title className="text-xl font-bold text-white flex items-center gap-2">
-              <Users className="w-5 h-5 text-sky-400" />
+          <Dialog.Panel className="bg-[var(--rel-surface)] border border-[var(--rel-line)] rounded-xl w-full max-w-md p-6 space-y-4">
+            <Dialog.Title className="text-xl font-bold text-[var(--rel-text)] flex items-center gap-2">
+              <Users className="w-5 h-5 text-[var(--rel-primary)]" />
               Usuários que leram
             </Dialog.Title>
             <div className="max-h-64 overflow-y-auto space-y-1">
               {readList.length === 0 ? (
-                <p className="text-zinc-500 text-center py-4">Ninguém leu este aviso ainda</p>
+                <p className="text-[var(--rel-muted)] text-center py-4">Ninguém leu este aviso ainda</p>
               ) : (
                 readList.map((email, idx) => (
-                  <div key={idx} className="flex items-center gap-2 p-2 bg-zinc-800 rounded-lg">
-                    <div className="w-6 h-6 rounded-full bg-sky-500/20 flex items-center justify-center">
-                      <User className="w-3 h-3 text-sky-400" />
+                  <div key={idx} className="flex items-center gap-2 p-2 bg-[var(--rel-bg)] rounded-lg">
+                    <div className="w-6 h-6 rounded-full bg-[var(--rel-primary-soft)] flex items-center justify-center">
+                      <User className="w-3 h-3 text-[var(--rel-primary)]" />
                     </div>
-                    <span className="text-sm text-zinc-300">{email}</span>
+                    <span className="text-sm text-[var(--rel-text)]">{email}</span>
                   </div>
                 ))
               )}
             </div>
             <div className="flex justify-end">
-              <button onClick={() => setReadModalOpen(false)} className="px-4 py-2 rounded bg-zinc-700 hover:bg-zinc-600 text-white">Fechar</button>
+              <button onClick={() => setReadModalOpen(false)} className="px-4 py-2 rounded bg-[var(--rel-bg)] hover:bg-[var(--rel-surface)] text-[var(--rel-text)]">Fechar</button>
             </div>
           </Dialog.Panel>
         </div>

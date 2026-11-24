@@ -697,34 +697,34 @@ const HomePage = () => {
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') setUnimedModalOpen(true);
             }}
-            className="group relative w-full cursor-pointer overflow-hidden bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 hover:border-sky-500 transition-all"
+            className="group relative w-full cursor-pointer overflow-hidden bg-[var(--rel-surface)] border border-[var(--rel-line)] rounded-2xl p-6 hover:border-[var(--rel-primary)] transition-all"
           >
 
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-4">
                 <div className="relative">
-                  <div className="relative w-14 h-14 rounded-full bg-blue-600 text-white flex items-center justify-center">
+                  <div className="relative w-14 h-14 rounded-full bg-[var(--rel-primary)] text-[var(--user-accent-contrast,#ffffff)] flex items-center justify-center">
                     <Heart size={28} />
                   </div>
                 </div>
                 <div className="text-left">
-                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-[var(--rel-text)] flex items-center gap-2">
                     Unimed - Rede Credenciada
                     <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">Gerenciamento</span>
                   </h2>
-                  <p className="text-slate-400 text-sm mt-1">
+                  <p className="text-[var(--rel-muted)] text-sm mt-1">
                     Gerencie os códigos das Unimeds homologadas e em processo de homologação
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-emerald-400">
+              <div className="flex items-center gap-2 text-[var(--rel-primary)]">
                 <span className="text-sm font-medium">Acessar</span>
                 <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
           </div>
         </motion.div>
-      
+
 
         {/* Footer */}
         <motion.div
@@ -754,28 +754,28 @@ const HomePage = () => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-gradient-to-br from-slate-900 to-slate-950 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-slate-800 shadow-2xl"
+              className="bg-gradient-to-br from-[var(--rel-surface)] to-[var(--rel-surface)] rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-[var(--rel-line)] shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header do Modal */}
-              <div className="relative p-6 border-b border-slate-800 bg-gradient-to-r from-emerald-600/10 to-teal-600/10">
+              <div className="relative p-6 border-b border-[var(--rel-line)] bg-gradient-to-r from-emerald-600/10 to-teal-600/10">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <div className="relative w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center">
+                      <div className="relative w-12 h-12 rounded-full bg-blue-600 text-[var(--rel-text)] flex items-center justify-center">
                         <Heart size={24} />
                       </div>
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold text-white">Unimed - Rede Credenciada</h2>
-                      <p className="text-slate-400 text-sm">Gerencie os códigos e status das Unimeds</p>
+                      <h2 className="text-2xl font-bold text-[var(--rel-text)]">Unimed - Rede Credenciada</h2>
+                      <p className="text-[var(--rel-muted)] text-sm">Gerencie os códigos e status das Unimeds</p>
                     </div>
                   </div>
                   <button
                     onClick={() => setUnimedModalOpen(false)}
-                    className="p-2 rounded-lg hover:bg-slate-800 transition-colors"
+                    className="p-2 rounded-lg hover:bg-[var(--rel-bg)] transition-colors"
                   >
-                    <X size={20} className="text-slate-400" />
+                    <X size={20} className="text-[var(--rel-muted)]" />
                   </button>
                 </div>
 
@@ -788,12 +788,12 @@ const HomePage = () => {
               </div>
 
               {/* Tabs */}
-              <div className="flex border-b border-slate-800">
+              <div className="flex border-b border-[var(--rel-line)]">
                 <button
                   onClick={() => setActiveTab('homologadas')}
                   className={`flex-1 py-3 text-sm font-medium transition-all relative ${activeTab === 'homologadas'
                     ? 'text-emerald-400'
-                    : 'text-slate-500 hover:text-slate-300'
+                    : 'text-[var(--rel-muted)] hover:text-[var(--rel-text)]'
                     }`}
                 >
                   <div className="flex items-center justify-center gap-2">
@@ -814,7 +814,7 @@ const HomePage = () => {
                   onClick={() => setActiveTab('homologacao')}
                   className={`flex-1 py-3 text-sm font-medium transition-all relative ${activeTab === 'homologacao'
                     ? 'text-amber-400'
-                    : 'text-slate-500 hover:text-slate-300'
+                    : 'text-[var(--rel-muted)] hover:text-[var(--rel-text)]'
                     }`}
                 >
                   <div className="flex items-center justify-center gap-2">
@@ -835,7 +835,7 @@ const HomePage = () => {
                   onClick={() => setShowInativas(!showInativas)}
                   className={`flex-1 py-3 text-sm font-medium transition-all relative ${showInativas
                     ? 'text-red-400'
-                    : 'text-slate-500 hover:text-slate-300'
+                    : 'text-[var(--rel-muted)] hover:text-[var(--rel-text)]'
                     }`}
                 >
                   <div className="flex items-center justify-center gap-2">
@@ -855,22 +855,22 @@ const HomePage = () => {
               </div>
 
               {/* Search */}
-              <div className="p-4 border-b border-slate-800">
+              <div className="p-4 border-b border-[var(--rel-line)]">
                 <div className="relative">
-                  <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--rel-muted)]" />
                   <input
                     type="text"
                     placeholder="Buscar por código ou nome da Unimed..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none transition-colors"
+                    className="w-full pl-10 pr-4 py-2 bg-[var(--rel-bg)]/50 border border-slate-700 rounded-xl text-[var(--rel-text)] placeholder-slate-500 focus:border-emerald-500 focus:outline-none transition-colors"
                   />
                 </div>
               </div>
 
               {/* Lista de Unimeds - Arrastável */}
               <div className="p-4 overflow-y-auto max-h-[50vh] space-y-2">
-                <p className="text-xs text-slate-500 mb-3 flex items-center gap-2">
+                <p className="text-xs text-[var(--rel-muted)] mb-3 flex items-center gap-2">
                   <ArrowLeftRight size={12} />
                   Arraste para os lados para mover entre status:
                   <span className="text-emerald-400">→ Homologada</span>
@@ -882,7 +882,7 @@ const HomePage = () => {
                     inativas.length === 0 ? (
                       <div className="text-center py-12">
                         <XCircle size={48} className="mx-auto text-slate-600 mb-3" />
-                        <p className="text-slate-400">Nenhuma Unimed inativa</p>
+                        <p className="text-[var(--rel-muted)]">Nenhuma Unimed inativa</p>
                       </div>
                     ) : (
                       inativas.map((item, index) => (
@@ -893,8 +893,8 @@ const HomePage = () => {
                     filteredUnimeds().length === 0 ? (
                       <div className="text-center py-12">
                         <Search size={48} className="mx-auto text-slate-600 mb-3" />
-                        <p className="text-slate-400">Nenhuma Unimed encontrada</p>
-                        <p className="text-slate-500 text-sm">Tente buscar por outro termo</p>
+                        <p className="text-[var(--rel-muted)]">Nenhuma Unimed encontrada</p>
+                        <p className="text-[var(--rel-muted)] text-sm">Tente buscar por outro termo</p>
                       </div>
                     ) : (
                       filteredUnimeds().map((item, index) => (

@@ -58,6 +58,7 @@ interface UserProfile {
   gitUser: string; // usuário no GitHub; liga o usuário aos PRs (fila de aplicação)
   noticeType: "todos" | "analise" | "desenvolvimento" | "lideranca" | "sustentacao";
   skills: Skill[];
+  homeOfficeDays: number[];
   updatedAt?: Date;
   createdAt?: Date;
 }
@@ -90,6 +91,7 @@ export default function ProfilePage() {
     gitUser: "",
     noticeType: "todos",
     skills: [],
+    homeOfficeDays: [],
   });
   const [preview, setPreview] = useState("/profile.jpg");
   const [modalOpen, setModalOpen] = useState(false);
@@ -137,6 +139,7 @@ export default function ProfilePage() {
           email: user.email || "",
           gitUser: data.gitUser || "",
           noticeType: data.noticeType || "todos",
+          homeOfficeDays: Array.isArray(data.homeOfficeDays) ? data.homeOfficeDays : [],
           skills: (data.skills || []).map((s: any) => ({
             name: s.name,
             score: s.score || 0,
@@ -203,6 +206,7 @@ export default function ProfilePage() {
         gitUser: profile.gitUser.trim().replace(/^@/, ""),
         noticeType: profile.noticeType,
         skills: profile.skills,
+        homeOfficeDays: profile.homeOfficeDays,
         updatedAt: new Date(),
       };
 
@@ -443,6 +447,11 @@ export default function ProfilePage() {
                     <span className="h-4 w-4 rounded-full border border-white/30" style={{ backgroundColor: profile.accentColor }} />
                     Cor principal do site
                   </label>
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    <button type="button" onClick={() => setProfile(prev => ({ ...prev, accentColor: "#00518C", ledColor: "#D4145A" }))} className="rounded-lg border border-sky-700 bg-sky-950/60 px-3 py-2 text-sm font-semibold text-white">Usar padrão Solus</button>
+                    <span className="self-center text-xs text-zinc-400">Azul institucional, rosa e vermelho do logo</span>
+                  </div>
+                  <div className="mb-3 flex items-center gap-2" aria-label="Paleta Solus"><span title="Azul Solus" className="h-5 w-5 rounded-full border border-white/20 bg-[#00518C]"/><span title="Azul" className="h-5 w-5 rounded-full border border-white/20 bg-[#0055A4]"/><span title="Rosa" className="h-5 w-5 rounded-full border border-white/20 bg-[#D4145A]"/><span title="Vermelho" className="h-5 w-5 rounded-full border border-white/20 bg-[#ED1C24]"/></div>
                   <div className="flex items-center gap-3">
                     <input type="color" aria-label="Cor principal do site" className="h-11 w-16 cursor-pointer rounded border border-zinc-600 bg-zinc-800 p-1" value={profile.accentColor} onChange={(e) => setProfile(prev => ({ ...prev, accentColor: e.target.value }))} />
                     <div className="flex-1">
@@ -476,6 +485,12 @@ export default function ProfilePage() {
                       </button>
                     ))}
                   </div>
+                </div>
+
+                <div className="rounded-xl border border-zinc-700 bg-zinc-800/40 p-4">
+                  <label className="text-sm font-medium text-zinc-200 flex items-center gap-2 mb-2"><Calendar size={16}/> Dias de home office</label>
+                  <p className="mb-3 text-xs text-zinc-400">Esses dias aparecem para a equipe junto ao seu status, inclusive na lista de pessoas e nos convites.</p>
+                  <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">{['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map((dia,index)=><button key={dia} type="button" aria-pressed={profile.homeOfficeDays.includes(index)} onClick={()=>setProfile(prev=>({...prev,homeOfficeDays:prev.homeOfficeDays.includes(index)?prev.homeOfficeDays.filter(x=>x!==index):[...prev.homeOfficeDays,index].sort((a,b)=>a-b)}))} className={`rounded-lg border px-2 py-2 text-sm font-medium ${profile.homeOfficeDays.includes(index)?'border-sky-500 bg-sky-600 text-white':'border-zinc-700 bg-zinc-800 text-zinc-300'}`}>{dia}</button>)}</div>
                 </div>
 
                 {/* Email */}
