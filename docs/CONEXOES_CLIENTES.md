@@ -30,6 +30,7 @@ match /auditoria_conexoes/{id} { allow read, write: if false; }
 
 - Credenciais ficam **somente** no campo Senha da conexão, que é cifrado no servidor. Os demais campos de texto (nome, código, descrição, servidor, usuário, observação etc.) não aceitam segredos.
 - A trava (`app/client-connections/sensivel.ts`, chamada por `validaCliente`) vale no formulário, na importação por arquivo e na API. Ela recusa tokens do GitHub, chaves de serviço (AWS, Google, Slack, OpenAI, Stripe), chaves privadas, JWT, strings de conexão e dados de acesso a banco (JDBC, `usuario/senha@base`, TNS, `IDENTIFIED BY`), além de "senha:" ou "token:" escritos no texto. A mensagem diz o campo e o tipo de dado, nunca repete o valor.
+- **Importação por arquivo feita por administrador não passa pela trava** (a API só aceita esse caminho de quem é administrador e registra `via: importacao` na auditoria). Para os demais usuários a importação continua com a trava, e formulário e edição manual sempre a aplicam.
 - Cadastros antigos que já tenham esse tipo de dado não são alterados pela trava: edite e apague o valor, e revogue a credencial exposta.
 
 ## Importar clientes por arquivo

@@ -136,7 +136,11 @@ function textoSensivel(c: ClienteConexao): string | null {
   return null;
 }
 
-export function validaCliente(c: ClienteConexao): string | null {
+export interface OpcoesValidacao {
+  semTravaSensivel?: boolean;
+}
+
+export function validaCliente(c: ClienteConexao, opcoes: OpcoesValidacao = {}): string | null {
   if (c.nome.trim().length < 2) return 'Informe o nome do cliente.';
   for (const x of c.conexoes) {
     const rotulo = ROTULO_TIPO_CONEXAO[x.tipo];
@@ -147,7 +151,7 @@ export function validaCliente(c: ClienteConexao): string | null {
     if (!p.nome.trim()) return 'Contato do Teams: informe o nome.';
     if (p.teams.trim() && !EMAIL.test(p.teams.trim())) return `Contato ${p.nome}: o endereço do Teams deve ser um e-mail válido.`;
   }
-  return textoSensivel(c);
+  return opcoes.semTravaSensivel ? null : textoSensivel(c);
 }
 
 export interface PreviaImportacao {
@@ -161,7 +165,7 @@ export interface PreviaImportacao {
 const chaveNome = (n: string) => n.trim().toLowerCase();
 
 // Lê um arquivo de importação ({ clientes: [...] } ou uma lista) e separa o que é novo do que já está cadastrado (pelo nome).
-export function previaImportacao(bruto: unknown, existentes: Pick<ClienteConexao, 'nome'>[]): PreviaImportacao {
+export function previaImportacao(bruto: unknown, existentes: Pick<ClienteConexao, 'nome'>[], opcoes: OpcoesValidacao = {}): PreviaImportacao {
   const lista: unknown[] = Array.isArray(bruto) ? bruto : Array.isArray((bruto as { clientes?: unknown })?.clientes) ? (bruto as { clientes: unknown[] }).clientes : [];
   const conhecidos = new Set(existentes.map((c) => chaveNome(c.nome)));
   const novos: ClienteConexao[] = [];
@@ -173,7 +177,7 @@ export function previaImportacao(bruto: unknown, existentes: Pick<ClienteConexao
       continue;
     }
     const c = normalizaCliente('', item as Record<string, unknown>);
-    if (validaCliente(c)) {
+    if (validaCliente(c, opcoes)) {
       invalidos++;
       continue;
     }

@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import withAuth from '../components/withAuth';
 import Link from 'next/link';
 import { useDetalheNaUrl, useParametrosUrl } from '../components/TelaDetalhe';
+import { useAdmin } from '../admin/useAdmin';
 import { SortTh, sortRows, useSort } from '../components/SortableTable';
 import { excluiCliente, listaClientes, salvaCliente } from './api';
 import DetalheCliente from './DetalheCliente';
@@ -29,6 +30,7 @@ function ConexoesClientesPage() {
   const nav = useParametrosUrl();
   const [salvando, setSalvando] = useState(false);
   const [locais, setLocais] = useState(0);
+  const eu = useAdmin();
   const [importando, setImportando] = useState(false);
   const arquivoRef = useRef<HTMLInputElement>(null);
   const { sort, toggleSort } = useSort({ key: 'nome', dir: 'asc' });
@@ -118,7 +120,7 @@ function ConexoesClientesPage() {
       toast.error('O arquivo não é um JSON válido.');
       return;
     }
-    const previa = previaImportacao(bruto, clientes);
+    const previa = previaImportacao(bruto, clientes, { semTravaSensivel: eu.admin });
     if (!previa.novos.length) {
       toast.info(`Nada a importar: ${previa.repetidos.length} já cadastrado(s)${previa.invalidos ? `, ${previa.invalidos} inválido(s)` : ''}.`);
       return;
@@ -132,7 +134,7 @@ ${previa.repetidos.length} já cadastrado(s) serão mantidos sem alteração${pr
     const falhas: string[] = [];
     for (const c of previa.novos) {
       try {
-        await salvaCliente(c);
+        await salvaCliente(c, { importacao: eu.admin });
         gravados++;
       } catch (e) {
         falhas.push(`${c.nome}: ${(e as Error).message}`);

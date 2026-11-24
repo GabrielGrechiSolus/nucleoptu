@@ -1,5 +1,5 @@
 import { achaDadoSensivel } from './sensivel';
-import { novaConexao, novoCliente, validaCliente } from './modelo';
+import { novaConexao, novoCliente, previaImportacao, validaCliente } from './modelo';
 import { limpaEntrada } from './servidor';
 
 describe('trava de dados sensíveis nos campos de texto', () => {
@@ -54,5 +54,17 @@ describe('trava de dados sensíveis nos campos de texto', () => {
     expect(validaCliente(c)).toBeNull();
     expect(limpaEntrada({ ...c, descricao: 'ghp_' + 'a1B2c3D4e5'.repeat(4) })).toMatchObject({ ok: false });
     expect(limpaEntrada(c)).toMatchObject({ ok: true });
+  });
+
+  it('a importação feita por administrador pode dispensar a trava; as demais telas não', () => {
+    const c = novoCliente();
+    c.nome = 'Cliente Exemplo';
+    c.descricao = 'ghp_' + 'a1B2c3D4e5'.repeat(4);
+    expect(validaCliente(c)).toContain('Descrição');
+    expect(validaCliente(c, { semTravaSensivel: true })).toBeNull();
+    expect(limpaEntrada(c)).toMatchObject({ ok: false });
+    expect(limpaEntrada(c, { semTravaSensivel: true })).toMatchObject({ ok: true });
+    expect(previaImportacao([c], []).novos).toHaveLength(0);
+    expect(previaImportacao([c], [], { semTravaSensivel: true }).novos).toHaveLength(1);
   });
 });

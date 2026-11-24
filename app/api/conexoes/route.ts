@@ -1,4 +1,5 @@
 import { chaveDoAmbiente, cifra } from '../_cripto';
+import { exigeAdmin } from '../_admin';
 import { permite } from '../_limite';
 import { COLECAO_CONEXOES, audita, exigeConexoes, falhaInterna, respostaSegura } from './_acesso';
 import { limpaEntrada, paraLista, preparaParaGravar } from '../../client-connections/servidor';
@@ -26,7 +27,9 @@ async function grava(req: Request) {
   } catch {
     return respostaSegura({ erro: 'Requisição inválida.' }, 400);
   }
-  const entrada = limpaEntrada((corpo as { cliente?: unknown })?.cliente);
+  // Importação por arquivo feita por administrador não passa pela trava de dados sensíveis; para os demais ela continua valendo.
+  const semTravaSensivel = (corpo as { importacao?: unknown })?.importacao === true && (await exigeAdmin(req)).ok;
+  const entrada = limpaEntrada((corpo as { cliente?: unknown })?.cliente, { semTravaSensivel });
   if (!entrada.ok) return respostaSegura({ erro: entrada.erro }, 400);
   const cliente = entrada.cliente;
   const chave = chaveDoAmbiente();
@@ -49,7 +52,7 @@ async function grava(req: Request) {
   };
   const gravar = preparaParaGravar(final, antigo, (t, ctx) => cifra(t, chave as Buffer, ctx));
   await ref.set(gravar);
-  await audita(a.db, a.email, novo ? 'criar' : 'editar', { clienteId: ref.id, nome: cliente.nome });
+  await audita(a.db, a.email, novo ? 'criar' : 'editar', { clienteId: ref.id, nome: cliente.nome, ...(semTravaSensivel ? { via: 'importacao', semTravaSensivel: true } : {}) });
   return respostaSegura({ cliente: paraLista(ref.id, gravar) });
 }
 

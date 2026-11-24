@@ -21,7 +21,8 @@ const converte = (c: unknown) => normalizaCliente(String((c as { id?: string }).
 
 export const listaClientes = async (): Promise<ClienteConexao[]> => (await chama<{ clientes: unknown[] }>('/api/conexoes')).clientes.map(converte);
 
-export const salvaCliente = async (cliente: ClienteConexao): Promise<ClienteConexao> => converte((await chama<{ cliente: unknown }>('/api/conexoes', { method: 'POST', corpo: { cliente } })).cliente);
+export const salvaCliente = async (cliente: ClienteConexao, opcoes: { importacao?: boolean } = {}): Promise<ClienteConexao> =>
+  converte((await chama<{ cliente: unknown }>('/api/conexoes', { method: 'POST', corpo: { cliente, ...(opcoes.importacao ? { importacao: true } : {}) } })).cliente);
 
 export const excluiCliente = async (id: string) => {
   await chama<{ ok: boolean }>(`/api/conexoes?id=${encodeURIComponent(id)}`, { method: 'DELETE' });

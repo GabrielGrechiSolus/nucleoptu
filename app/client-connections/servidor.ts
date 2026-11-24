@@ -1,4 +1,4 @@
-import { normalizaCliente, validaCliente, type ClienteConexao } from './modelo';
+import { normalizaCliente, validaCliente, type ClienteConexao, type OpcoesValidacao } from './modelo';
 
 export const LIMITES = { texto: 2000, senha: 500, conexoes: 100, contatos: 100 };
 
@@ -6,7 +6,7 @@ type Entrada = { ok: true; cliente: ClienteConexao } | { ok: false; erro: string
 
 const longo = (valores: unknown[], max: number) => valores.some((v) => typeof v === 'string' && v.length > max);
 
-export function limpaEntrada(bruto: unknown): Entrada {
+export function limpaEntrada(bruto: unknown, opcoes: OpcoesValidacao = {}): Entrada {
   if (!bruto || typeof bruto !== 'object' || Array.isArray(bruto)) return { ok: false, erro: 'Dados do cliente inválidos.' };
   const dados = bruto as Record<string, unknown>;
   const id = typeof dados.id === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(dados.id) ? dados.id : '';
@@ -18,7 +18,7 @@ export function limpaEntrada(bruto: unknown): Entrada {
   }
   if (c.conexoes.some((x) => longo([x.senha], LIMITES.senha))) return { ok: false, erro: 'Senha acima do tamanho permitido.' };
   c.conexoes = c.conexoes.map((x) => ({ ...x, limparSenha: marcadas.has(x.id) }));
-  const problema = validaCliente(c);
+  const problema = validaCliente(c, opcoes);
   return problema ? { ok: false, erro: problema } : { ok: true, cliente: c };
 }
 
