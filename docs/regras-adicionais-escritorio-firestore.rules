@@ -54,6 +54,15 @@ match /chat_messages/{messageId} {
     && resource.data.tipo == 'reuniao';
 }
 
+// Dados do quadro Businessmap sincronizados pelo cliente autenticado.
+match /bm_quadro/{cardId} {
+  allow read, write: if virtualOfficeAutenticado();
+}
+
+match /bm_quadro_meta/{documentId} {
+  allow read, write: if virtualOfficeAutenticado();
+}
+
 match /office_help/{roomId} {
   // A tela consulta somente salas abertas, condição exigida pela regra de leitura.
   allow list: if virtualOfficeAutenticado()
