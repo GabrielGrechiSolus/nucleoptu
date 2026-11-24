@@ -3,6 +3,8 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db, auth } from "../../firebase";
+import { useAuth } from "../AuthContext";
+import withAuth from "../components/withAuth";
 import { Dialog } from "@headlessui/react";
 import { 
   Plus, 
@@ -54,8 +56,8 @@ const DEPARTMENT_TYPES = [
   { value: "sustentacao", label: "Sustentação", icon: "🔧", color: "bg-green-500" },
 ] as const;
 
-export default function UsersPage() {
-  const currentUser = auth.currentUser;
+function UsersPage() {
+  const { user: currentUser, loading: authLoading } = useAuth();
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchName, setSearchName] = useState("");
@@ -67,23 +69,46 @@ export default function UsersPage() {
   const [showFilters, setShowFilters] = useState(true);
 
   useEffect(() => {
+    let ativo = true;
+
     const loadUsers = async () => {
+      if (authLoading) return;
+      if (!currentUser) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         const snap = await getDocs(collection(db, "profiles"));
         const allUsers: UserData[] = snap.docs
-          .map((doc) => ({ uid: doc.id, ...doc.data() } as UserData))
-          .filter((u) => u.uid !== currentUser?.uid);
-        setUsers(allUsers);
+          .map((profileDoc) => {
+            const data = profileDoc.data();
+            return {
+              ...data,
+              uid: profileDoc.id,
+              name: typeof data.name === "string" && data.name.trim() ? data.name : "Usuário",
+              email: typeof data.email === "string" ? data.email : "",
+              skills: Array.isArray(data.skills) ? data.skills.map((skill: Partial<Skill>) => ({
+                name: typeof skill.name === "string" ? skill.name : "Skill",
+                score: typeof skill.score === "number" ? skill.score : 0,
+                confirmedBy: Array.isArray(skill.confirmedBy) ? skill.confirmedBy : [],
+                color: typeof skill.color === "string" ? skill.color : "#00518c",
+              })) : [],
+            } as UserData;
+          })
+          .filter((profile) => profile.uid !== currentUser.uid);
+        if (ativo) setUsers(allUsers);
       } catch (error) {
         console.error("Erro ao carregar usuários:", error);
-        toast.error("Erro ao carregar usuários");
+        if (ativo) toast.error("Erro ao carregar usuários. Verifique as permissões da coleção profiles.");
       } finally {
-        setLoading(false);
+        if (ativo) setLoading(false);
       }
     };
     void loadUsers();
-  }, [currentUser]);
+    return () => { ativo = false; };
+  }, [currentUser, authLoading]);
 
   const filteredAndSortedUsers = useMemo(() => {
     let filtered = users.filter((user) => {
@@ -109,7 +134,7 @@ export default function UsersPage() {
 
     // Sort users
     if (sortBy === "name") {
-      filtered.sort((a, b) => a.name.localeCompare(b.name));
+      filtered.sort((a, b) => (a.name || a.email || "").localeCompare(b.name || b.email || ""));
     } else if (sortBy === "skills") {
       filtered.sort((a, b) => (b.skills?.length || 0) - (a.skills?.length || 0));
     }
@@ -371,6 +396,8 @@ export default function UsersPage() {
     </div>
   );
 }
+
+export default withAuth(UsersPage);
 
 interface UserCardProps {
   user: UserData;
