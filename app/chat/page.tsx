@@ -5,7 +5,7 @@ import { addDoc, collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, 
 import { useAuth } from '../AuthContext';
 import { db } from '../../firebase';
 import withAuth from '../components/withAuth';
-import { carregarFontesChat, salvarStatusLocal } from '../components/PersonalizacaoPresenca';
+import { carregarFontesChat, carregarUsuariosNucleo, salvarStatusLocal } from '../components/PersonalizacaoPresenca';
 import { Award, Link2, LoaderCircle, MessageCircle, Paperclip, Send, Smile, Users, Sparkles, X, Trash2 } from 'lucide-react';
 
 type Status = 'online' | 'ocupado' | 'ausente' | 'nao-perturbe' | 'ferias' | 'folga' | 'pausa';
@@ -41,6 +41,7 @@ function ChatPage() {
   const [status, setStatus] = useState<Status>('online');
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState('');
+  const [erroUsuarios, setErroUsuarios] = useState('');
   const [geminiAberto, setGeminiAberto] = useState(false);
   const [geminiInput, setGeminiInput] = useState('');
   const [geminiTurnos, setGeminiTurnos] = useState<TurnoGemini[]>([]);
@@ -53,7 +54,7 @@ function ChatPage() {
     if (!user) return;
     const unsubPessoas = onSnapshot(collection(db, 'user_presence'), snap => setPessoas(snap.docs.map(d => ({ uid: d.id, ...d.data() } as Pessoa))));
     let perfisCancelado = false;
-    void (async () => { try { const token=await (user as unknown as {getIdToken():Promise<string>}).getIdToken(); const response=await fetch('/api/presenca/usuarios',{headers:{Authorization:'Bearer '+token},cache:'no-store'}); if(!response.ok) throw new Error('lista indisponível'); const data=await response.json(); if(!perfisCancelado) setPerfis(data.usuarios || []); } catch { /* mantém os registros de presença caso a consulta segura esteja indisponível */ } })();
+    void carregarUsuariosNucleo().then(lista => { if (!perfisCancelado) setPerfis(lista); }).catch((e: any) => setErroUsuarios('Não foi possível carregar os usuários cadastrados (' + (e.code || 'Firestore') + ').'));
     const unsubPerfis = () => { perfisCancelado = true; };
     const q = query(collection(db, 'chat_messages'), orderBy('createdAt', 'desc'), limit(100));
     const unsubMensagens = onSnapshot(q, snap => setMensagens(snap.docs.map(d => ({ id: d.id, ...d.data() } as Mensagem)).reverse()), e => setErro('Não foi possível carregar o chat: ' + (e.code || 'erro de acesso ao Firestore')));
@@ -132,7 +133,7 @@ function ChatPage() {
           <div className="max-h-[60vh] space-y-1 overflow-y-auto p-2">{usuarios.map(p => { const s = STATUS.find(x => x.value === p.status); const online = !!presente(p); return <div key={p.uid} className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-[var(--rel-bg)]">
             <div className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--rel-primary-soft)] text-sm font-semibold text-[var(--rel-primary)]">{p.avatar ? <img src={p.avatar} alt="" className="h-full w-full object-cover"/> : (p.name || '?').slice(0,1).toUpperCase()}<i className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[var(--rel-surface)]" style={{ background: online ? s?.cor || '#16a34a' : '#9ca3af' }}/></div>
             <div className="min-w-0"><p className="truncate text-sm font-medium">{p.name || p.email || 'Usuário'}{p.uid === user?.uid ? ' (você)' : ''}</p><p className="text-xs text-[var(--rel-muted)]">{online ? s?.label || 'Disponível' : 'Offline'}{p.homeOfficeDays?.includes(new Date().getDay()) ? ' · Home office hoje' : ' · Sem home office hoje'}</p></div>
-          </div>; })}{!usuarios.length && <p className="rel-empty">A presença aparece aqui quando os usuários acessarem o sistema.</p>}</div>
+          </div>; })}{!usuarios.length && <p className="rel-empty">{erroUsuarios || 'Ainda não há usuários cadastrados no NucleoPTU.'}</p>}</div>
         </aside>
         <section className="rel-box flex min-h-[65vh] flex-col border border-[var(--rel-line)] p-0">
           <div className="border-b border-[var(--rel-line)] px-5 py-3"><h2 className="font-semibold">{salaId ? 'Sala de ajuda' : 'Conversa geral'}</h2><p className="rel-desc">{salaId ? 'Conversa dos participantes desta sala' : 'Últimas 100 mensagens'}</p></div>
@@ -145,7 +146,7 @@ function ChatPage() {
           <div className="border-t border-[var(--rel-line)] p-3 sm:p-4">
             {modoElogio && <div className="mb-3 flex flex-wrap items-center gap-2"><span className="rel-tag rel-tag-ok"><Award size={13}/> Elogio para</span><select className="rel-input !w-auto" value={paraUid} onChange={e => setParaUid(e.target.value)}><option value="">Escolha uma pessoa</option>{usuarios.filter(p => p.uid !== user?.uid).map(p => <option key={p.uid} value={p.uid}>{p.name || p.email}{p.homeOfficeDays?.includes(new Date().getDay()) ? ' · Home office hoje' : ' · Sem home office hoje'}</option>)}</select><button className="rel-btn rel-btn-ghost rel-btn-sm" onClick={() => setModoElogio(false)}>Cancelar</button></div>}
             {refs.length > 0 && <div className="mb-2 flex flex-wrap gap-2">{refs.map((r,i) => <span key={i} className="rel-tag rel-tag-info">{r.tipo}: {r.titulo}<button aria-label="Remover referência" className="ml-1" onClick={() => setRefs(refs.filter((_,n) => n !== i))}>×</button></span>)}</div>}
-            {abrirRefs && <div className="mb-3 rounded-lg border border-[var(--rel-line)] bg-[var(--rel-surface)] p-3"><div className="mb-2 flex items-center gap-2"><input autoFocus className="rel-input" placeholder="Buscar contexto, PR, BM, aviso, link ou conexão..." value={busca} onChange={e => setBusca(e.target.value)}/><button className="rel-btn rel-btn-ghost rel-btn-sm" onClick={() => setAbrirRefs(false)}>Fechar</button></div><div className="max-h-48 space-y-1 overflow-auto">{fontesFiltradas.map((f,i) => <button key={f.tipo+f.id+i} onClick={() => { setRefs([...refs, f]); setBusca(''); }} className="flex w-full items-start gap-2 rounded-md px-2 py-2 text-left hover:bg-[var(--rel-bg)]"><span className="rel-tag rel-tag-info">{f.tipo}</span><span className="text-sm">{f.titulo}</span></button>)}{!fontesFiltradas.length && <p className="rel-desc p-2">Nenhuma referência encontrada. Fontes também podem exigir permissão de leitura.</p>}</div></div>}
+            {abrirRefs && <div className="mb-3 rounded-lg border border-[var(--rel-line)] bg-[var(--rel-surface)] p-3"><div className="mb-2 flex items-center gap-2"><input autoFocus className="rel-input" placeholder="Buscar contexto, PR, BM, aviso, link ou conexão..." value={busca} onChange={e => setBusca(e.target.value)}/><button className="rel-btn rel-btn-ghost rel-btn-sm" onClick={() => setAbrirRefs(false)}>Fechar</button></div><div className="max-h-48 space-y-1 overflow-auto">{fontesFiltradas.map((f,i) => <button key={f.tipo+f.id+i} onClick={() => { setRefs([...refs, f]); setBusca(''); }} className="flex w-full items-start gap-2 rounded-md px-2 py-2 text-left hover:bg-[var(--rel-bg)]"><span className={'rel-ref-tag '+(f.tipo==='PR'?'rel-ref-tag-pr':f.tipo==='Cartão BM'?'rel-ref-tag-bm':'rel-ref-tag-chamado')}>{f.tipo}</span><span className="text-sm">{f.titulo}</span></button>)}{!fontesFiltradas.length && <p className="rel-desc p-2">Nenhuma referência encontrada. Fontes também podem exigir permissão de leitura.</p>}</div></div>}
             <textarea className="rel-input min-h-20" placeholder={modoElogio ? 'Escreva um elogio para a pessoa...' : 'Escreva uma mensagem para a equipe...'} value={texto} onChange={e => setTexto(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void enviar(); } }}/>
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2"><div className="flex flex-wrap gap-2"><button className="rel-btn rel-btn-ghost rel-btn-sm" onClick={() => { setAbrirRefs(!abrirRefs); setBusca(''); }}><Paperclip size={15}/> Mencionar item</button><button className={'rel-btn rel-btn-sm ' + (modoElogio ? 'rel-btn-primary' : 'rel-btn-ghost')} onClick={() => setModoElogio(!modoElogio)}><Smile size={15}/> Fazer elogio</button></div><button className="rel-btn rel-btn-primary" disabled={enviando || (!texto.trim() && !refs.length) || (modoElogio && !paraUid)} onClick={() => void enviar()}>{enviando ? <LoaderCircle className="animate-spin" size={16}/> : <Send size={16}/>} Enviar</button></div>
           </div>

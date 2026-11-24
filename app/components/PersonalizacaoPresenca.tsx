@@ -85,3 +85,19 @@ export async function carregarFontesChat() {
   return [...new Map(fontes.map(f => [`${f.tipo}:${f.id}`, f])).values()].slice(0, 500);
 }
 
+
+export async function carregarUsuariosNucleo() {
+  const snap = await getDocs(collection(db, 'profiles'));
+  return snap.docs.map((d) => {
+    const perfil = d.data();
+    return {
+      uid: d.id,
+      name: String(perfil.name || perfil.displayName || perfil.email || 'Usuário'),
+      email: String(perfil.email || ''),
+      avatar: String(perfil.avatar || ''),
+      homeOfficeDays: Array.isArray(perfil.homeOfficeDays)
+        ? perfil.homeOfficeDays.filter((dia: unknown): dia is number => Number.isInteger(dia) && Number(dia) >= 0 && Number(dia) <= 6)
+        : [],
+    };
+  }).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+}

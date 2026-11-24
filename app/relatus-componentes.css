@@ -218,3 +218,11 @@ html[data-user-accent] [class*="border-sky-"], html[data-user-accent] [class*="b
 .gemini-bubble > p { white-space:pre-wrap; overflow-wrap:anywhere; font-size:.85rem; line-height:1.5; }
 .gemini-composer { display:grid; gap:8px; padding:12px 16px 16px; }
 .gemini-composer > button { justify-self:end; }
+
+.rel-ref-tag { display:inline-flex; flex:none; align-items:center; border:1px solid color-mix(in srgb,currentColor 24%,transparent); border-radius:4px; padding:2px 8px; font-size:.7rem; font-weight:600; line-height:1.4; }
+.rel-ref-tag-pr { color:#1d4ed8; background:color-mix(in srgb,#3b82f6 13%,var(--rel-surface)); }
+.rel-ref-tag-bm { color:#a16207; background:color-mix(in srgb,#eab308 16%,var(--rel-surface)); }
+.rel-ref-tag-chamado { color:#0f766e; background:color-mix(in srgb,#14b8a6 14%,var(--rel-surface)); }
+html.dark .rel-ref-tag-pr { color:#93c5fd; }
+html.dark .rel-ref-tag-bm { color:#facc15; }
+html.dark .rel-ref-tag-chamado { color:#5eead4; }
