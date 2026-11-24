@@ -14,6 +14,7 @@
 - Todos os usuários leem esses dados na lista e no detalhe do chamado, mesmo sem chave do BM. A tela **não** consulta o BM ao abrir.
 - Só quem tem a chave do BM no perfil atualiza: botão **Atualizar do BM** na lista (escolha "Meus chamados", pelo usuário Git do perfil, ou "Todos") e, em cada chamado, na aba Businessmap.
 - Atualização inteligente: primeiro uma consulta em lote traz a data de atualização, a coluna e o bloqueio de cada cartão; o detalhe (campos, comentários, subtarefas) só é lido dos cartões que mudaram ou ainda não foram gravados. Chamados sem cartão só são consultados de novo depois de 24 horas. O botão do chamado força a leitura.
+- Chamados encerrados com `BM.md`, cartão já importado e seção do BM **Concluído** ou **Documentado** são ignorados na sincronização normal. Uma atualização forçada continua disponível quando necessária.
 - O cartão é gravado inteiro (com Git); a tela de Sustentação oculta o Git ao exibir. Perfil Sustentação não sincroniza.
 - A conferência do card (PR, evidência) é recalculada na tela com o contexto atual.
 - **Regras do Firestore:** é preciso permitir leitura (login) e escrita (login) em `chamados_bm`, como em `chamados`.

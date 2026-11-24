@@ -61,7 +61,7 @@ export default function AtualizaAoEntrar() {
           onProgresso: (feito, total) => setEstado({ texto: `Businessmap: ${feito} de ${total} cartão(ões)...`, tipo: 'info' }),
           deveParar: () => false,
         });
-        partes.push(`BM: ${rb.atualizados} atualizado(s), ${rb.iguais} sem mudança${rb.erros ? `, ${rb.erros} com erro` : ''}.${rb.aviso ? ` ${rb.aviso}` : ''}`);
+        partes.push(`BM: ${rb.atualizados} atualizado(s), ${rb.iguais} sem mudança, ${rb.ignoradosConcluidos} encerrado(s) ignorado(s)${rb.erros ? `, ${rb.erros} com erro` : ''}.${rb.aviso ? ` ${rb.aviso}` : ''}`);
         if (rb.erros) erro = true;
         setEstado({ texto: 'Atualizando o quadro do Businessmap...', tipo: 'info' });
         const quadro = await lerQuadroBm();

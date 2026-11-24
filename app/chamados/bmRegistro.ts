@@ -18,6 +18,17 @@ export interface RegistroBm {
 
 export const soDigitos = (n: string) => n.replace(/\D/g, '');
 
+// Chamado encerrado, com contexto BM e cartão concluído/documentado já registrado: evita nova consulta ao BM.
+export function bmJaImportadoEConcluido(chamado: Pick<Chamado, 'situacao' | 'temBm'>, reg: RegistroBm | undefined): boolean {
+  const secao = reg?.resumo?.secao.trim().toLocaleLowerCase('pt-BR');
+  return chamado.situacao === 'encerrado'
+    && chamado.temBm
+    && reg?.encontrado === true
+    && typeof reg.cardId === 'number'
+    && !!reg.resumo
+    && (secao === 'concluído' || secao === 'documentado');
+}
+
 // Decide se vale reler o cartão no BM. Só relê quando o cartão mudou (data de atualização ou coluna), quando não há dado gravado,
 // quando se força, ou, para chamados sem cartão, depois de 24 horas.
 export function precisaAtualizar(reg: RegistroBm | undefined, resumo: BmResumoLista | undefined, agoraMs: number, forcar = false): boolean {

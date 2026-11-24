@@ -4,7 +4,7 @@ import { collection, doc, getDocs, setDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import { cabecalhoBm } from './bmChave';
 import type { BmCartao, BmResumoLista } from './bm';
-import { COLECAO_BM, montaRegistro, precisaAtualizar, semIndefinidos, soDigitos, type RegistroBm } from './bmRegistro';
+import { bmJaImportadoEConcluido, COLECAO_BM, montaRegistro, precisaAtualizar, semIndefinidos, soDigitos, type RegistroBm } from './bmRegistro';
 import type { Chamado } from './parse';
 
 // Os tipos do Firebase neste projeto são simplificados (types/firebase.d.ts): getIdToken existe em tempo de execução.
@@ -30,6 +30,7 @@ export async function lerRegistrosBm(): Promise<Record<string, RegistroBm>> {
 export interface ResultadoSync {
   atualizados: number;
   iguais: number;
+  ignoradosConcluidos: number;
   semCartao: number;
   erros: number;
   parado: boolean;
@@ -46,9 +47,15 @@ export async function sincronizaBm(opc: {
   onProgresso: (feito: number, total: number, parcial: Record<string, RegistroBm>) => void;
   deveParar: () => boolean;
 }): Promise<ResultadoSync> {
-  const res: ResultadoSync = { atualizados: 0, iguais: 0, semCartao: 0, erros: 0, parado: false, aviso: '' };
+  const res: ResultadoSync = { atualizados: 0, iguais: 0, ignoradosConcluidos: 0, semCartao: 0, erros: 0, parado: false, aviso: '' };
   const registros = { ...opc.registros };
-  const lista = opc.chamados.filter((c) => soDigitos(c.numero).length >= 5);
+  const elegiveis = opc.chamados.filter((c) => soDigitos(c.numero).length >= 5);
+  const lista = elegiveis.filter((c) => opc.forcar || !bmJaImportadoEConcluido(c, registros[soDigitos(c.numero)]));
+  res.ignoradosConcluidos = elegiveis.length - lista.length;
+  if (!lista.length) {
+    opc.onProgresso(elegiveis.length, elegiveis.length, registros);
+    return res;
+  }
   const resumos: Record<string, BmResumoLista> = {};
   try {
     const numeros = [...new Set(lista.map((c) => soDigitos(c.numero)))];
@@ -61,7 +68,7 @@ export async function sincronizaBm(opc: {
     return res;
   }
 
-  let feito = 0;
+  let feito = res.ignoradosConcluidos;
   for (const c of lista) {
     if (opc.deveParar()) {
       res.parado = true;
@@ -94,8 +101,8 @@ export async function sincronizaBm(opc: {
       if (!res.aviso) res.aviso = (e as Error).message;
     }
     feito++;
-    opc.onProgresso(feito, lista.length, registros);
+    opc.onProgresso(feito, elegiveis.length, registros);
   }
-  opc.onProgresso(feito, lista.length, registros);
+  opc.onProgresso(feito, elegiveis.length, registros);
   return res;
 }

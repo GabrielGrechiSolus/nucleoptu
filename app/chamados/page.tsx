@@ -157,7 +157,7 @@ function ChamadosPage() {
       deveParar: () => pararBm.current,
     });
     setProgressoBm(null);
-    setMsgBm(`BM sincronizado: ${r.atualizados} atualizado(s), ${r.iguais} sem mudança, ${r.semCartao} sem cartão no BM${r.erros ? `, ${r.erros} com erro` : ''}${r.parado ? ' (interrompido)' : ''}.${r.aviso ? ` ${r.aviso}` : ''}`);
+    setMsgBm(`BM sincronizado: ${r.atualizados} atualizado(s), ${r.iguais} sem mudança, ${r.ignoradosConcluidos} encerrado(s) ignorado(s), ${r.semCartao} sem cartão no BM${r.erros ? `, ${r.erros} com erro` : ''}${r.parado ? ' (interrompido)' : ''}.${r.aviso ? ` ${r.aviso}` : ''}`);
   };
   const [erro, setErro] = useState('');
   const [busca, setBusca] = useState('');
