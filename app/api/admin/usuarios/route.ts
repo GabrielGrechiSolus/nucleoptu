@@ -23,6 +23,7 @@ export interface UsuarioAdmin {
 export async function GET(req: Request) {
   const a = await exigeAdmin(req);
   if (!a.ok) return NextResponse.json({ erro: a.erro }, { status: a.status });
+  let etapa = 'leitura dos perfis no Firestore';
   try {
     const auth = getAuth(a.app);
     const perfis = new Map<string, { name?: string; noticeType?: string }>();
@@ -30,6 +31,7 @@ export async function GET(req: Request) {
 
     const usuarios: UsuarioAdmin[] = [];
     let token: string | undefined;
+    etapa = 'listagem de usuários no Firebase Authentication';
     do {
       const pagina = await auth.listUsers(1000, token);
       for (const u of pagina.users) {
@@ -52,8 +54,12 @@ export async function GET(req: Request) {
     usuarios.sort((x, y) => x.nome.localeCompare(y.nome, 'pt-BR'));
     return NextResponse.json({ usuarios });
   } catch (e) {
-    console.error(e);
-    return NextResponse.json({ erro: 'Não foi possível listar os usuários.' }, { status: 500 });
+    const erro = e as { code?: string; message?: string };
+    console.error('[admin/usuarios] Falha na etapa:', etapa, erro.code ?? 'sem código', erro.message ?? e);
+    if (etapa.includes('Authentication') && /permission/i.test(erro.code ?? '')) {
+      return NextResponse.json({ erro: 'A conta de serviço do Firebase não tem permissão para listar usuários no Authentication. Revise as permissões da credencial do Admin no projeto Firebase.', codigo: erro.code }, { status: 503 });
+    }
+    return NextResponse.json({ erro: `Falha na ${etapa}${erro.code ? ` (${erro.code})` : ''}. Confira os logs do servidor para ver a causa.` }, { status: 502 });
   }
 }
 

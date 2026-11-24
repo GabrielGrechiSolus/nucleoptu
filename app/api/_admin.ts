@@ -29,7 +29,13 @@ export type ResultadoAdmin =
 
 // Exige login válido (não revogado) e perfil de administrador.
 export async function exigeAdmin(req: Request): Promise<ResultadoAdmin> {
-  const app = adminApp();
+  let app: App | null;
+  try {
+    app = adminApp();
+  } catch (e) {
+    console.error('[admin] Falha ao inicializar Firebase Admin:', e);
+    return { ok: false, status: 503, erro: 'A credencial do Firebase Admin no servidor é inválida ou não corresponde ao projeto.' };
+  }
   if (!app) {
     return { ok: false, status: 503, erro: 'A administração de usuários ainda não foi configurada no servidor (chave do Firebase Admin).' };
   }

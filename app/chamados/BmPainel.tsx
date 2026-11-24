@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { ExternalLink, RefreshCcw } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { GRUPOS_ORDEM, cartaoSemGit, conferenciaDeCartao, type BmCartao, type BmResumoLista } from './bm';
 import type { RegistroBm } from './bmRegistro';
 import { ocultaGit } from './semgit';
@@ -38,21 +38,15 @@ function Secao({ titulo, children }: { titulo: string; children: React.ReactNode
 }
 
 // Seção "Businessmap" do detalhe: mostra o registro gravado no banco (não consulta o BM ao abrir).
-// Só quem tem a chave do BM pode atualizar o registro.
+// Os dados gravados são atualizados pelo sincronizador automático.
 export default function BmPainel({
   chamado,
   registro,
   semGit,
-  temChave,
-  atualizando,
-  onAtualizar,
 }: {
   chamado: Chamado;
   registro?: RegistroBm;
   semGit: boolean;
-  temChave: boolean;
-  atualizando: boolean;
-  onAtualizar: () => void;
 }) {
   const cartao: BmCartao | null = useMemo(() => {
     if (!registro?.cartao) return null;
@@ -61,17 +55,13 @@ export default function BmPainel({
     return { ...base, conferencia: conf };
   }, [registro, chamado.temPr, chamado.temEvidencia, semGit]);
 
-  const botao = temChave && (
-    <button onClick={onAtualizar} disabled={atualizando} className="rel-btn rel-btn-outline rel-btn-sm">
-      <RefreshCcw className={`h-3.5 w-3.5 ${atualizando ? 'animate-spin' : ''}`} /> {atualizando ? 'Atualizando...' : 'Atualizar do BM'}
-    </button>
-  );
+
 
   if (!registro) {
     return (
       <div className="rel-box-flat rel-desc">
         <p className="mb-2">Os dados do Businessmap deste chamado ainda não foram sincronizados.</p>
-        {temChave ? botao : <p className="rel-label">Quem tem a chave do BM no perfil pode sincronizar (botão “Atualizar do BM” na lista de chamados).</p>}
+        <p className="rel-label">O Businessmap será sincronizado automaticamente enquanto houver alguém conectado com uma chave configurada.</p>
       </div>
     );
   }
@@ -79,7 +69,6 @@ export default function BmPainel({
     return (
       <div className="rel-box-flat rel-desc">
         <p className="mb-2">Nenhum cartão encontrado no Businessmap para o chamado {chamado.numero} (verificado em {dataBr(registro.sincronizadoEm)} por {registro.sincronizadoPor || '—'}).</p>
-        {botao}
       </div>
     );
   }
@@ -89,12 +78,11 @@ export default function BmPainel({
     <section className="text-sm">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rel-box-flat">
         <div className="rel-desc">
-          Sincronizado em <strong className="rel-strong">{dataBr(registro.sincronizadoEm)}</strong> por {registro.sincronizadoPor || '—'}. Os dados mudam no BM, mas aqui só são atualizados quando alguém com a chave do BM sincroniza.
+          Sincronizado em <strong className="rel-strong">{dataBr(registro.sincronizadoEm)}</strong> por {registro.sincronizadoPor || '—'}. Os dados são atualizados automaticamente enquanto alguém com acesso ao Businessmap estiver conectado.
         </div>
         <div className="flex items-center gap-2">
           <a href={resumo.url} target="_blank" rel="noreferrer" className="rel-link inline-flex items-center gap-1">Abrir cartão {resumo.cardId} <ExternalLink className="h-3 w-3" /></a>
-          {botao}
-        </div>
+          </div>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2"><BmColuna r={resumo} /><span className="rel-desc">{resumo.secao}</span><span className="rel-desc">Responsável: {resumo.responsavel}</span></div>

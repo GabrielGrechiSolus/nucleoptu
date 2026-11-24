@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link';
 import { collection, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { toast } from 'react-toastify';
-import { Bell, ExternalLink, GitMerge, Layers3 } from 'lucide-react';
+import { Bell, ExternalLink, GitMerge, GitCommit, Layers3 } from 'lucide-react';
 import { db } from '../../firebase';
 import { tokenDoLogin } from '../chamados/atualizaGit';
 import { COLECAO_BM, type RegistroBm } from '../chamados/bmRegistro';
@@ -19,8 +19,19 @@ const INTERVALO_MS = 5 * 60_000;
 const DIAS = 14;
 
 const chaveLidos = (uid: string) => `nucleoptu.prsmergeados.${uid}`;
+const chaveCommits = (uid: string) => `nucleoptu.commits.${uid}`;
 const chaveSnapshotBm = (uid: string) => `nucleoptu.bm.snapshot.${uid}`;
 const chaveAvisosBm = (uid: string) => `nucleoptu.bm.notificacoes.${uid}`;
+
+interface NotificacaoCommit { id: string; repo: string; sha: string; mensagem: string; url: string; em: string; lida: boolean }
+
+function leCommits(uid: string): NotificacaoCommit[] | null {
+  try { const bruto = localStorage.getItem(chaveCommits(uid)); return bruto ? JSON.parse(bruto) as NotificacaoCommit[] : null; } catch { return null; }
+}
+
+function gravaCommits(uid: string, itens: NotificacaoCommit[]) {
+  try { localStorage.setItem(chaveCommits(uid), JSON.stringify(itens.slice(0, 200))); } catch { /* armazenamento local indisponível */ }
+}
 
 const CORES_BM: Record<TipoNotificacaoBm, { texto: string; fundo: string; rotulo: string }> = {
   atribuido: { texto: '#7c3aed', fundo: '#7c3aed14', rotulo: 'Atribuição' },
@@ -67,6 +78,7 @@ export default function NotificacoesPrs() {
   const [prs, setPrs] = useState<PrMergeado[]>([]);
   const [registros, setRegistros] = useState<Record<string, RegistroDoCartao>>({});
   const [lidos, setLidos] = useState<Set<string>>(new Set());
+  const [commits, setCommits] = useState<NotificacaoCommit[]>([]);
   const [avisosBm, setAvisosBm] = useState<NotificacaoBm[]>([]);
   const [bmId, setBmId] = useState(0);
   const [aberto, setAberto] = useState(false);
@@ -141,7 +153,12 @@ export default function NotificacoesPrs() {
 
   const carrega = useCallback(async () => {
     try {
-      const r = await fetch(`/api/git/mergeados?login=${encodeURIComponent(pessoa.gitUser)}&dias=${DIAS}`, { headers: { Authorization: `Bearer ${await tokenDoLogin()}` } });
+      const token = await tokenDoLogin();
+      const headers = { Authorization: `Bearer ${token}` };
+      const [r, rc] = await Promise.all([
+        fetch(`/api/git/mergeados?login=${encodeURIComponent(pessoa.gitUser)}&dias=${DIAS}`, { headers }),
+        fetch(`/api/git/commits?login=${encodeURIComponent(pessoa.gitUser)}`, { headers }),
+      ]);
       const j = await r.json();
       if (!r.ok) {
         setErro(j.erro ?? 'Não foi possível consultar os PRs agora.');
@@ -149,6 +166,24 @@ export default function NotificacoesPrs() {
       }
       setErro('');
       const lista = (j.prs ?? []) as PrMergeado[];
+
+      if (rc.ok) {
+        const jc = await rc.json() as { commits?: Omit<NotificacaoCommit, 'lida'>[] };
+        const recebidos = jc.commits ?? [];
+        const anteriores = leCommits(pessoa.uid);
+        if (!anteriores) {
+          const iniciais = recebidos.map((c) => ({ ...c, lida: true }));
+          setCommits(iniciais);
+          gravaCommits(pessoa.uid, iniciais);
+        } else {
+          const ids = new Set(anteriores.map((c) => c.id));
+          const novos = recebidos.filter((c) => !ids.has(c.id)).map((c) => ({ ...c, lida: false }));
+          const juntos = [...novos, ...anteriores].slice(0, 200);
+          setCommits(juntos);
+          gravaCommits(pessoa.uid, juntos);
+          for (const c of novos.slice(0, 3)) toast.info(<div className="text-sm"><strong>Commit novo · {c.repo}</strong><div>{c.mensagem}</div><a href={c.url} target="_blank" rel="noreferrer" className="underline">Abrir commit</a></div>, { autoClose: 9000 });
+        }
+      }
 
       const ids = [...new Set(lista.map((p) => (chamadoDoTitulo(p.titulo) ?? '').replace('.', '')).filter(Boolean))];
       await Promise.all(
@@ -224,7 +259,8 @@ export default function NotificacoesPrs() {
   const itens = useMemo(() => montaNotificacoes(prs, registros, lidos), [prs, registros, lidos]);
   const novas = naoLidas(itens).length;
   const novasBm = avisosBm.filter((n) => !n.lida).length;
-  const totalNaoLidas = novas + novasBm;
+  const novasCommits = commits.filter((c) => !c.lida).length;
+  const totalNaoLidas = novas + novasBm + novasCommits;
 
   useEffect(() => {
     totalNaoLidasRef.current = totalNaoLidas;
@@ -262,6 +298,13 @@ export default function NotificacoesPrs() {
     try { localStorage.setItem(chaveAvisosBm(pessoa.uid), JSON.stringify(proximos)); } catch { /* armazenamento local indisponível */ }
   };
 
+  const marcaCommits = (ids: string[]) => {
+    const marcados = new Set(ids);
+    const proximos = commits.map((c) => marcados.has(c.id) ? { ...c, lida: true } : c);
+    setCommits(proximos);
+    gravaCommits(pessoa.uid, proximos);
+  };
+
   if (!ativo) return null;
 
   return (
@@ -284,12 +327,16 @@ export default function NotificacoesPrs() {
         <div role="dialog" aria-label="Notificações" className="fixed left-2 right-2 top-[64px] z-50 overflow-hidden rounded-lg border border-[#ebebf0] bg-white text-[#333333] shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-11 sm:w-[380px]">
           <div className="flex items-center justify-between gap-2 border-b border-[#ebebf0] px-4 py-3">
             <span className="flex items-center gap-2 text-sm font-semibold"><Bell size={16} className="text-[#00518C]" /> Notificações</span>
-            <button type="button" onClick={() => { marca(itens.map((n) => n.id)); marcaBm(avisosBm.map((n) => n.id)); }} disabled={!novas && !novasBm} className="text-xs text-[#00518C] hover:underline disabled:cursor-not-allowed disabled:opacity-40">Marcar todas como lidas</button>
+            <button type="button" onClick={() => { marca(itens.map((n) => n.id)); marcaBm(avisosBm.map((n) => n.id)); marcaCommits(commits.map((n) => n.id)); }} disabled={!totalNaoLidas} className="text-xs text-[#00518C] hover:underline disabled:cursor-not-allowed disabled:opacity-40">Marcar todas como lidas</button>
           </div>
           <div className="max-h-[70vh] overflow-y-auto">
             {erro && <p className="border-b border-[#ebebf0] bg-amber-50 px-4 py-2 text-xs text-amber-800">{erro}</p>}
-            {!itens.length && !avisosBm.length && !erro && <p className="px-4 py-6 text-center text-sm text-[#777]">Nenhuma notificação.</p>}
+            {!itens.length && !avisosBm.length && !commits.length && !erro && <p className="px-4 py-6 text-center text-sm text-[#777]">Nenhuma notificação.</p>}
             <ul>
+              {commits.map((c) => <li key={c.id} className={`border-b border-[#ebebf0] px-4 py-3 ${c.lida ? '' : 'bg-emerald-50'}`}>
+                <div className="flex items-start justify-between gap-2"><div className="min-w-0"><span className="mb-1 inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800"><GitCommit size={11} /> Commit novo · {c.repo}</span><div className="text-sm font-medium">{c.mensagem}</div><div className="text-xs text-[#777]">{c.sha.slice(0, 8)} · {c.em ? tempoRelativo(c.em, agora) : 'recente'}</div></div>{!c.lida && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-600" aria-label="não lida" />}</div>
+                <div className="mt-2 flex items-center gap-2"><a href={c.url} target="_blank" rel="noreferrer" onClick={() => marcaCommits([c.id])} className="inline-flex items-center gap-1 rounded border border-emerald-700 px-2 py-1 text-xs font-medium text-emerald-800">Abrir commit <ExternalLink size={12} /></a>{!c.lida && <button type="button" onClick={() => marcaCommits([c.id])} className="ml-auto text-xs text-[#777] hover:underline">Marcar como lida</button>}</div>
+              </li>)}
               {avisosBm.map((n) => {
                 const cor = CORES_BM[n.tipo];
                 return (

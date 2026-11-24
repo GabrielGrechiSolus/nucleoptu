@@ -2,13 +2,13 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { doc, setDoc } from 'firebase/firestore';
-import { ExternalLink, GitPullRequest, Loader2, RefreshCcw, Wand2 } from 'lucide-react';
+import { ExternalLink, GitPullRequest, Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { db } from '../../firebase';
 import { fotoDoGit } from '../components/fotoGit';
 import { SortTh, sortRows, useSort } from '../components/SortableTable';
 import { chamadoDoTitulo, type PrGithub } from '../chamados/github';
-import { buscaPerfilGit, geraContextosDoGit, textoDoResumo, type DadosGit as Dados } from '../chamados/atualizaGit';
+import { buscaPerfilGit, type DadosGit as Dados } from '../chamados/atualizaGit';
 
 const dataBr = (iso: string) => (iso ? iso.slice(0, 10).split('-').reverse().join('/') : '—');
 
@@ -79,8 +79,6 @@ export default function GitTab({ uid, gitUser, onVinculado }: { uid: string; git
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const [dados, setDados] = useState<Dados | null>(null);
-  const [gerando, setGerando] = useState(false);
-  const [resumo, setResumo] = useState('');
 
   useEffect(() => setLogin(gitUser), [gitUser]);
 
@@ -116,20 +114,6 @@ export default function GitTab({ uid, gitUser, onVinculado }: { uid: string; git
     }
   };
 
-  const gerarContextos = async () => {
-    if (!dados) return;
-    setGerando(true);
-    setResumo('');
-    try {
-      setResumo(textoDoResumo(await geraContextosDoGit(dados, setResumo)));
-    } catch (e) {
-      console.error(e);
-      setResumo(`Não foi possível gravar os contextos (${(e as { code?: string })?.code ?? 'erro'}).`);
-    } finally {
-      setGerando(false);
-    }
-  };
-
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-zinc-800 p-4">
@@ -144,7 +128,7 @@ export default function GitTab({ uid, gitUser, onVinculado }: { uid: string; git
             className="min-w-[220px] flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
           />
           <button onClick={vincular} disabled={carregando || !login.trim()} className="flex items-center gap-2 rounded-md bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-60">
-            {carregando ? <Loader2 className="h-4 w-4 animate-spin" /> : <GitPullRequest className="h-4 w-4" />} {gitUser ? 'Atualizar vínculo' : 'Vincular Git'}
+            {carregando ? <Loader2 className="h-4 w-4 animate-spin" /> : <GitPullRequest className="h-4 w-4" />} {gitUser ? 'Validar e salvar vínculo' : 'Vincular Git'}
           </button>
         </div>
         <p className="mt-1 text-xs text-zinc-500">Traz os seus dados e os PRs da organização, separados em abertos e fechados. O vínculo liga você aos PRs na fila de aplicação.</p>
@@ -177,14 +161,7 @@ export default function GitTab({ uid, gitUser, onVinculado }: { uid: string; git
                 <option value={0}>Todos</option>
               </select>
             </label>
-            <button onClick={() => buscar(dados.usuario.login, dias)} disabled={carregando} className="flex items-center gap-2 rounded-md border border-zinc-700 px-3 py-2 text-sm hover:bg-zinc-900 disabled:opacity-60">
-              <RefreshCcw className="h-4 w-4" /> Atualizar PRs
-            </button>
-            <button onClick={gerarContextos} disabled={gerando} className="flex items-center gap-2 rounded-md bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-60">
-              {gerando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />} Gerar e atualizar contextos
-            </button>
           </div>
-          {resumo && <p className="rounded-md border border-sky-700/50 bg-sky-900/20 px-3 py-2 text-sm text-sky-200">{resumo}</p>}
           {dados.truncado && <p className="text-xs text-amber-600">O GitHub tem mais PRs do que o limite de 300 por lista; reduza o período para ver os mais recentes.</p>}
 
           <TabelaPrs titulo="PRs abertos" prs={dados.abertos} vazio="Nenhum PR aberto." />

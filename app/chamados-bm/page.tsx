@@ -2,15 +2,14 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
-import { ExternalLink, Inbox, RefreshCcw, Search } from 'lucide-react';
-import { auth, db } from '../../firebase';
+import { ExternalLink, Inbox, Search } from 'lucide-react';
+import { db } from '../../firebase';
 import withAuth from '../components/withAuth';
 import Link from 'next/link';
 import TelaDetalhe, { useDetalheNaUrl } from '../components/TelaDetalhe';
 import { SortTh, sortRows, useSort } from '../components/SortableTable';
-import { lerChaveBm } from '../chamados/bmChave';
 import { ROTULO_PRIORIDADE, ROTULO_SECAO, atencaoDe, concluido, diasDesde, ehReport, pontuacao, reportsAtivos, reportsPorNumero, type Atencao, type CartaoQuadro } from '../chamados/bmQuadro';
-import { lerQuadroBm, sincronizaQuadroBm, type MetaQuadro } from '../chamados/bmQuadroSync';
+import { lerQuadroBm, type MetaQuadro } from '../chamados/bmQuadroSync';
 import type { Chamado } from '../chamados/parse';
 
 type Aba = 'andamento' | 'atencao' | 'concluidos' | 'todos';
@@ -43,9 +42,7 @@ function ChamadosBmPage() {
   const [meta, setMeta] = useState<MetaQuadro | null>(null);
   const [comPr, setComPr] = useState<Set<string>>(new Set());
   const [carregando, setCarregando] = useState(true);
-  const [sincronizando, setSincronizando] = useState(false);
   const [msg, setMsg] = useState('');
-  const [temChave, setTemChave] = useState(false);
   const [aba, setAba] = useState<Aba>('andamento');
   const [busca, setBusca] = useState('');
   const [fResp, setFResp] = useState('');
@@ -74,27 +71,11 @@ function ChamadosBmPage() {
 
   useEffect(() => {
     carregar();
-    const ler = () => setTemChave(!!lerChaveBm());
-    ler();
-    window.addEventListener('nucleoptu-bm-chave', ler);
     window.addEventListener('nucleoptu-dados-atualizados', carregar);
-    return () => {
-      window.removeEventListener('nucleoptu-bm-chave', ler);
-      window.removeEventListener('nucleoptu-dados-atualizados', carregar);
-    };
+    return () => window.removeEventListener('nucleoptu-dados-atualizados', carregar);
   }, [carregar]);
 
-  const sincronizar = async () => {
-    setSincronizando(true);
-    setMsg('');
-    const r = await sincronizaQuadroBm(auth.currentUser?.email ?? '', cartoes);
-    setSincronizando(false);
-    if (r.aviso) setMsg(r.aviso);
-    else {
-      setMsg(`Quadro do BM sincronizado: ${r.total} cartão(ões), ${r.gravados} atualizado(s).`);
-      await carregar();
-    }
-  };
+
 
   const reports = useMemo(() => reportsPorNumero(cartoes), [cartoes]);
   const base = useMemo(
@@ -219,11 +200,7 @@ function ChamadosBmPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {meta && <span className="rel-desc">Sincronizado em {dataBr(meta.sincronizadoEm)} por {meta.por || '—'}</span>}
-          {temChave ? (
-            <button onClick={sincronizar} disabled={sincronizando} className="rel-btn rel-btn-primary"><RefreshCcw className={`h-4 w-4 ${sincronizando ? 'animate-spin' : ''}`} /> {sincronizando ? 'Atualizando...' : 'Atualizar do BM'}</button>
-          ) : (
-            <span className="rel-tag">Informe a chave do BM no perfil para atualizar</span>
-          )}
+
         </div>
       </header>
 
@@ -295,7 +272,7 @@ function ChamadosBmPage() {
           <tbody>
             {carregando && <tr><td colSpan={9} className="rel-empty">Carregando...</td></tr>}
             {!carregando && !filtrados.length && (
-              <tr><td colSpan={9} className="rel-empty">{cartoes.length ? 'Nenhum cartão com esses filtros.' : 'O quadro do BM ainda não foi sincronizado. Quem tem a chave do BM no perfil pode usar “Atualizar do BM”.'}</td></tr>
+              <tr><td colSpan={9} className="rel-empty">{cartoes.length ? "Nenhum cartão com esses filtros." : "Aguardando a sincronização automática do Businessmap."}</td></tr>
             )}
             {filtrados.map((c) => {
               const rep = reportsDe(c);

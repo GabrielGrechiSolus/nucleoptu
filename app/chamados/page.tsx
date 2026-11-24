@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import withAuth from '../components/withAuth';
 import { collection, doc, getDocs, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
-import { FolderSearch, Search, Upload, RefreshCcw, FileText, Copy } from 'lucide-react';
+import { FolderSearch, Search, Upload, FileText, Copy } from 'lucide-react';
 import { Chamado, lerPasta, ROTULO_SITUACAO, ROTULO_TIPO } from './parse';
 import { CAMPOS_REGRA, MODELO_REGRA } from './modelo';
 import { SortTh, sortRows, useSort } from '../components/SortableTable';
@@ -12,9 +12,8 @@ import { filtraChamados } from './filtro';
 import { usePessoa } from '../components/usePessoa';
 import { semGitChamado } from './semgit';
 import { BmColuna } from './BmPainel';
-import { chamadosDaPessoa, soDigitos, type RegistroBm } from './bmRegistro';
-import { lerRegistrosBm, sincronizaBm } from './bmSync';
-import { lerChaveBm } from './bmChave';
+import { soDigitos, type RegistroBm } from './bmRegistro';
+import { lerRegistrosBm } from './bmSync';
 import DetalheChamado from './DetalheChamado';
 import Link from 'next/link';
 import TelaDetalhe, { useDetalheNaUrl, useDetalheNoHistorico } from '../components/TelaDetalhe';
@@ -113,19 +112,7 @@ function ChamadosPage() {
   const [carregando, setCarregando] = useState(true);
   // Dados do BM gravados no banco (coleção chamados_bm): todos leem; só quem tem a chave do BM sincroniza.
   const [registros, setRegistros] = useState<Record<string, RegistroBm>>({});
-  const [temChave, setTemChave] = useState(false);
-  const [escopoBm, setEscopoBm] = useState<'filtrados' | 'meus' | 'todos'>('filtrados');
-  const [progressoBm, setProgressoBm] = useState<{ feito: number; total: number } | null>(null);
   const [msgBm, setMsgBm] = useState('');
-  const [atualizandoUm, setAtualizandoUm] = useState(false);
-  const pararBm = useRef(false);
-
-  useEffect(() => {
-    const ler = () => setTemChave(!!lerChaveBm());
-    ler();
-    window.addEventListener('nucleoptu-bm-chave', ler);
-    return () => window.removeEventListener('nucleoptu-bm-chave', ler);
-  }, []);
 
   useEffect(() => {
     lerRegistrosBm()
@@ -137,28 +124,6 @@ function ChamadosPage() {
       });
   }, []);
 
-  const sincronizarBm = async (lista: Chamado[], forcar: boolean) => {
-    if (!lista.length) {
-      setMsgBm(escopoBm === 'meus' ? 'Nenhum chamado seu na lista (confira o usuário Git no perfil) ou escolha outra opção.' : 'Nenhum chamado para sincronizar.');
-      return;
-    }
-    pararBm.current = false;
-    setMsgBm('');
-    setProgressoBm({ feito: 0, total: lista.length });
-    const r = await sincronizaBm({
-      chamados: lista,
-      registros,
-      por: auth.currentUser?.email ?? '',
-      forcar,
-      onProgresso: (feito, total, parcial) => {
-        setProgressoBm({ feito, total });
-        setRegistros({ ...parcial });
-      },
-      deveParar: () => pararBm.current,
-    });
-    setProgressoBm(null);
-    setMsgBm(`BM sincronizado: ${r.atualizados} atualizado(s), ${r.iguais} sem mudança, ${r.ignoradosConcluidos} encerrado(s) ignorado(s), ${r.semCartao} sem cartão no BM${r.erros ? `, ${r.erros} com erro` : ''}${r.parado ? ' (interrompido)' : ''}.${r.aviso ? ` ${r.aviso}` : ''}`);
-  };
   const [erro, setErro] = useState('');
   const [busca, setBusca] = useState('');
   const [noConteudo, setNoConteudo] = useState(false);
@@ -399,13 +364,6 @@ function ChamadosPage() {
         previsao={previsaoDe(aberto, previsaoGlobal)}
         semGit={semGit}
         registro={registros[soDigitos(aberto.numero)]}
-        temChave={temChave}
-        atualizando={atualizandoUm}
-        onAtualizar={async () => {
-          setAtualizandoUm(true);
-          await sincronizarBm([aberto], true);
-          setAtualizandoUm(false);
-        }}
         onVoltar={urlChamado.voltar}
         Md={Md}
       />
@@ -516,9 +474,6 @@ function ChamadosPage() {
           <Link href={urlModelo.hrefDe('1')} className="rel-btn rel-btn-outline">
             <FileText className="h-4 w-4" /> Modelo de contexto
           </Link>
-          <button onClick={carregar} className="rel-btn rel-btn-outline">
-            <RefreshCcw className="h-4 w-4" /> Atualizar
-          </button>
           {importPermitido ? (
             <button onClick={() => setMostraImportar((v) => !v)} className="rel-btn rel-btn-primary">
               <Upload className="h-4 w-4" /> Importar contextos
@@ -635,25 +590,7 @@ function ChamadosPage() {
             <input type="checkbox" checked={noConteudo} onChange={(e) => setNoConteudo(e.target.checked)} />
             Pesquisar também dentro dos documentos (mais lento)
           </label>
-          {temChave && !semGit && (
-            <span className="flex flex-wrap items-center gap-2">
-              <select value={escopoBm} onChange={(e) => setEscopoBm(e.target.value as 'filtrados' | 'meus' | 'todos')} className="rel-input" disabled={!!progressoBm}>
-                <option value="filtrados">Filtrados na tela ({filtrados.length})</option>
-                <option value="meus">Meus chamados</option>
-                <option value="todos">Todos os chamados</option>
-              </select>
-              {progressoBm ? (
-                <>
-                  <span>BM: {progressoBm.feito}/{progressoBm.total}</span>
-                  <button onClick={() => { pararBm.current = true; }} className="rel-btn rel-btn-ghost rel-btn-sm">Parar</button>
-                </>
-              ) : (
-                <button onClick={() => sincronizarBm(escopoBm === 'filtrados' ? filtrados : escopoBm === 'meus' ? chamadosDaPessoa(itens, pessoa.gitUser) : itens, false)} className="rel-btn rel-btn-outline rel-btn-sm">
-                  <RefreshCcw className="h-3.5 w-3.5" /> Atualizar do BM
-                </button>
-              )}
-            </span>
-          )}
+
           <span>
             {filtrados.length} de {itens.length} chamado(s)
             <button onClick={limpar} className="ml-2 text-sky-400 hover:underline">limpar filtros</button>

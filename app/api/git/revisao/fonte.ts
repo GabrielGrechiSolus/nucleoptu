@@ -30,3 +30,22 @@ export async function ultimaRevisaoGlobal(): Promise<number | null> {
   const maior = Math.max(0, ...resultados);
   return maior > 0 ? maior : null;
 }
+
+export async function revisoesPublicadas() {
+  const resultados = await Promise.all(REPOS_ULTIMA.map(async (repo) => {
+    try {
+      const dados = await tagsDoRepo(repo);
+      return dados.tags.map((tag) => ({ ...tag, repo }));
+    } catch {
+      return [];
+    }
+  }));
+  const porRevisao = new Map<number, { numero: number; tags: { repo: string; tag: string; data: string }[] }>();
+  for (const tag of resultados.flat()) {
+    const item = porRevisao.get(tag.revisao) ?? { numero: tag.revisao, tags: [] };
+    item.tags.push({ repo: tag.repo, tag: tag.tag, data: tag.data });
+    porRevisao.set(tag.revisao, item);
+  }
+  const revisoes = [...porRevisao.values()].sort((a, b) => b.numero - a.numero);
+  return { ultima: revisoes[0]?.numero ?? null, revisoes };
+}

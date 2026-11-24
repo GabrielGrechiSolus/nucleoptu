@@ -2,16 +2,16 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
-import { auth, db } from '../../firebase';
+import { db } from '../../firebase';
 import withAuth from '../components/withAuth';
 import { usePessoa } from '../components/usePessoa';
 import { SortTh, sortRows, useSort } from '../components/SortableTable';
 import { BmColuna } from '../chamados/BmPainel';
 import { chamadosDaPessoa, soDigitos, type RegistroBm } from '../chamados/bmRegistro';
-import { lerRegistrosBm, sincronizaBm } from '../chamados/bmSync';
+import { lerRegistrosBm } from '../chamados/bmSync';
 import type { Chamado } from '../chamados/parse';
 import { ROTULO_SITUACAO } from '../chamados/parse';
-import { ListChecks, RefreshCcw } from 'lucide-react';
+import { ListChecks } from 'lucide-react';
 import { concluido, ehReport, formataNumero, registroResumoDoCartao, reportsAtivos, reportsPorNumero, type CartaoQuadro } from '../chamados/bmQuadro';
 import { buscaEuBm, lerQuadroBm, type MetaQuadro } from '../chamados/bmQuadroSync';
 import type { EuBm } from '../chamados/bmChave';
@@ -92,13 +92,7 @@ function ProcessosPage() {
     return () => window.removeEventListener(EVENTO_DADOS_ATUALIZADOS, carregar);
   }, [carregar]);
 
-  const reler = useCallback(
-    async (c: Chamado) => {
-      await sincronizaBm({ chamados: [c], registros, por: auth.currentUser?.email ?? '', forcar: true, onProgresso: () => undefined, deveParar: () => false });
-      setRegistros(await lerRegistrosBm());
-    },
-    [registros],
-  );
+
 
   const reports = useMemo(() => reportsPorNumero(quadro), [quadro]);
   const comPr = useMemo(() => new Set(itens.filter((c) => c.temPr).map((c) => c.id)), [itens]);
@@ -194,7 +188,7 @@ function ProcessosPage() {
   }
 
   if (aberto && registroAberto) {
-    return <ProcessoTela key={aberto.id} chamado={aberto} registro={registroAberto} onVoltar={urlChamado.voltar} rotuloVoltar="Voltar aos processos" onGravado={() => reler(aberto)} />;
+    return <ProcessoTela key={aberto.id} chamado={aberto} registro={registroAberto} onVoltar={urlChamado.voltar} rotuloVoltar="Voltar aos processos" onGravado={() => void carregar()} />;
   }
 
   return (
@@ -262,7 +256,6 @@ function ProcessosPage() {
           </label>
           <div className="rel-filter-actions">
             <button onClick={() => setFiltros(FILTROS_INICIAIS)} disabled={filtrosAtivos(filtros) === 0} className="rel-btn rel-btn-ghost">Limpar filtros{filtrosAtivos(filtros) ? ` (${filtrosAtivos(filtros)})` : ''}</button>
-            <button onClick={carregar} disabled={carregando} className="rel-btn rel-btn-outline"><RefreshCcw size={14} /> Recarregar</button>
           </div>
         </div>
         <p className="rel-desc mt-3">{linhas.length} chamado(s) com PR e {semPr.length} sem PR nos filtros atuais.</p>
@@ -285,7 +278,7 @@ function ProcessosPage() {
           <tbody>
             {carregando && <tr><td colSpan={5} className="rel-empty">Carregando...</td></tr>}
             {!carregando && !linhas.length && (
-              <tr><td colSpan={5} className="rel-empty">{meus.length ? 'Nenhum chamado com esses filtros.' : 'Nenhum chamado seu com cartão do BM sincronizado. Use “Atualizar do BM” em Contexto de chamados e confira o usuário Git do perfil.'}</td></tr>
+              <tr><td colSpan={5} className="rel-empty">{meus.length ? "Nenhum chamado com esses filtros." : "Nenhum chamado seu com cartão do BM sincronizado; a atualização automática será feita quando alguém com acesso estiver conectado."}</td></tr>
             )}
             {linhas.map((c) => (
               <tr key={c.id} onClick={() => urlChamado.abrir(soDigitos(c.numero))} className="rel-row">
@@ -311,7 +304,7 @@ function ProcessosPage() {
           </div>
         </div>
         {!eu?.id && <p className="rel-notice rel-notice-alert mt-3">Não foi possível identificar o seu usuário no BM. Confira a chave em Perfil → Businessmap.</p>}
-        {eu?.id && !metaQuadro && <p className="rel-notice mt-3">O quadro do BM ainda não foi sincronizado. Use “Atualizar do BM” em Chamados sem PR (BM).</p>}
+        {eu?.id && !metaQuadro && <p className="rel-notice mt-3">Aguardando a sincronização automática do quadro do Businessmap.</p>}
       </section>
 
       <section className="rel-table-wrap">

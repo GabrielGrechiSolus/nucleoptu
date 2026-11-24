@@ -7,7 +7,7 @@ import { db } from '../../firebase';
 import withAuth from '../components/withAuth';
 import { carregarFontesChat, carregarUsuariosNucleo, salvarStatusLocal } from '../components/PersonalizacaoPresenca';
 import { useRouter } from 'next/navigation';
-import { Award, BellRing, Building2, Coffee, ExternalLink, HelpCircle, LoaderCircle, MessageCircle, Send, Users, X, Hand } from 'lucide-react';
+import { Award, BellRing, Building2, Coffee, ExternalLink, HelpCircle, LoaderCircle, MessageCircle, Send, Users, X, Hand, Plus, Settings2 } from 'lucide-react';
 import { FaCoffee, FaDesktop, FaUserAstronaut, FaUserCircle, FaUserGraduate, FaUserNinja, FaUserTie } from 'react-icons/fa';
 
 type Status = 'online' | 'ocupado' | 'ausente' | 'nao-perturbe' | 'ferias' | 'folga' | 'pausa';
@@ -15,6 +15,8 @@ type Pessoa = { uid: string; name: string; email?: string; avatar?: string; home
 type Fonte = { tipo: string; id: string; titulo: string; url: string };
 type PedidoAjuda = { id: string; ownerUid: string; ownerName: string; texto: string; trabalho?: Fonte; members?: string[]; status: 'aberta' | 'resolvida' | 'arquivada' | 'fechada'; createdAt?: any };
 type ConviteCafe = { id: string; anfitriaoUid: string; anfitriaoNome: string; convidados: string[]; mensagem?: string; aceitaram?: string[]; recusaram?: string[]; criadoEm?: any };
+type MesaPlanta = { id: string; nome: string; norte: number; sul: number };
+type ReuniaoEquipe = { id: string; anfitriaoUid: string; anfitriaoNome: string; membros: string[]; status: 'aberta' | 'encerrada'; criadaEm?: any };
 const STATUS: { value: Status; label: string; color: string }[] = [
   { value:'online', label:'Disponível', color:'#16a34a' }, { value:'ocupado', label:'Ocupado', color:'#d97706' },
   { value:'ausente', label:'Ausente', color:'#64748b' }, { value:'nao-perturbe', label:'Modo foco', color:'#dc2626' },
@@ -23,14 +25,7 @@ const STATUS: { value: Status; label: string; color: string }[] = [
 ];
 const ativo = (p: Pessoa) => !!p.status && !!p.lastSeenAt?.toMillis && Date.now() - p.lastSeenAt.toMillis() < 90000;
 const AVATARES = [FaUserAstronaut, FaUserTie, FaUserGraduate, FaUserNinja, FaUserCircle];
-const MESAS = ['mesa-1', 'mesa-2', 'mesa-3'].map((id, indice) => ({
-  id,
-  nome: `Mesa ${indice + 1}`,
-  lados: [
-    { id: 'norte', lugares: Array.from({ length: 5 }, (_, i) => ({ id: `${id}-n${i + 1}`, nome: `N${i + 1}` })) },
-    { id: 'sul', lugares: Array.from({ length: 5 }, (_, i) => ({ id: `${id}-s${i + 1}`, nome: `S${i + 1}` })) },
-  ],
-}));
+const MESAS_PADRAO: MesaPlanta[] = [1, 2, 3].map((n) => ({ id: `mesa-${n}`, nome: `Mesa ${n}`, norte: 4, sul: 4 }));
 const avatarDa = (p: Pessoa) => {
   if (p.avatar) return <img src={p.avatar} alt="" className="h-full w-full object-cover"/>;
   const chave = p.uid || p.name || '?';
@@ -64,6 +59,10 @@ function EscritorioPage() {
   const [salvando, setSalvando] = useState(false);
   const [reunindo, setReunindo] = useState(false);
   const [convitesCafe, setConvitesCafe] = useState<ConviteCafe[]>([]);
+  const [reunioes, setReunioes] = useState<ReuniaoEquipe[]>([]);
+  const [mesas, setMesas] = useState<MesaPlanta[]>(MESAS_PADRAO);
+  const [configurandoPlanta, setConfigurandoPlanta] = useState(false);
+  const [salvandoLayout, setSalvandoLayout] = useState(false);
   const [modalCafe, setModalCafe] = useState(false);
   const [selecionadosCafe, setSelecionadosCafe] = useState<string[]>([]);
   const [mensagemCafe, setMensagemCafe] = useState('');
@@ -86,10 +85,17 @@ function EscritorioPage() {
     const atualizaConvites = () => setConvitesCafe([...new Map([...enviados,...recebidos].map(c => [c.id,c])).values()]);
     const c1 = onSnapshot(query(collection(db,'office_coffee_invites'), where('anfitriaoUid','==',user.uid)), s => { enviados=s.docs.map(d => ({id:d.id,...d.data()} as ConviteCafe)); atualizaConvites(); }, e => setErro('Convites para café indisponíveis: ' + (e as any).code));
     const c2 = onSnapshot(query(collection(db,'office_coffee_invites'), where('convidados','array-contains',user.uid)), s => { recebidos=s.docs.map(d => ({id:d.id,...d.data()} as ConviteCafe)); atualizaConvites(); }, e => setErro('Convites para café indisponíveis: ' + (e as any).code));
+    const r = onSnapshot(query(collection(db,'office_meetings'), where('status','==','aberta')), s => setReunioes(s.docs.map(d => ({id:d.id,...d.data()} as ReuniaoEquipe)).sort((a,b) => (b.criadaEm?.toMillis?.() ?? 0) - (a.criadaEm?.toMillis?.() ?? 0))), e => setErro('Sala de reunião indisponível: ' + (e as any).code));
+    const planta = onSnapshot(collection(db,'office_layout'), s => {
+      const config = s.docs.find(d => d.id === 'planta');
+      const lista = config?.data().mesas ?? null;
+      if (Array.isArray(lista) && lista.length) setMesas(lista.filter((m): m is MesaPlanta => !!m?.id && !!m?.nome).map(m => ({ id:String(m.id), nome:String(m.nome), norte:Math.max(1,Math.min(12,Number(m.norte)||4)), sul:Math.max(1,Math.min(12,Number(m.sul)||4)) })));
+      else setMesas(MESAS_PADRAO);
+    }, e => { setMesas(MESAS_PADRAO); setErro('Não foi possível carregar a configuração da planta (' + (e as any).code + ').'); });
     void carregarFontesChat().then(setFontes);
     let saved: Status = 'online'; try { saved = (localStorage.getItem('nucleoptu.presenca.' + user.uid) as Status) || 'online'; } catch {}
     if (STATUS.some(s => s.value === saved)) setStatus(saved);
-    return () => { p(); perfis(); h1(); h2(); c1(); c2(); };
+    return () => { p(); perfis(); h1(); h2(); c1(); c2(); r(); planta(); };
   }, [user]);
 
   const pessoasComPresenca = useMemo(() => { const mapa = new Map(pessoas.map(p => [p.uid,p])); presencas.forEach(p => mapa.set(p.uid,{...mapa.get(p.uid),...p})); return [...mapa.values()]; }, [pessoas,presencas]);
@@ -172,10 +178,19 @@ function EscritorioPage() {
     if (!user) return;
     setReunindo(true); setErro('');
     try {
-      await addDoc(collection(db,'chat_messages'), {uid:user.uid,autor:meuNome,texto:'Convocação para reunião geral. Quem puder participar, responda nesta conversa para combinar horário e ferramenta.',tipo:'reuniao',refs:[],createdAt:serverTimestamp()});
-      router.push('/chat');
+      const sala = await addDoc(collection(db,'office_meetings'), { anfitriaoUid:user.uid, anfitriaoNome:meuNome, membros:[user.uid], status:'aberta', criadaEm:serverTimestamp() });
+      await addDoc(collection(db,'chat_messages'), {uid:user.uid,autor:meuNome,texto:'Convocação para reunião da equipe. Entre na sala pelo link abaixo.',tipo:'reuniao',refs:[{tipo:'Sala de reunião',id:sala.id,titulo:'Entrar na reunião',url:`/chat?sala=${encodeURIComponent(sala.id)}`}],createdAt:serverTimestamp()});
+      router.push(`/chat?sala=${encodeURIComponent(sala.id)}`);
     } catch(e:any) { setErro('Não foi possível convocar o time (' + (e.code || 'Firestore') + ').'); }
     finally { setReunindo(false); }
+  };
+
+  const entrarReuniao = async (reuniao: ReuniaoEquipe) => {
+    if (!user) return;
+    try {
+      await updateDoc(doc(db,'office_meetings',reuniao.id), { membros: arrayUnion(user.uid) });
+      router.push(`/chat?sala=${encodeURIComponent(reuniao.id)}`);
+    } catch(e:any) { setErro('Não foi possível entrar na reunião (' + (e.code || 'Firestore') + ').'); }
   };
 
   const emAtividade = desks.filter(ativo).length;
@@ -184,6 +199,26 @@ function EscritorioPage() {
   const naCopa = desks.filter(p => ativo(p) && p.status === 'pausa');
   const meusConvites = convitesCafe.filter(c => c.anfitriaoUid === user?.uid || c.convidados.includes(user?.uid || ''));
   const pessoaNoAssento = (mesaId: string, assentoId: string) => pessoasComPresenca.find(p => p.mesaId === mesaId && p.assentoId === assentoId);
+
+  const salvarPlanta = async (novasMesas: MesaPlanta[]) => {
+    if (!user || salvandoLayout) return;
+    setSalvandoLayout(true);
+    try {
+      await setDoc(doc(db,'office_layout','planta'), { mesas: novasMesas, atualizadoEm: serverTimestamp(), atualizadoPor: user.uid });
+      setMesas(novasMesas);
+    } catch (e: any) {
+      setErro('Não foi possível salvar a configuração da planta (' + (e.code || 'Firestore') + ').');
+    } finally { setSalvandoLayout(false); }
+  };
+
+  const adicionarMesa = () => {
+    const proxima: MesaPlanta = { id: `mesa-${Date.now()}`, nome: `Mesa ${mesas.length + 1}`, norte: 4, sul: 4 };
+    void salvarPlanta([...mesas, proxima]);
+  };
+
+  const adicionarCadeira = (mesaId: string, lado: 'norte' | 'sul') => {
+    void salvarPlanta(mesas.map(m => m.id === mesaId ? { ...m, [lado]: Math.min(12, m[lado] + 1) } : m));
+  };
 
   const escolherAssento = async (mesaId: string, assentoId: string) => {
     if (!user || salvandoAssento) return;
@@ -197,7 +232,7 @@ function EscritorioPage() {
     try {
       await setDoc(doc(db, 'profiles', user.uid), { mesaId, assentoId }, { merge: true });
       setPessoas(atual => atual.map(p => p.uid === user.uid ? { ...p, mesaId, assentoId } : p));
-      setMensagemAssento(`Seu lugar agora é ${MESAS.find(m => m.id === mesaId)?.nome}, assento ${assentoId.split('-').at(-1)}.`);
+      setMensagemAssento(`Seu lugar agora é ${mesas.find(m => m.id === mesaId)?.nome}, assento ${assentoId.split('-').at(-1)}.`);
     } catch (e: any) {
       setMensagemAssento(`Não foi possível salvar seu lugar (${e.code || 'Firestore'}).`);
     } finally {
@@ -205,7 +240,7 @@ function EscritorioPage() {
     }
   };
 
-  const renderAssento = (mesa: typeof MESAS[number], assento: { id: string; nome: string }) => {
+  const renderAssento = (mesa: MesaPlanta, assento: { id: string; nome: string }) => {
     const ocupante = pessoaNoAssento(mesa.id, assento.id);
     if (!ocupante) return (
       <button key={assento.id} type="button" className="office-plan-seat office-plan-seat-empty" disabled={salvandoAssento} onClick={() => void escolherAssento(mesa.id, assento.id)} title={`Escolher ${mesa.nome}, lugar ${assento.nome}`}>
@@ -272,22 +307,27 @@ function EscritorioPage() {
     </header>
     {erro && <div className="rel-notice rel-notice-error">{erro}</div>}
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(300px,0.8fr)]">
-      <section className="rel-box border border-[var(--rel-line)]">
+      <section className="rel-box border border-[var(--rel-line)] xl:col-span-2">
         <div className="rel-section-head"><div><h2 className="font-semibold">Escritório da equipe</h2><p className="rel-desc">{emAtividade} pessoa(s) com presença recente</p></div></div>
         <div className="office-floor mt-4">
       <section className="office-zone office-zone-work"><div className="office-zone-heading"><Building2 size={18}/><div><h3>Planta do escritório</h3><p>Escolha um lugar vazio. Clique no avatar de um colega para abrir uma conversa individual.</p></div></div>
         <div className="office-plan" aria-label="Planta baixa com três mesas compartilhadas">
           <div className="office-plan-wall"><span>JANELAS</span><span className="office-plan-plant">🌿</span><span className="office-plan-plant">🌿</span></div>
-          <div className="office-plan-tables">{MESAS.map(mesa => <section key={mesa.id} className="office-plan-table-group" aria-label={mesa.nome}>
-            <div className="office-plan-seats">{mesa.lados[0].lugares.map(assento => renderAssento(mesa, assento))}</div>
+          <div className="office-plan-tables">{mesas.map(mesa => <section key={mesa.id} className="office-plan-table-group" aria-label={mesa.nome}>
+            <div className="office-plan-seats">{Array.from({ length: mesa.norte }, (_, i) => ({ id:`${mesa.id}-n${i+1}`, nome:`N${i+1}` })).map(assento => renderAssento(mesa, assento))}</div>
             <div className="office-plan-tabletop"><span>{mesa.nome.toUpperCase()}</span><small>Estação compartilhada</small></div>
-            <div className="office-plan-seats">{mesa.lados[1].lugares.map(assento => renderAssento(mesa, assento))}</div>
+            <div className="office-plan-seats">{Array.from({ length: mesa.sul }, (_, i) => ({ id:`${mesa.id}-s${i+1}`, nome:`S${i+1}` })).map(assento => renderAssento(mesa, assento))}</div>
+            {configurandoPlanta && <div className="office-plan-config"><button type="button" className="rel-btn rel-btn-outline rel-btn-sm" disabled={salvandoLayout || mesa.norte >= 12} onClick={() => adicionarCadeira(mesa.id,'norte')}><Plus size={14}/> Cadeira lado N ({mesa.norte})</button><button type="button" className="rel-btn rel-btn-outline rel-btn-sm" disabled={salvandoLayout || mesa.sul >= 12} onClick={() => adicionarCadeira(mesa.id,'sul')}><Plus size={14}/> Cadeira lado S ({mesa.sul})</button></div>}
           </section>)}</div>
-          <div className="office-plan-legend"><span><i className="office-legend-dot is-online"/> Presença recente</span><span><i className="office-legend-dot is-offline"/> Offline</span><span>{salvandoAssento ? 'Salvando seu lugar...' : mensagemAssento || (self?.mesaId && self?.assentoId ? `Seu lugar: ${MESAS.find(m => m.id === self.mesaId)?.nome || self.mesaId}, ${self.assentoId.split('-').pop()}` : 'Você ainda não escolheu um lugar')}</span></div>
+          <div className="office-plan-legend"><span><i className="office-legend-dot is-online"/> Presença recente</span><span><i className="office-legend-dot is-offline"/> Offline</span><span>{salvandoAssento ? 'Salvando seu lugar...' : mensagemAssento || (self?.mesaId && self?.assentoId ? `Seu lugar: ${mesas.find(m => m.id === self.mesaId)?.nome || self.mesaId}, ${self.assentoId.split('-').pop()}` : 'Você ainda não escolheu um lugar')}</span></div>
         </div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><span className="rel-desc">{mesas.length} mesas · {mesas.reduce((t,m) => t + m.norte + m.sul, 0)} lugares</span><div className="flex gap-2"><button type="button" className="rel-btn rel-btn-ghost rel-btn-sm" onClick={() => setConfigurandoPlanta(v => !v)}><Settings2 size={15}/>{configurandoPlanta ? 'Concluir configuração' : 'Configurar lugares'}</button>{configurandoPlanta && <button type="button" className="rel-btn rel-btn-primary rel-btn-sm" disabled={salvandoLayout} onClick={adicionarMesa}><Plus size={15}/> Adicionar mesa</button>}</div></div>
         {!desks.some(p => p.mesaId && p.assentoId) && <p className="office-plan-empty">Ainda ninguém escolheu um lugar. Selecione um assento vazio para marcar o seu.</p>}
       </section>
-          <section className="office-zone office-zone-meeting"><div className="office-zone-heading"><Users size={18}/><div><h3>Sala de reunião</h3><p>Convide a equipe pelo botão no topo.</p></div></div><div className="office-meeting-table"><span/><span/><span/><span/></div></section>
+          <section className="office-zone office-zone-meeting">
+            <div className="office-zone-heading"><Users size={20}/><div><h3>Sala de reunião</h3><p>Salas ativas da equipe; entre no chat compartilhado para participar.</p></div><span className="rel-tag rel-tag-info">{reunioes.length} ativa(s)</span></div>
+            {!reunioes.length ? <div className="office-meeting-empty"><Users size={34}/><p>Nenhuma reunião em andamento.</p><span>Use “Chamar todos para reunião” para abrir uma sala e convocar a equipe.</span></div> : <div className="office-meeting-list">{reunioes.map(r => { const membros = (r.membros || []).map(uid => pessoasComPresenca.find(p => p.uid === uid)).filter((p): p is Pessoa => !!p); return <article key={r.id} className="office-meeting-card"><div className="office-meeting-visual"><div className="office-meeting-table"><span/><span/><span/><span/></div><div className="office-meeting-avatars">{membros.slice(0,8).map(p => <span key={p.uid} title={`${p.name || p.email || 'Pessoa'}${ativo(p) ? ' · online' : ' · offline'}`} className="office-meeting-avatar" style={{borderColor:ativo(p) ? STATUS.find(s=>s.value===p.status)?.color || '#16a34a' : '#9ca3af',opacity:ativo(p)?1:.58}}>{avatarDa(p)}</span>)}{membros.length > 8 && <span className="office-meeting-overflow">+{membros.length - 8}</span>}</div></div><div className="office-meeting-info"><strong>{r.anfitriaoNome} iniciou uma reunião</strong><span>{membros.length} pessoa(s) na sala · {r.criadaEm?.toDate ? r.criadaEm.toDate().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : 'agora'}</span><div className="office-meeting-members">{membros.map(p => <span key={p.uid}>{p.name || p.email}{homeHoje(p) ? ' · home office' : ''}</span>)}</div></div><button type="button" className="rel-btn rel-btn-primary" onClick={() => void entrarReuniao(r)}><MessageCircle size={16}/>{r.membros?.includes(user?.uid || '') ? 'Voltar à sala' : 'Entrar na reunião'}</button></article>; })}</div>}
+          </section>
           <section className="office-zone office-zone-coffee"><div className="office-zone-heading"><Coffee size={18}/><div><h3>Copa</h3><p>Quem está em pausa aparece por aqui.</p></div></div><div className="office-desks">{naCopa.map(renderMesa)}{!naCopa.length && <p className="office-zone-empty">A copa está tranquila. Convide alguém para um café ☕</p>}</div></section>
         </div>
       </section>

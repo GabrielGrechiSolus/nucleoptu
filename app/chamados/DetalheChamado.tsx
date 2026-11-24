@@ -49,9 +49,6 @@ export default function DetalheChamado({
   previsao,
   semGit,
   registro,
-  temChave,
-  atualizando,
-  onAtualizar,
   onVoltar,
   Md,
 }: {
@@ -59,9 +56,6 @@ export default function DetalheChamado({
   previsao: string;
   semGit: boolean;
   registro?: RegistroBm;
-  temChave: boolean;
-  atualizando: boolean;
-  onAtualizar: () => void;
   onVoltar: () => void;
   Md: React.ComponentType<{ texto: string }>;
 }) {
@@ -168,7 +162,7 @@ export default function DetalheChamado({
 
           {aba === 'bm' && (
             <div className="rel-box">
-              <BmPainel chamado={c} registro={registro} semGit={semGit} temChave={temChave} atualizando={atualizando} onAtualizar={onAtualizar} />
+              <BmPainel chamado={c} registro={registro} semGit={semGit} />
             </div>
           )}
 

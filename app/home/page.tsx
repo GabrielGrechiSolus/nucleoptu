@@ -1,6 +1,7 @@
 'use client';
 
 import withAuth from '../components/withAuth';
+import RevisionDashboard from './RevisionDashboard';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../AuthContext';
@@ -644,6 +645,7 @@ const HomePage = () => {
       </AnimatePresence>
 
       <div className="max-w-7xl mx-auto p-6 lg:p-8">
+        <RevisionDashboard />
         {/* Header com Saudação */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
