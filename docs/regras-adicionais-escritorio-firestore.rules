@@ -1,0 +1,125 @@
+// Regras adicionais para Chat e Escritório Virtual.
+// Mescle os blocos dentro de match /databases/{database}/documents existente.
+// Não substitua as regras atuais do projeto por este fragmento isolado.
+
+function virtualOfficeAutenticado() {
+  return request.auth != null;
+}
+
+match /user_presence/{uid} {
+  // Os usuários autenticados veem a presença necessária para o escritório virtual.
+  allow read: if virtualOfficeAutenticado();
+  allow create: if virtualOfficeAutenticado()
+    && request.auth.uid == uid
+    && request.resource.data.uid == uid
+    && request.resource.data.name is string
+    && request.resource.data.status in [
+      'online', 'ocupado', 'ausente', 'nao-perturbe', 'ferias', 'folga', 'pausa'
+    ]
+    && request.resource.data.keys().hasOnly([
+      'uid', 'name', 'email', 'status', 'lastSeenAt', 'avatar', 'workingOn'
+    ]);
+  allow update: if virtualOfficeAutenticado()
+    && request.auth.uid == uid
+    && request.resource.data.uid == uid
+    && request.resource.data.status in [
+      'online', 'ocupado', 'ausente', 'nao-perturbe', 'ferias', 'folga', 'pausa'
+    ]
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+      'uid', 'name', 'email', 'status', 'lastSeenAt', 'avatar', 'workingOn'
+    ]);
+  allow delete: if false;
+}
+
+match /chat_messages/{messageId} {
+  allow read: if virtualOfficeAutenticado();
+  allow create: if virtualOfficeAutenticado()
+    && request.resource.data.uid == request.auth.uid
+    && request.resource.data.autor is string
+    && request.resource.data.texto is string
+    && request.resource.data.texto.size() <= 4000
+    && request.resource.data.tipo in ['mensagem', 'elogio', 'reuniao', 'aceno']
+    && request.resource.data.refs is list
+    && request.resource.data.refs.size() <= 10
+    && request.resource.data.keys().hasOnly([
+      'uid', 'autor', 'texto', 'tipo', 'paraUid', 'paraNome', 'salaId', 'refs', 'createdAt'
+    ]);
+  allow update, delete: if false;
+}
+
+match /office_help/{roomId} {
+  // A tela consulta somente salas abertas, condição exigida pela regra de leitura.
+  allow list: if virtualOfficeAutenticado() && resource.data.status == 'aberta';
+  allow get: if virtualOfficeAutenticado()
+    && (resource.data.status == 'aberta' || request.auth.uid in resource.data.members);
+  allow create: if virtualOfficeAutenticado()
+    && request.resource.data.ownerUid == request.auth.uid
+    && request.resource.data.ownerName is string
+    && request.resource.data.texto is string
+    && request.resource.data.texto.size() <= 2000
+    && request.resource.data.members is list
+    && request.resource.data.members.size() == 1
+    && request.resource.data.members[0] == request.auth.uid
+    && request.resource.data.status == 'aberta'
+    && request.resource.data.keys().hasOnly([
+      'ownerUid', 'ownerName', 'texto', 'trabalho', 'members', 'status', 'createdAt'
+    ]);
+  // Cada usuário só pode incluir o próprio UID na lista de participantes.
+  allow update: if virtualOfficeAutenticado()
+    && resource.data.status == 'aberta'
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])
+    && request.resource.data.members is list
+    && request.resource.data.members.toSet()
+      == resource.data.members.toSet().union([request.auth.uid].toSet());
+  allow delete: if false;
+}
+
+match /office_coffee_invites/{inviteId} {
+  // O anfitrião e os convidados consultam em listeners separados, com filtros por UID.
+  allow list: if virtualOfficeAutenticado()
+    && (resource.data.anfitriaoUid == request.auth.uid
+      || request.auth.uid in resource.data.convidados);
+  allow get: if virtualOfficeAutenticado()
+    && (resource.data.anfitriaoUid == request.auth.uid
+      || request.auth.uid in resource.data.convidados);
+  allow create: if virtualOfficeAutenticado()
+    && request.resource.data.anfitriaoUid == request.auth.uid
+    && request.resource.data.anfitriaoNome is string
+    && request.resource.data.convidados is list
+    && request.resource.data.convidados.size() > 0
+    && request.resource.data.convidados.size() <= 50
+    && !(request.auth.uid in request.resource.data.convidados)
+    && request.resource.data.mensagem is string
+    && request.resource.data.mensagem.size() <= 500
+    && request.resource.data.aceitaram is list
+    && request.resource.data.aceitaram.size() == 0
+    && request.resource.data.recusaram is list
+    && request.resource.data.recusaram.size() == 0
+    && request.resource.data.keys().hasOnly([
+      'anfitriaoUid', 'anfitriaoNome', 'convidados', 'mensagem',
+      'aceitaram', 'recusaram', 'criadoEm'
+    ]);
+  // Só o próprio convidado pode aceitar ou recusar; nenhuma outra resposta é alterada.
+  allow update: if virtualOfficeAutenticado()
+    && request.auth.uid in resource.data.convidados
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['aceitaram', 'recusaram'])
+    && request.resource.data.aceitaram is list
+    && request.resource.data.recusaram is list
+    && (
+      (
+        request.resource.data.aceitaram.toSet()
+          == resource.data.aceitaram.toSet().union([request.auth.uid].toSet())
+        && request.resource.data.recusaram.toSet()
+          == resource.data.recusaram.toSet().difference([request.auth.uid].toSet())
+      )
+      ||
+      (
+        request.resource.data.aceitaram.toSet()
+          == resource.data.aceitaram.toSet().difference([request.auth.uid].toSet())
+        && request.resource.data.recusaram.toSet()
+          == resource.data.recusaram.toSet().union([request.auth.uid].toSet())
+      )
+    );
+  allow delete: if false;
+}
+

@@ -8,7 +8,7 @@ import withAuth from '../components/withAuth';
 import { carregarFontesChat, salvarStatusLocal } from '../components/PersonalizacaoPresenca';
 import { Award, Link2, LoaderCircle, MessageCircle, Paperclip, Send, Smile, Users } from 'lucide-react';
 
-type Status = 'online' | 'ocupado' | 'ausente' | 'nao-perturbe' | 'ferias' | 'folga';
+type Status = 'online' | 'ocupado' | 'ausente' | 'nao-perturbe' | 'ferias' | 'folga' | 'pausa';
 type Pessoa = { uid: string; name: string; email?: string; avatar?: string; status?: Status; lastSeenAt?: any };
 type Referencia = { tipo: string; id: string; titulo: string; url: string };
 type Mensagem = { id: string; uid: string; autor: string; texto: string; tipo: 'mensagem' | 'elogio' | 'reuniao'; paraUid?: string; paraNome?: string; refs: Referencia[]; createdAt?: any };
@@ -20,6 +20,7 @@ const STATUS: { value: Status; label: string; cor: string }[] = [
   { value: 'nao-perturbe', label: 'Não perturbe', cor: '#7c3aed' },
   { value: 'ferias', label: 'Férias', cor: '#0891b2' },
   { value: 'folga', label: 'Folga', cor: '#64748b' },
+  { value: 'pausa', label: 'Em pausa', cor: '#9ca3af' },
 ];
 const presente = (p: Pessoa) => !!p.status && !!p.lastSeenAt?.toMillis && Date.now() - p.lastSeenAt.toMillis() < 90000;
 

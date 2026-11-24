@@ -70,6 +70,12 @@ const NOTICE_TYPES = [
   { value: "sustentacao", label: "Sustentação", color: "bg-green-500" },
 ] as const;
 
+const corTextoDestaque = (hex: string) => {
+  const canais = hex.slice(1).match(/.{2}/g)?.map((parte) => parseInt(parte, 16) / 255) ?? [0, 0, 0];
+  const linear = canais.map((canal) => canal <= 0.04045 ? canal / 12.92 : ((canal + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2] > 0.42 ? "#17202a" : "#ffffff";
+};
+
 export default function ProfilePage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -442,7 +448,7 @@ export default function ProfilePage() {
                     <div className="flex-1">
                       <p className="text-xs text-zinc-400">Aplicada a botões, links, ícones, bordas e linhas de destaque nesta conta.</p>
                       <div className="mt-2 flex items-center gap-2">
-                        <span className="rounded-md px-3 py-1.5 text-xs font-semibold text-white" style={{ backgroundColor: profile.accentColor }}>Prévia do botão</span>
+                        <span className="rounded-md px-3 py-1.5 text-xs font-semibold" style={{ backgroundColor: profile.accentColor, color: corTextoDestaque(profile.accentColor) }}>Prévia do botão</span>
                         <span className="text-sm font-medium" style={{ color: profile.accentColor }}>Texto e ícone</span>
                       </div>
                     </div>

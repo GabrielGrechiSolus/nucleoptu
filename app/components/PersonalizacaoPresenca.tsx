@@ -8,6 +8,13 @@ import { auth } from '../../firebase';
 
 const STATUS_KEY = (uid: string) => `nucleoptu.presenca.${uid}`;
 
+function corDeTexto(hex: string) {
+  const rgb = hex.slice(1).match(/.{2}/g)?.map((parte) => parseInt(parte, 16) / 255) ?? [0, 0, 0];
+  const linear = rgb.map((canal) => canal <= 0.04045 ? canal / 12.92 : ((canal + 0.055) / 1.055) ** 2.4);
+  const luminancia = 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  return luminancia > 0.42 ? '#17202a' : '#ffffff';
+}
+
 export function salvarStatusLocal(uid: string, status: string) {
   try { localStorage.setItem(STATUS_KEY(uid), status); } catch { /* armazenamento opcional */ }
 }
@@ -23,6 +30,7 @@ export default function PersonalizacaoPresenca() {
         const cor = perfil.data()?.accentColor;
         if (ativo && typeof cor === 'string' && /^#[0-9a-f]{6}$/i.test(cor)) {
           document.documentElement.style.setProperty('--user-accent', cor);
+          document.documentElement.style.setProperty('--user-accent-contrast', corDeTexto(cor));
           document.documentElement.dataset.userAccent = 'true';
         }
       } catch (e) { console.warn('Não foi possível carregar a personalização visual.', e); }
@@ -33,7 +41,7 @@ export default function PersonalizacaoPresenca() {
         const atual = await getDoc(ref);
         let status = 'online';
         try { status = localStorage.getItem(STATUS_KEY(user.uid)) || 'online'; } catch { /* opcional */ }
-        if (!['online', 'ocupado', 'ausente', 'nao-perturbe', 'ferias', 'folga'].includes(status)) status = 'online';
+        if (!['online', 'ocupado', 'ausente', 'nao-perturbe', 'ferias', 'folga', 'pausa'].includes(status)) status = 'online';
         await setDoc(ref, { uid: user.uid, name: user.displayName || user.email || 'Usuário', email: user.email || '', status, lastSeenAt: serverTimestamp(), avatar: user.photoURL || atual.data()?.avatar || '' }, { merge: true });
       } catch (e) { console.warn('Presença indisponível; verifique as regras do Firestore.', e); }
     };
