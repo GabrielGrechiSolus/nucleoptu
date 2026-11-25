@@ -241,14 +241,14 @@ html[data-user-accent] [class*="border-sky-"], html[data-user-accent] [class*="b
 .office-chalkboard { position:relative; overflow:hidden; padding:18px 20px 12px; border:2px solid #60472f; border-radius:4px; background-color:#263a31; background-image:radial-gradient(ellipse at 12% 18%,#ffffff0b 0 1px,transparent 3px),radial-gradient(ellipse at 78% 40%,#d5e5d611 0 1px,transparent 4px),radial-gradient(ellipse at 35% 82%,#ffffff0a 0 1px,transparent 5px),repeating-linear-gradient(127deg,#ffffff03 0 1px,transparent 1px 5px); box-shadow:inset 0 0 25px #0b1712a6,inset 0 0 4px #f0f4e522; color:#f2f0e6; }
 .office-chalkboard::after { position:absolute; z-index:0; inset:0; background-image:radial-gradient(#fff 0.45px,transparent .7px); background-size:7px 9px; content:""; opacity:.08; pointer-events:none; }
 .office-chalkboard > * { position:relative; z-index:1; }
-.office-chalkboard-head { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding-bottom:12px; border-bottom:1px solid #eaf1e52c; }
+.office-chalkboard-head { position:relative; z-index:10; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding-bottom:12px; border-bottom:1px solid #eaf1e52c; }
 .office-chalkboard-head h2,.office-chalk-group h3 { display:flex; align-items:center; gap:8px; margin:0; color:#f7f6ec; font-family:"Segoe Print","Bradley Hand","Comic Sans MS",cursive; text-shadow:0 0 3px #fff8,1px 1px 0 #fff2,-1px -1px 0 #fff2; }
 .office-chalkboard-head h2 { font-size:1.25rem; }
 .office-chalkboard-head p { margin:3px 0 0; color:#e2e9ddc9; font-size:.78rem; }
 .office-chalkboard-add { position:relative; }
 .office-chalkboard-add summary,.office-chalkboard-form button,.office-chalk-action,.office-chalk-input-row button { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:7px 10px; border:1px solid #eaf1e56e; border-radius:5px; background:#ffffff0d; color:#f8f8ee; cursor:pointer; font-size:.78rem; }
 .office-chalkboard-add summary { list-style:none; }.office-chalkboard-add summary::-webkit-details-marker { display:none; }
-.office-chalkboard-form { position:absolute; top:calc(100% + 8px); right:0; z-index:5; display:grid; width:min(520px,calc(100vw - 70px)); grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; padding:14px; border:1px solid #b39a6c; border-radius:8px; background:#263a31; box-shadow:0 12px 28px #101a16b5; }
+.office-chalkboard-form { position:absolute; top:calc(100% + 8px); right:0; z-index:20; display:grid; width:min(520px,calc(100vw - 70px)); grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; padding:14px; border:1px solid #b39a6c; border-radius:8px; background:#263a31; box-shadow:0 12px 28px #101a16b5; }
 .office-chalkboard-form label { display:grid; gap:4px; color:#f1f1e5; font-size:.72rem; }
 .office-chalkboard-form input,.office-chalkboard-form select,.office-chalk-input-row input,.office-chalk-progress input { min-width:0; padding:7px 8px; border:1px solid #dce8db63; border-radius:4px; background:#182821; color:#fff; }
 .office-chalkboard-form button { align-self:end; }.office-chalk-error { margin:10px 0; color:#ffb8aa; font-size:.8rem; }
