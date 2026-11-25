@@ -325,6 +325,7 @@ function EscritorioPage() {
       <section className="office-zone office-zone-work"><div className="office-zone-heading"><Building2 size={18}/><div><h3>Planta do escritório</h3><p>Escolha um lugar vazio. Clique no avatar de um colega para abrir uma conversa individual.</p></div></div>
         <div className="office-plan" aria-label="Planta baixa com três mesas compartilhadas">
           <div className="office-plan-wall"><span>JANELAS</span><span className="office-plan-plant">🌿</span><span className="office-plan-plant">🌿</span></div>
+          <Celebracoes />
           <div className="office-plan-tables">{mesas.map(mesa => <section key={mesa.id} className="office-plan-table-group" aria-label={mesa.nome}>
             <div className="office-plan-seats">{Array.from({ length: mesa.norte }, (_, i) => ({ id:`${mesa.id}-n${i+1}`, nome:`N${i+1}` })).map(assento => renderAssento(mesa, assento))}</div>
             <div className="office-plan-tabletop"><span>{mesa.nome.toUpperCase()}</span><small>Estação compartilhada</small></div>
@@ -335,7 +336,6 @@ function EscritorioPage() {
         </div>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><span className="rel-desc">{mesas.length} mesas · {mesas.reduce((t,m) => t + m.norte + m.sul, 0)} lugares</span><div className="flex gap-2"><button type="button" className="rel-btn rel-btn-ghost rel-btn-sm" onClick={() => setConfigurandoPlanta(v => !v)}><Settings2 size={15}/>{configurandoPlanta ? 'Concluir configuração' : 'Configurar lugares'}</button>{configurandoPlanta && <button type="button" className="rel-btn rel-btn-primary rel-btn-sm" disabled={salvandoLayout} onClick={adicionarMesa}><Plus size={15}/> Adicionar mesa</button>}</div></div>
         {!desks.some(p => p.mesaId && p.assentoId) && <p className="office-plan-empty">Ainda ninguém escolheu um lugar. Selecione um assento vazio para marcar o seu.</p>}
-        <Celebracoes />
       </section>
           <section className="office-zone office-zone-meeting">
             <div className="office-zone-heading"><Users size={20}/><div><h3>Sala de reunião</h3><p>Salas ativas da equipe; entre no chat compartilhado para participar.</p></div><span className="rel-tag rel-tag-info">{reunioes.length} ativa(s)</span></div>
