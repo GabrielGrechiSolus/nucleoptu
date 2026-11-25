@@ -9,6 +9,7 @@ import { CAMPOS_AUTOMATICOS, anexaLinksNaDescricao, campoPorNome, textoParaHtml,
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 type Acesso = { ok: true; chave: string; email: string } | { ok: false; status: number; erro: string };
 

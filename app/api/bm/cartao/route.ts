@@ -4,6 +4,8 @@ import { tipoDePerfil, verificaFirebase } from '../../_servidor';
 import { montaCartaoBm } from '../../../chamados/bm';
 import { PERFIL_SEM_GIT } from '../../../chamados/semgit';
 
+export const maxDuration = 60;
+
 // POST { cardId, chamado, temPr, temEvidencia } -> cartão organizado. Somente leitura no BM.
 export async function POST(req: Request) {
   const login = await verificaFirebase(req);

@@ -6,6 +6,7 @@ import { urlDoCartao } from '../../../chamados/bm';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 const BOARDS = (process.env.BM_BOARD_IDS ?? '45')
   .split(',')

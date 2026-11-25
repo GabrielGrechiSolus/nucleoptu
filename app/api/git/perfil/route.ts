@@ -3,6 +3,7 @@ import { ErroGithub, githubGet, githubToken, tipoDePerfil, verificaFirebase } fr
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 const ORG = process.env.GITHUB_ORG ?? 'solussaude';
 const POR_PAGINA = 100;

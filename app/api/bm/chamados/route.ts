@@ -3,6 +3,8 @@ import { ErroBm, BM_BASE, bmConfigurado, chaveDaRequisicao, cartoesPorChamados, 
 import { verificaFirebase } from '../../_servidor';
 import { resumoDoCartao, type BmResumoLista } from '../../../chamados/bm';
 
+export const maxDuration = 60;
+
 // POST { chamados: ["568361", ...] } -> { configurado, cartoes: { "568361": resumo } }. Somente leitura no BM.
 export async function POST(req: Request) {
   const login = await verificaFirebase(req);

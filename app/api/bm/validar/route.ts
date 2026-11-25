@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { ErroBm, bmEu } from '../../_bm';
 import { verificaFirebase } from '../../_servidor';
 
+export const maxDuration = 60;
+
 // Confere a chave informada no perfil com uma consulta ao BM (GET /me) e devolve o nome do dono. Não grava a chave.
 export async function POST(req: Request) {
   const login = await verificaFirebase(req);
