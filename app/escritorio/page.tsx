@@ -9,6 +9,7 @@ import { carregarFontesChat, carregarUsuariosNucleo, salvarStatusLocal } from '.
 import { useRouter } from 'next/navigation';
 import { Award, BellRing, Building2, Coffee, ExternalLink, HelpCircle, LoaderCircle, MessageCircle, Send, Users, X, Hand, Plus, Settings2 } from 'lucide-react';
 import { FaCoffee, FaDesktop, FaUserAstronaut, FaUserCircle, FaUserGraduate, FaUserNinja, FaUserTie } from 'react-icons/fa';
+import Celebracoes from './Celebracoes';
 
 type Status = 'online' | 'ocupado' | 'ausente' | 'nao-perturbe' | 'ferias' | 'folga' | 'pausa';
 type Pessoa = { uid: string; name: string; email?: string; avatar?: string; homeOfficeDays?: number[]; mesaId?: string; assentoId?: string; status?: Status; lastSeenAt?: any; workingOn?: { titulo: string; tipo: string; url: string }; };
@@ -334,6 +335,7 @@ function EscritorioPage() {
         </div>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><span className="rel-desc">{mesas.length} mesas · {mesas.reduce((t,m) => t + m.norte + m.sul, 0)} lugares</span><div className="flex gap-2"><button type="button" className="rel-btn rel-btn-ghost rel-btn-sm" onClick={() => setConfigurandoPlanta(v => !v)}><Settings2 size={15}/>{configurandoPlanta ? 'Concluir configuração' : 'Configurar lugares'}</button>{configurandoPlanta && <button type="button" className="rel-btn rel-btn-primary rel-btn-sm" disabled={salvandoLayout} onClick={adicionarMesa}><Plus size={15}/> Adicionar mesa</button>}</div></div>
         {!desks.some(p => p.mesaId && p.assentoId) && <p className="office-plan-empty">Ainda ninguém escolheu um lugar. Selecione um assento vazio para marcar o seu.</p>}
+        <Celebracoes />
       </section>
           <section className="office-zone office-zone-meeting">
             <div className="office-zone-heading"><Users size={20}/><div><h3>Sala de reunião</h3><p>Salas ativas da equipe; entre no chat compartilhado para participar.</p></div><span className="rel-tag rel-tag-info">{reunioes.length} ativa(s)</span></div>

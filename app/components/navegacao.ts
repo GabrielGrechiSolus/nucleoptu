@@ -1,5 +1,5 @@
 import type React from 'react';
-import { Bell, FolderSearch, Home, Inbox, Kanban, LifeBuoy, Link as LinkIcon, ListChecks, MessageCircle, Network, ShieldCheck, Ticket, User, UserCog, Users, Building2, PartyPopper } from 'lucide-react';
+import { Bell, FolderSearch, Home, Inbox, Kanban, LifeBuoy, Link as LinkIcon, ListChecks, MessageCircle, Network, ShieldCheck, Ticket, User, UserCog, Users, Building2 } from 'lucide-react';
 
 export interface ItemMenu {
   tipo: 'item';
@@ -45,7 +45,6 @@ export function montaMenu({ admin, processos }: OpcoesMenu): NoMenu[] {
     grupo('apoio', 'Apoio ao atendimento', LifeBuoy, true, [
       item('/client-connections', 'Conexões de clientes', Network, 'text-pink-400'),
       item('/links', 'Links úteis', LinkIcon, 'text-cyan-400'),
-      item('/celebracoes', 'Celebrações e metas', PartyPopper, 'text-amber-400'),
     ]),
     grupo('conta', 'Conta e administração', ShieldCheck, false, [
       item('/profile', 'Perfil', User, 'text-gray-300'),
