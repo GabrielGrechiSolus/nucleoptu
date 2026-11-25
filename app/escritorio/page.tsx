@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { Award, BellRing, Building2, Coffee, ExternalLink, HelpCircle, LoaderCircle, MessageCircle, Send, Users, X, Hand, Plus, Settings2 } from 'lucide-react';
 import { FaCoffee, FaDesktop, FaUserAstronaut, FaUserCircle, FaUserGraduate, FaUserNinja, FaUserTie } from 'react-icons/fa';
 import Celebracoes from './Celebracoes';
+import LousaEquipe from './LousaEquipe';
 
 type Status = 'online' | 'ocupado' | 'ausente' | 'nao-perturbe' | 'ferias' | 'folga' | 'pausa';
 type Pessoa = { uid: string; name: string; email?: string; avatar?: string; homeOfficeDays?: number[]; mesaId?: string; assentoId?: string; status?: Status; lastSeenAt?: any; workingOn?: { titulo: string; tipo: string; url: string }; };
@@ -318,6 +319,7 @@ function EscritorioPage() {
       <div className="flex flex-wrap gap-2"><button className="rel-btn rel-btn-outline" onClick={() => setModalCafe(true)}><Coffee size={17}/> Chamar para café</button><button className={'rel-btn ' + (status === 'pausa' ? 'rel-btn-ghost' : 'rel-btn-outline')} onClick={() => void atualizar(status === 'pausa' ? 'online' : 'pausa')}><Coffee size={17}/>{status === 'pausa' ? 'Voltar à mesa' : 'Ir para a copa'}</button><button className="rel-btn rel-btn-primary" disabled={reunindo} onClick={() => void convocar()}>{reunindo ? <LoaderCircle className="animate-spin" size={17}/> : <BellRing size={17}/>} Chamar todos para reunião</button></div>
     </header>
     {erro && <div className="rel-notice rel-notice-error">{erro}</div>}
+    <LousaEquipe />
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(300px,0.8fr)]">
       <section className="rel-box border border-[var(--rel-line)] xl:col-span-2">
         <div className="rel-section-head"><div><h2 className="font-semibold">Escritório da equipe</h2><p className="rel-desc">{emAtividade} pessoa(s) com presença recente</p></div></div>

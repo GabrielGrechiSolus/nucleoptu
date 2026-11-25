@@ -63,6 +63,28 @@ match /bm_quadro_meta/{documentId} {
   allow read, write: if virtualOfficeAutenticado();
 }
 
+// Textos da lousa da equipe. Os perfis de origem permanecem somente leitura nesta funcionalidade.
+match /office_board_entries/{entryId} {
+  function lousaValida() {
+    return request.resource.data.keys().hasOnly([
+      'kind', 'sourceId', 'text', 'hidden', 'createdBy', 'createdAt', 'updatedBy', 'updatedAt'
+    ])
+      && request.resource.data.kind in ['profile', 'manual']
+      && request.resource.data.text is string
+      && request.resource.data.text.size() <= 1000
+      && request.resource.data.hidden is bool
+      && request.resource.data.createdBy is string
+      && request.resource.data.updatedBy == request.auth.uid;
+  }
+  allow read: if virtualOfficeAutenticado();
+  allow create: if virtualOfficeAutenticado()
+    && lousaValida()
+    && request.resource.data.createdBy == request.auth.uid;
+  allow update: if virtualOfficeAutenticado() && lousaValida();
+  allow delete: if virtualOfficeAutenticado()
+    && resource.data.kind == 'manual';
+}
+
 match /office_help/{roomId} {
   // A tela consulta somente salas abertas, condição exigida pela regra de leitura.
   allow list: if virtualOfficeAutenticado()

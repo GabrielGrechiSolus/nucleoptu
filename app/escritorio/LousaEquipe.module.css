@@ -1,0 +1,153 @@
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.actions,
+.formActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+}
+
+.form {
+  display: grid;
+  gap: .5rem;
+  margin-top: 1rem;
+  max-width: 42rem;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 1.1rem;
+  align-items: start;
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 1rem;
+  background-color: #17382f;
+  background-image:
+    radial-gradient(ellipse at 18% 22%, rgb(255 255 255 / 4%), transparent 42%),
+    radial-gradient(ellipse at 82% 76%, rgb(255 255 255 / 3%), transparent 38%),
+    repeating-linear-gradient(4deg, transparent 0 16px, rgb(255 255 255 / 1.2%) 17px, transparent 18px 32px);
+  box-shadow: inset 0 0 38px rgb(0 0 0 / 22%);
+}
+
+.ordered {
+  background-color: #203e36;
+}
+
+.card {
+  min-width: 0;
+  padding: .85rem .9rem .55rem;
+  border: 1px solid rgb(255 255 255 / 13%);
+  border-radius: .65rem;
+  background: rgb(4 22 18 / 18%);
+  transform: rotate(var(--chalk-rotation)) scale(var(--chalk-scale));
+  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+
+.card:hover,
+.ordered .card {
+  border-color: rgb(255 255 255 / 24%);
+  background: rgb(4 22 18 / 28%);
+}
+
+.card:hover {
+  transform: rotate(0deg) scale(1.01);
+}
+
+.chalk {
+  min-height: 3rem;
+  margin: 0;
+  color: rgb(250 248 231 / var(--chalk-opacity));
+  font-family: 'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive;
+  font-size: 1rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  text-shadow: 0 0 1px rgb(255 255 255 / 72%), 0 0 5px rgb(255 255 255 / 22%), 0 1px 1px rgb(255 255 255 / 17%);
+}
+
+.cardActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .35rem;
+  min-height: 2rem;
+  margin-top: .45rem;
+  border-top: 1px solid rgb(255 255 255 / 12%);
+  opacity: .78;
+}
+
+.cardActions button {
+  display: inline-grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  place-items: center;
+  border-radius: .4rem;
+  color: #f4f1df;
+}
+
+.cardActions button:hover {
+  background: rgb(255 255 255 / 13%);
+  opacity: 1;
+}
+
+.source {
+  margin-right: auto;
+  color: rgb(250 248 231 / 62%);
+  font-family: system-ui, sans-serif;
+  font-size: .68rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.editor {
+  display: grid;
+  gap: .55rem;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 4.5rem;
+  resize: vertical;
+  border: 1px solid rgb(255 255 255 / 24%);
+  border-radius: .45rem;
+  background: rgb(0 0 0 / 22%);
+  padding: .6rem;
+  color: #fbf8e8;
+  font: inherit;
+  line-height: 1.55;
+}
+
+.hidden {
+  margin-top: 1rem;
+}
+
+.hidden ul {
+  display: grid;
+  gap: .45rem;
+  margin-top: .5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.hidden li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  border-bottom: 1px solid var(--rel-line);
+  padding: .35rem 0;
+  font-size: .9rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card { transition: none; }
+}
