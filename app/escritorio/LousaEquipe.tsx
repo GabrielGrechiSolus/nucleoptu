@@ -143,7 +143,7 @@ export default function LousaEquipe() {
     try {
       if (cartao.kind === 'manual') await deleteDoc(doc(db, 'office_board_entries', cartao.docId));
       else await setDoc(doc(db, 'office_board_entries', cartao.docId), {
-        kind: 'profile', sourceId: cartao.sourceId, text: cartao.text, hidden: true,
+        kind: 'profile', sourceId: cartao.sourceId, text: cartao.texto, hidden: true,
         createdBy: user.uid, updatedBy: user.uid, updatedAt: serverTimestamp(),
       }, { merge: true });
     } catch (e) {
