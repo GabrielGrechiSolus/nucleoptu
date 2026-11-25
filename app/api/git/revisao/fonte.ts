@@ -11,6 +11,11 @@ export interface TagsDoRepo {
   ultima: number;
 }
 
+export interface FalhaRepoRevision {
+  repo: string;
+  erro: string;
+}
+
 const cache = new Map<string, { em: number; dados: TagsDoRepo }>();
 
 export async function tagsDoRepo(repo: string): Promise<TagsDoRepo> {
@@ -18,8 +23,16 @@ export async function tagsDoRepo(repo: string): Promise<TagsDoRepo> {
   if (guardado && Date.now() - guardado.em < 10 * 60 * 1000) return guardado.dados;
   const r = await fetch(`${API_REVISAO}?column=CNOMEREPO&value=${encodeURIComponent(repo)}`, { signal: AbortSignal.timeout(25000), cache: 'no-store' });
   if (!r.ok) throw new Error('API de revisions indisponível');
-  const j = (await r.json()) as { NNUMETAG: string; CREVIUPDAT: string; DDATATAG?: string }[];
-  const linhas = Array.isArray(j) ? j : [];
+  const corpo = await r.text();
+  if (!corpo.trim()) throw new Error(`API de revisions retornou resposta vazia para ${repo}.`);
+  let j: unknown;
+  try {
+    j = JSON.parse(corpo);
+  } catch {
+    throw new Error(`API de revisions retornou JSON inválido para ${repo}.`);
+  }
+  if (!Array.isArray(j)) throw new Error(`API de revisions retornou formato inesperado para ${repo}.`);
+  const linhas = j as { NNUMETAG: string; CREVIUPDAT: string; DDATATAG?: string }[];
   const dados = { tags: tagsPublicadas(linhas), ultima: ultimaRevisao(linhas) };
   cache.set(repo, { em: Date.now(), dados });
   return dados;
@@ -35,17 +48,18 @@ export async function revisoesPublicadas() {
   const resultados = await Promise.all(REPOS_ULTIMA.map(async (repo) => {
     try {
       const dados = await tagsDoRepo(repo);
-      return dados.tags.map((tag) => ({ ...tag, repo }));
-    } catch {
-      return [];
+      return { tags: dados.tags.map((tag) => ({ ...tag, repo })), falha: null as FalhaRepoRevision | null };
+    } catch (e) {
+      return { tags: [], falha: { repo, erro: e instanceof Error ? e.message : 'Falha ao consultar a API da Qualidade.' } as FalhaRepoRevision };
     }
   }));
   const porRevisao = new Map<number, { numero: number; tags: { repo: string; tag: string; data: string }[] }>();
-  for (const tag of resultados.flat()) {
+  for (const tag of resultados.flatMap((resultado) => resultado.tags)) {
     const item = porRevisao.get(tag.revisao) ?? { numero: tag.revisao, tags: [] };
     item.tags.push({ repo: tag.repo, tag: tag.tag, data: tag.data });
     porRevisao.set(tag.revisao, item);
   }
   const revisoes = [...porRevisao.values()].sort((a, b) => b.numero - a.numero);
-  return { ultima: revisoes[0]?.numero ?? null, revisoes };
+  const falhas = resultados.flatMap((resultado) => resultado.falha ? [resultado.falha] : []);
+  return { ultima: revisoes[0]?.numero ?? null, revisoes, falhas, reposConsultados: resultados.length - falhas.length };
 }

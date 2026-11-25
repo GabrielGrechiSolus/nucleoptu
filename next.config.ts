@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["firebase-admin"],
+  // A importação lê arquivos de uma pasta externa configurada por ambiente.
+  // Fontes do app e arquivos públicos não são dependências de runtime da função.
+  outputFileTracingExcludes: {
+    "/api/chamados/importar": ["./app/**/*", "./public/**/*"],
+  },
   async headers() {
     return [
       {

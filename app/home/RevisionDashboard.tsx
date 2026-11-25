@@ -30,12 +30,18 @@ export default function RevisionDashboard() {
           fetch('/api/git/revisoes', { headers: { Authorization: `Bearer ${token}` } }),
           getDocs(collection(db, 'chamados')),
         ]);
-        const dados = await resposta.json();
-        if (!resposta.ok) throw new Error(dados.erro ?? 'Não foi possível carregar as revisions da Qualidade.');
+        const corpo = await resposta.text();
+        let dados: { erro?: string; revisoes?: Revision[]; falhas?: { repo: string; erro: string }[] };
+        try {
+          dados = JSON.parse(corpo) as typeof dados;
+        } catch {
+          throw new Error(corpo.trim() ? 'A API de revisions retornou uma resposta inválida.' : 'A API de revisions retornou uma resposta vazia. Tente novamente mais tarde.');
+        }
+        if (!resposta.ok) throw new Error(dados.erro ?? dados.falhas?.map((f) => `${f.repo}: ${f.erro}`).join(' · ') ?? 'Não foi possível carregar as revisions da Qualidade.');
         if (!ativo) return;
         setRevisoes((dados.revisoes ?? []) as Revision[]);
         setChamados(snap.docs.map((d) => ({ ...d.data(), id: d.id }) as Chamado));
-        setErro('');
+        setErro(dados.falhas?.length ? `A API da Qualidade falhou em alguns repositórios: ${dados.falhas.map((f) => `${f.repo}: ${f.erro}`).join(' · ')}` : '');
       } catch (e) {
         if (ativo) setErro(e instanceof Error ? e.message : 'Falha ao carregar revisions.');
       } finally {
@@ -79,7 +85,7 @@ export default function RevisionDashboard() {
         {revisoes[0] && <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2"><span className="text-xs text-emerald-200">Última revision</span><div className="text-2xl font-bold text-white">{revisoes[0].numero}</div></div>}
       </div>
       {erro && <p className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">{erro}</p>}
-      {carregando ? <p className="text-sm text-slate-400">Carregando revisions…</p> : !revisoes.length ? <p className="text-sm text-slate-400">Nenhuma revision publicada foi retornada pela API.</p> : (
+      {carregando ? <p className="text-sm text-slate-400">Carregando revisions…</p> : !revisoes.length && !erro ? <p className="text-sm text-slate-400">Nenhuma revision publicada foi retornada pela API.</p> : revisoes.length > 0 ? (
         <div className="space-y-2">
           {revisoesVisiveis.map((r) => {
             const expandida = aberta === r.numero;
@@ -100,7 +106,7 @@ export default function RevisionDashboard() {
           })}
           {revisoes.length > 1 && <button type="button" onClick={() => { setMostrarMais((v) => !v); setAberta(null); }} className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium text-sky-300 hover:border-sky-400 hover:bg-slate-800">{mostrarMais ? 'Mostrar menos' : 'Mostrar mais'}</button>}
         </div>
-      )}
+      ) : null}
     </section>
   );
 }
