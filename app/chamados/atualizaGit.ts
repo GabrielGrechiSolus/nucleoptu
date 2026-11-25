@@ -18,7 +18,13 @@ export const tokenDoLogin = async () => (await (auth.currentUser as unknown as {
 export async function buscaPerfilGit(login: string, dias: number): Promise<{ dados?: DadosGit; erro?: string }> {
   try {
     const r = await fetch(`/api/git/perfil?login=${encodeURIComponent(login)}&dias=${dias}`, { headers: { Authorization: `Bearer ${await tokenDoLogin()}` } });
-    const j = await r.json();
+    const corpo = await r.text();
+    let j: { erro?: string } & Partial<DadosGit>;
+    try {
+      j = JSON.parse(corpo) as { erro?: string } & Partial<DadosGit>;
+    } catch {
+      return { erro: `A consulta ao GitHub retornou uma resposta inválida (HTTP ${r.status}).` };
+    }
     if (!r.ok) return { erro: j.erro ?? 'Não foi possível consultar o GitHub.' };
     return { dados: j as DadosGit };
   } catch {

@@ -46,23 +46,41 @@ export interface ResultadoQuadro {
 }
 
 export async function sincronizaQuadroBm(por: string, atuais: CartaoQuadro[]): Promise<ResultadoQuadro> {
+  let etapa = 'consultar o quadro no Businessmap';
+  let total = 0;
+  let gravados = 0;
   try {
     const r = await fetch('/api/bm/quadro', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await tokenDoLogin()}`, ...cabecalhoBm() }, body: '{}' });
-    const j = await r.json();
+    const corpo = await r.text();
+    let j: { erro?: string; cartoes?: CartaoQuadro[] };
+    try {
+      j = JSON.parse(corpo) as { erro?: string; cartoes?: CartaoQuadro[] };
+    } catch {
+      return { total: 0, gravados: 0, aviso: `A consulta ao Businessmap retornou uma resposta inválida (HTTP ${r.status}).` };
+    }
     if (!r.ok) return { total: 0, gravados: 0, aviso: j.erro ?? 'Não foi possível consultar o Businessmap.' };
-    const novos = j.cartoes as CartaoQuadro[];
+    if (!Array.isArray(j.cartoes)) return { total: 0, gravados: 0, aviso: 'A consulta ao Businessmap não retornou a lista de cartões esperada.' };
+    const novos = j.cartoes;
+    total = novos.length;
     const antigos = new Map(atuais.map((c) => [c.cardId, c]));
     const alterados = novos.filter((c) => mudou(antigos.get(c.cardId), c));
     for (let i = 0; i < alterados.length; i += 400) {
+      etapa = 'gravar os cartões no Firestore';
       const lote = writeBatch(db);
-      for (const c of alterados.slice(i, i + 400)) lote.set(doc(db, COLECAO_QUADRO, String(c.cardId)), semIndefinidos(c));
+      const itensDoLote = alterados.slice(i, i + 400);
+      for (const c of itensDoLote) lote.set(doc(db, COLECAO_QUADRO, String(c.cardId)), semIndefinidos(c));
       await lote.commit();
+      gravados += itensDoLote.length;
     }
+    etapa = 'gravar os metadados do quadro no Firestore';
     const meta: MetaQuadro = { sincronizadoEm: new Date().toISOString(), por, total: novos.length, ids: novos.map((c) => c.cardId) };
     await setDoc(doc(db, DOC_META_QUADRO, 'atual'), meta);
     return { total: novos.length, gravados: alterados.length, aviso: '' };
   } catch (e) {
     const codigo = (e as { code?: string })?.code ?? '';
-    return { total: 0, gravados: 0, aviso: codigo === 'permission-denied' ? 'Libere a leitura e a escrita das coleções bm_quadro e bm_quadro_meta nas regras do Firestore.' : 'Não foi possível gravar o quadro do Businessmap.' };
+    if (codigo === 'permission-denied') {
+      return { total, gravados, aviso: `Sem permissão para ${etapa}. Confira as regras do Firestore para bm_quadro e bm_quadro_meta.` };
+    }
+    return { total, gravados, aviso: `Falha ao ${etapa}${codigo ? ` (${codigo})` : ''}.` };
   }
 }
