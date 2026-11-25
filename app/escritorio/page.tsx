@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { addDoc, arrayRemove, arrayUnion, collection, deleteDoc, doc, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
 import { useAuth } from '../AuthContext';
 import { db } from '../../firebase';
@@ -69,10 +69,20 @@ function EscritorioPage() {
   const [enviandoCafe, setEnviandoCafe] = useState(false);
   const [salvandoAssento, setSalvandoAssento] = useState(false);
   const [mensagemAssento, setMensagemAssento] = useState('');
+  const [avisoMesa, setAvisoMesa] = useState('');
+  const primeiraMudancaMesa = useRef(true);
+  const idsMudancasMesaVistos = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!user) return;
     const p = onSnapshot(collection(db,'user_presence'), s => setPresencas(s.docs.map(d => ({uid:d.id,...d.data()} as Pessoa))), e => setErro('Presença indisponível: ' + (e as any).code));
+    const mudancasMesa = onSnapshot(collection(db, 'office_seat_changes'), (snap) => {
+      if (primeiraMudancaMesa.current) { primeiraMudancaMesa.current = false; return; }
+      const novas = snap.docs.filter((d) => !idsMudancasMesaVistos.current.has(d.id)).map((d) => d.data()).filter((d) => d.uid !== user.uid);
+      idsMudancasMesaVistos.current = new Set(snap.docs.map((d) => d.id));
+      const recente = novas[0];
+      if (recente) { setAvisoMesa(`${recente.nome || 'Um colega'} mudou de lugar para ${recente.mesaNome}, assento ${recente.assentoNome}.`); window.setTimeout(() => setAvisoMesa(''), 9000); }
+    });
     let perfisCancelado = false;
     void carregarUsuariosNucleo().then(lista => { if (!perfisCancelado) setPessoas(lista); }).catch((e: any) => setErroUsuarios('Não foi possível carregar os usuários cadastrados (' + (e.code || 'Firestore') + ').'));
     const perfis = () => { perfisCancelado = true; };
@@ -95,7 +105,7 @@ function EscritorioPage() {
     void carregarFontesChat().then(setFontes);
     let saved: Status = 'online'; try { saved = (localStorage.getItem('nucleoptu.presenca.' + user.uid) as Status) || 'online'; } catch {}
     if (STATUS.some(s => s.value === saved)) setStatus(saved);
-    return () => { p(); perfis(); h1(); h2(); c1(); c2(); r(); planta(); };
+    return () => { p(); mudancasMesa(); perfis(); h1(); h2(); c1(); c2(); r(); planta(); };
   }, [user]);
 
   const pessoasComPresenca = useMemo(() => { const mapa = new Map(pessoas.map(p => [p.uid,p])); presencas.forEach(p => mapa.set(p.uid,{...mapa.get(p.uid),...p})); return [...mapa.values()]; }, [pessoas,presencas]);
@@ -231,6 +241,7 @@ function EscritorioPage() {
     setMensagemAssento('');
     try {
       await setDoc(doc(db, 'profiles', user.uid), { mesaId, assentoId }, { merge: true });
+      if (self?.mesaId !== mesaId || self?.assentoId !== assentoId) await addDoc(collection(db, 'office_seat_changes'), { uid: user.uid, nome: meuNome, mesaId, mesaNome: mesas.find(m => m.id === mesaId)?.nome || mesaId, assentoId, assentoNome: assentoId.split('-').at(-1) || assentoId, criadoEm: serverTimestamp() });
       setPessoas(atual => atual.map(p => p.uid === user.uid ? { ...p, mesaId, assentoId } : p));
       setMensagemAssento(`Seu lugar agora é ${mesas.find(m => m.id === mesaId)?.nome}, assento ${assentoId.split('-').at(-1)}.`);
     } catch (e: any) {
@@ -300,7 +311,7 @@ function EscritorioPage() {
       {p.uid !== user?.uid && <div className="office-quick-actions"><button className="rel-btn rel-btn-ghost rel-btn-sm" onClick={() => void acenar(p)}><Hand size={14}/> Acenar</button>{p.workingOn?.url && <a className="rel-btn rel-btn-outline rel-btn-sm" href={p.workingOn.url}>Ver tarefa</a>}<a className="rel-btn rel-btn-ghost rel-btn-sm" href="/chat">Abrir chat</a></div>}
     </article>;
   };
-  return <main className="min-h-full p-4 sm:p-6 lg:p-8"><div className="mx-auto max-w-7xl space-y-5">
+  return <main className="min-h-full p-4 sm:p-6 lg:p-8">{avisoMesa && <div role="status" className="rel-notice rel-notice-alert fixed right-4 top-20 z-50 shadow-lg">{avisoMesa}</div>}<div className="mx-auto max-w-7xl space-y-5">
     <header className="rel-box flex flex-wrap items-center justify-between gap-4 border border-[var(--rel-line)]">
       <div><h1 className="rel-title text-2xl"><Building2 size={25}/> Escritório virtual</h1><p className="rel-desc">Um espaço leve para ver no que o time está trabalhando e pedir ajuda.</p></div>
       <div className="flex flex-wrap gap-2"><button className="rel-btn rel-btn-outline" onClick={() => setModalCafe(true)}><Coffee size={17}/> Chamar para café</button><button className={'rel-btn ' + (status === 'pausa' ? 'rel-btn-ghost' : 'rel-btn-outline')} onClick={() => void atualizar(status === 'pausa' ? 'online' : 'pausa')}><Coffee size={17}/>{status === 'pausa' ? 'Voltar à mesa' : 'Ir para a copa'}</button><button className="rel-btn rel-btn-primary" disabled={reunindo} onClick={() => void convocar()}>{reunindo ? <LoaderCircle className="animate-spin" size={17}/> : <BellRing size={17}/>} Chamar todos para reunião</button></div>

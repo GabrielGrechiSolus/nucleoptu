@@ -7,8 +7,9 @@ import { Chamado, ROTULO_SITUACAO, ROTULO_TIPO } from './parse';
 import Vinculos from './Vinculos';
 import BmPainel, { BmColuna } from './BmPainel';
 import type { RegistroBm } from './bmRegistro';
+import RelatusPanel from './RelatusPanel';
 
-type Aba = 'resumo' | 'regra' | 'bm' | 'docs';
+type Aba = 'resumo' | 'regra' | 'bm' | 'docs' | 'relatus';
 
 const formataIso = (iso: string) => (iso ? iso.split('-').reverse().join('/') : '');
 
@@ -68,6 +69,7 @@ export default function DetalheChamado({
     { id: 'resumo', rotulo: 'Resumo', mostra: true },
     { id: 'regra', rotulo: 'Regra de negócio', mostra: !!c.docs?.['REGRA.md'] },
     { id: 'bm', rotulo: 'Businessmap', mostra: true },
+    { id: 'relatus', rotulo: 'Web Relatus', mostra: true },
     { id: 'docs', rotulo: `Documentos (${outrosDocs.length})`, mostra: outrosDocs.length > 0 },
   ];
 
@@ -165,6 +167,8 @@ export default function DetalheChamado({
               <BmPainel chamado={c} registro={registro} semGit={semGit} />
             </div>
           )}
+
+          {aba === 'relatus' && <div className="rel-box"><RelatusPanel chamadoInicial={c.numero} /></div>}
 
           {aba === 'docs' && (
             <div className="rel-grid" style={{ gridTemplateColumns: 'minmax(0, 14rem) minmax(0, 1fr)' }}>

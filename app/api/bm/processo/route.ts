@@ -16,7 +16,7 @@ async function autoriza(req: Request): Promise<Acesso> {
   const login = await verificaFirebase(req);
   if (!login.ok) return { ok: false, status: 401, erro: login.motivo ?? 'Entre no sistema.' };
   const perfil = await dadosDoPerfil(login.uid ?? '', login.token ?? '');
-  if (!perfil.ok) return { ok: false, status: 503, erro: 'Não foi possível confirmar o seu perfil agora.' };
+  if (!perfil.ok) return { ok: false, status: 503, erro: perfil.status ? `Não foi possível ler seu perfil no Firestore (HTTP ${perfil.status}).` : 'Não foi possível ler seu perfil no Firestore; verifique a credencial de serviço Firebase do servidor.' };
   if (perfil.tipo === PERFIL_SEM_GIT) return { ok: false, status: 403, erro: 'O perfil Sustentação não tem acesso a este recurso.' };
   if (!podeUsarProcessos(perfil.tipo, perfil.gitUser, perfisDoAmbiente(process.env.BM_PROCESSOS_PERFIS), usuariosGitDoAmbiente(process.env.BM_ESCRITA_GIT_USERS))) {
     return { ok: false, status: 403, erro: 'Esta tela é liberada para os perfis Desenvolvimento e Análise. Ajuste o tipo do seu perfil ou peça a liberação a um administrador.' };

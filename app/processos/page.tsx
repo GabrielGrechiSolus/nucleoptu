@@ -11,11 +11,12 @@ import { chamadosDaPessoa, soDigitos, type RegistroBm } from '../chamados/bmRegi
 import { lerRegistrosBm } from '../chamados/bmSync';
 import type { Chamado } from '../chamados/parse';
 import { ROTULO_SITUACAO } from '../chamados/parse';
-import { ListChecks } from 'lucide-react';
-import { concluido, ehReport, formataNumero, registroResumoDoCartao, reportsAtivos, reportsPorNumero, type CartaoQuadro } from '../chamados/bmQuadro';
+import { ArrowDown, GripVertical, ListChecks } from 'lucide-react';
+import { concluido, ehReport, formataNumero, registroResumoDoCartao, reportsAtivos, reportsPorNumero, ROTULO_SECAO, type CartaoQuadro } from '../chamados/bmQuadro';
 import { buscaEuBm, lerQuadroBm, type MetaQuadro } from '../chamados/bmQuadroSync';
 import type { EuBm } from '../chamados/bmChave';
 import ProcessoTela from './ProcessoTela';
+import { aplicarProcesso, lerProcesso } from './clienteProcesso';
 import Link from 'next/link';
 import { useDetalheNaUrl } from '../components/TelaDetalhe';
 import { EVENTO_DADOS_ATUALIZADOS } from '../components/AtualizaAoEntrar';
@@ -64,6 +65,9 @@ function ProcessosPage() {
   const [quadro, setQuadro] = useState<CartaoQuadro[]>([]);
   const [metaQuadro, setMetaQuadro] = useState<MetaQuadro | null>(null);
   const [eu, setEu] = useState<EuBm | null>(null);
+  const [visualizacao, setVisualizacao] = useState<'lista' | 'kanban'>('kanban');
+  const [arrastando, setArrastando] = useState<number | null>(null);
+  const [movendo, setMovendo] = useState(false);
   const urlChamado = useDetalheNaUrl('chamado');
   const urlCartao = useDetalheNaUrl('cartao');
   const { sort, toggleSort } = useSort({ key: 'numero', dir: 'desc' });
@@ -157,6 +161,32 @@ function ProcessosPage() {
   const aberto = useMemo(() => (urlChamado.valor ? itens.find((c) => soDigitos(c.numero) === urlChamado.valor) ?? null : null), [itens, urlChamado.valor]);
   const abertoSemPr = useMemo(() => (urlCartao.valor ? quadro.find((c) => String(c.cardId) === urlCartao.valor) ?? null : null), [quadro, urlCartao.valor]);
   const registroAberto = aberto ? registros[soDigitos(aberto.numero)] : undefined;
+
+  const cardsKanban = useMemo(() => quadro.filter((c) => {
+    if (ehReport(c) || !eu?.id || c.ownerId !== eu.id) return false;
+    return passaFiltros({ texto: [c.numero, c.titulo, c.tipo, c.coluna].join(' '), coluna: c.coluna, concluido: concluido(c), bloqueado: c.bloqueado, report: temReport(c.numero), situacao: '', cliente: '', temPr: comPr.has(c.numero) }, filtros);
+  }), [quadro, eu, filtros, temReport, comPr]);
+  const moverProximaEtapa = async (card: CartaoQuadro, secaoDestino: number) => {
+    if (movendo || secaoDestino !== card.secao + 1 || card.bloqueado) return;
+    setMovendo(true); setErro('');
+    try {
+      const estado = await lerProcesso(card.cardId, card.numero || String(card.cardId));
+      const destino = estado.colunas.filter((coluna) => (coluna.secao ?? 0) === secaoDestino).sort((a, b) => a.posicao - b.posicao)[0];
+      if (!destino) throw new Error('Não há uma coluna seguinte configurada para este cartão.');
+      const gravacao = await aplicarProcesso(card.cardId, card.numero || String(card.cardId), [{ tipo: 'mover', colunaId: destino.id }]);
+      const falha = gravacao.resultados.find((r) => !r.ok);
+      if (falha) throw new Error(falha.erro || falha.descricao);
+      await carregar();
+    } catch (e) {
+      setErro(`Não foi possível mover ${card.numero || card.cardId}: ${(e as Error).message}`);
+    } finally { setMovendo(false); setArrastando(null); }
+  };
+  const soltarNaSecao = (e: React.DragEvent<HTMLDivElement>, secao: number) => {
+    e.preventDefault();
+    const cardId = Number(e.dataTransfer.getData('text/plain'));
+    const card = cardsKanban.find((c) => c.cardId === cardId);
+    if (card) void moverProximaEtapa(card, secao);
+  };
 
   if (permissao && !permissao.permitido) {
     return (
@@ -259,11 +289,31 @@ function ProcessosPage() {
           </div>
         </div>
         <p className="rel-desc mt-3">{linhas.length} chamado(s) com PR e {semPr.length} sem PR nos filtros atuais.</p>
+        <div className="mt-3 inline-flex rounded-lg border border-[var(--rel-line)] p-1"><button type="button" onClick={() => setVisualizacao('kanban')} className={`rel-btn rel-btn-sm ${visualizacao === 'kanban' ? 'rel-btn-primary' : 'rel-btn-ghost'}`}>Kanban</button><button type="button" onClick={() => setVisualizacao('lista')} className={`rel-btn rel-btn-sm ${visualizacao === 'lista' ? 'rel-btn-primary' : 'rel-btn-ghost'}`}>Lista</button></div>
       </section>
 
       {erro && <p className="rel-notice rel-notice-error">{erro}</p>}
 
-      {filtros.mostrar !== 'sem' && (
+      {visualizacao === 'kanban' && <section className="grid items-start gap-3 overflow-x-auto pb-2 sm:grid-cols-2 xl:grid-cols-5">
+        {[1, 2, 3, 4, 5].map((secao) => (
+          <div key={secao} onDragOver={(e) => e.preventDefault()} onDrop={(e) => soltarNaSecao(e, secao)} className={`min-h-64 rounded-xl border p-3 transition-colors ${(arrastando ? (cardsKanban.find((c) => c.cardId === arrastando)?.secao ?? -1) + 1 === secao : false) ? 'border-[var(--rel-primary)] bg-[var(--rel-primary-soft)]' : 'border-[var(--rel-line)] bg-[var(--rel-bg)]'}`}>
+            <header className="mb-3 flex items-center justify-between"><h2 className="font-semibold">{ROTULO_SECAO[secao]}</h2><span className="rel-tag rel-tag-info">{cardsKanban.filter((c) => c.secao === secao).length}</span></header>
+            <div className="space-y-2">
+              {cardsKanban.filter((c) => c.secao === secao).map((card) => (
+                <article key={card.cardId} draggable={!movendo && !card.bloqueado && secao < 5} onDragStart={(e) => { setArrastando(card.cardId); e.dataTransfer.setData('text/plain', String(card.cardId)); }} onDragEnd={() => setArrastando(null)} onClick={() => urlCartao.abrir(String(card.cardId))} className={`cursor-pointer rounded-lg border border-[var(--rel-line)] bg-[var(--rel-surface)] p-3 shadow-sm ${card.bloqueado ? 'opacity-60' : 'hover:border-[var(--rel-primary)]'} ${arrastando === card.cardId ? 'opacity-40' : ''}`}>
+                  <div className="mb-2 flex items-start justify-between gap-2"><span className="rel-mono text-xs">{card.numero ? formataNumero(card.numero) : card.cardId}</span>{!card.bloqueado && secao < 5 && <GripVertical size={16} className="text-[var(--rel-muted)]" aria-label="Arraste para a próxima etapa"/>}</div>
+                  <strong className="block text-sm">{card.titulo}</strong><p className="rel-desc mt-1">{card.coluna}</p>{card.bloqueado && <span className="rel-tag rel-tag-error mt-2">Bloqueado</span>}
+                  {!card.bloqueado && secao < 5 && <div className="mt-2 flex flex-wrap items-center justify-between gap-2"><p className="flex items-center gap-1 text-[11px] text-[var(--rel-muted)]"><ArrowDown size={12}/> Arraste para a próxima etapa</p><button type="button" disabled={movendo} onClick={(e) => { e.stopPropagation(); void moverProximaEtapa(card, secao + 1); }} className="rel-btn rel-btn-ghost rel-btn-sm">Avançar</button></div>}
+                </article>
+              ))}
+            </div>
+            {!cardsKanban.some((c) => c.secao === secao) && <p className="rel-empty text-xs">Solte aqui para avançar o cartão.</p>}
+          </div>
+        ))}
+        {movendo && <p className="rel-desc col-span-full">Validando critérios de saída e atualizando o Businessmap…</p>}
+      </section>}
+
+      {visualizacao === 'lista' && filtros.mostrar !== 'sem' && (
       <section className="rel-table-wrap">
         <table className="w-full text-left text-sm">
           <thead className="text-xs">
@@ -294,7 +344,7 @@ function ProcessosPage() {
       </section>
       )}
 
-      {filtros.mostrar !== 'com' && (
+      {visualizacao === 'lista' && filtros.mostrar !== 'com' && (
       <>
       <section className="rel-box">
         <div className="flex flex-wrap items-center justify-between gap-3">

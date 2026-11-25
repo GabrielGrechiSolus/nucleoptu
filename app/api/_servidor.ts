@@ -1,6 +1,8 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { exigeVerificacaoEmail } from '../verificacao-email';
+import { adminApp } from './_admin';
+import { getFirestore } from 'firebase-admin/firestore';
 
 // Utilitários das rotas de API (somente servidor).
 
@@ -34,19 +36,35 @@ export async function verificaFirebase(req: Request): Promise<{ ok: boolean; ema
 // Tipo do perfil (profiles/{uid}.noticeType) lido pela API REST do Firestore com o próprio login da pessoa,
 // então vale a mesma regra de acesso do Firestore. Sem documento de perfil, o tipo é vazio.
 export async function tipoDePerfil(uid: string, idToken: string): Promise<{ ok: boolean; tipo: string; status?: number }> {
+  const perfil = await lerPerfil(uid, idToken);
+  return { ok: perfil.ok, tipo: perfil.tipo, ...(perfil.status ? { status: perfil.status } : {}) };
+}
+
+async function lerPerfil(uid: string, idToken: string): Promise<{ ok: boolean; tipo: string; gitUser: string; nome: string; status?: number }> {
+  if (!uid) return { ok: false, tipo: '', gitUser: '', nome: '', status: 0 };
+  try {
+    const app = adminApp();
+    if (app) {
+      const snap = await getFirestore(app).collection('profiles').doc(uid).get();
+      const d = snap.exists ? snap.data() ?? {} : {};
+      return { ok: true, tipo: String(d.noticeType ?? ''), gitUser: String(d.gitUser ?? ''), nome: String(d.name ?? d.displayName ?? '') };
+    }
+  } catch (e) {
+    console.error('[perfil] Falha na leitura de profiles/{uid} pelo Firebase Admin:', e);
+  }
   const projeto = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-  if (!projeto || !uid) return { ok: false, tipo: '', status: 0 };
+  if (!projeto) return { ok: false, tipo: '', gitUser: '', nome: '', status: 0 };
   try {
     const r = await fetch(`https://firestore.googleapis.com/v1/projects/${projeto}/databases/(default)/documents/profiles/${encodeURIComponent(uid)}`, {
       headers: { Authorization: `Bearer ${idToken}` },
       cache: 'no-store',
     });
-    if (r.status === 404) return { ok: true, tipo: '' };
-    if (!r.ok) return { ok: false, tipo: '', status: r.status };
-    const j = (await r.json()) as { fields?: { noticeType?: { stringValue?: string } } };
-    return { ok: true, tipo: j.fields?.noticeType?.stringValue ?? '' };
+    if (r.status === 404) return { ok: true, tipo: '', gitUser: '', nome: '' };
+    if (!r.ok) return { ok: false, tipo: '', gitUser: '', nome: '', status: r.status };
+    const j = (await r.json()) as { fields?: { noticeType?: { stringValue?: string }; gitUser?: { stringValue?: string }; name?: { stringValue?: string }; displayName?: { stringValue?: string } } };
+    return { ok: true, tipo: j.fields?.noticeType?.stringValue ?? '', gitUser: j.fields?.gitUser?.stringValue ?? '', nome: j.fields?.name?.stringValue ?? j.fields?.displayName?.stringValue ?? '' };
   } catch {
-    return { ok: false, tipo: '', status: 0 };
+    return { ok: false, tipo: '', gitUser: '', nome: '', status: 0 };
   }
 }
 
@@ -84,21 +102,8 @@ export async function exigeGit(req: Request): Promise<AcessoGit> {
   return { ok: true, token, email: login.email ?? '' };
 }
 
-export async function dadosDoPerfil(uid: string, idToken: string): Promise<{ ok: boolean; tipo: string; gitUser: string }> {
-  const projeto = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-  if (!projeto || !uid) return { ok: false, tipo: '', gitUser: '' };
-  try {
-    const r = await fetch(`https://firestore.googleapis.com/v1/projects/${projeto}/databases/(default)/documents/profiles/${encodeURIComponent(uid)}`, {
-      headers: { Authorization: `Bearer ${idToken}` },
-      cache: 'no-store',
-    });
-    if (r.status === 404) return { ok: true, tipo: '', gitUser: '' };
-    if (!r.ok) return { ok: false, tipo: '', gitUser: '' };
-    const j = (await r.json()) as { fields?: { noticeType?: { stringValue?: string }; gitUser?: { stringValue?: string } } };
-    return { ok: true, tipo: j.fields?.noticeType?.stringValue ?? '', gitUser: j.fields?.gitUser?.stringValue ?? '' };
-  } catch {
-    return { ok: false, tipo: '', gitUser: '' };
-  }
+export async function dadosDoPerfil(uid: string, idToken: string): Promise<{ ok: boolean; tipo: string; gitUser: string; nome: string; status?: number }> {
+  return lerPerfil(uid, idToken);
 }
 
 export class ErroGithub extends Error {

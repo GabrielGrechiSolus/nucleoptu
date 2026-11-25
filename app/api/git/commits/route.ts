@@ -21,7 +21,7 @@ export async function GET(req: Request) {
   if (!permite(`commits:${acesso.uid}`, 30, 60_000)) return NextResponse.json({ erro: 'Muitas consultas seguidas. Aguarde um minuto.' }, { status: 429 });
 
   const perfil = await dadosDoPerfil(acesso.uid ?? '', acesso.token ?? '');
-  if (!perfil.ok) return NextResponse.json({ erro: 'Não foi possível confirmar o Git vinculado ao seu perfil.' }, { status: 503 });
+  if (!perfil.ok) return NextResponse.json({ erro: perfil.status ? `Não foi possível ler seu perfil no Firestore (HTTP ${perfil.status}).` : 'Não foi possível ler seu perfil no Firestore; verifique a credencial de serviço Firebase do servidor.' }, { status: 503 });
   if (perfil.tipo === 'sustentacao') return NextResponse.json({ erro: 'O perfil Sustentação não tem acesso ao Git.' }, { status: 403 });
 
   const login = (new URL(req.url).searchParams.get('login') ?? '').trim().replace(/^@/, '');

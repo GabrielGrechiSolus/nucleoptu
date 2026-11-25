@@ -8,11 +8,12 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
-import { ChevronDown, ChevronLeft, ChevronRight, LogOut, Menu, Search, X } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, LogOut, Menu, Search, Star, X } from 'lucide-react';
 import { usePessoa } from './usePessoa';
 import { podeUsarProcessos } from '../processos/acesso';
 import { useAdmin } from '../admin/useAdmin';
 import { pendenciasPara, type Vinculo } from '../chamados/aplicacao';
+import { useMenuFavoritos } from './menuFavoritos';
 import { contemRota, filtraMenu, itensDoMenu, montaMenu, rotaAtiva, somaContadores, type GrupoMenu, type ItemMenu, type NoMenu } from './navegacao';
 
 // Mobile: atalhos fixos na barra inferior
@@ -27,14 +28,17 @@ const NavigationItem: React.FC<{
   isCollapsed: boolean;
   badge?: number;
   onClick?: () => void;
-}> = ({ item, isActive, isCollapsed, badge, onClick }) => {
+  favorite?: boolean;
+  onToggleFavorite?: () => void;
+}> = ({ item, isActive, isCollapsed, badge, onClick, favorite, onToggleFavorite }) => {
   const Icon = item.icon;
 
   return (
-    <Link
-      href={item.href}
-      onClick={onClick}
-      className={`
+    <div className="group/navitem flex items-center gap-1">
+      <Link
+        href={item.href}
+        onClick={onClick}
+        className={`
         group relative flex items-center gap-3 px-3 py-2.5 rounded-md
         transition-all duration-300 ease-out cursor-pointer
         ${isCollapsed ? 'justify-center' : 'justify-start'}
@@ -89,7 +93,9 @@ const NavigationItem: React.FC<{
           <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-2 h-2 bg-zinc-800 rotate-45 border-l border-b border-zinc-700/50" />
         </div>
       )}
-    </Link>
+      </Link>
+      {!isCollapsed && onToggleFavorite && <button type="button" onClick={onToggleFavorite} title={favorite ? 'Remover dos favoritos' : 'Favoritar menu'} aria-label={favorite ? `Remover ${item.label} dos favoritos` : `Favoritar ${item.label}`} className={`rounded p-1.5 transition-colors ${favorite ? 'text-amber-500' : 'text-[var(--rel-muted)] opacity-0 group-hover/navitem:opacity-100 hover:text-amber-500'}`}><Star size={15} fill={favorite ? 'currentColor' : 'none'} /></button>}
+    </div>
   );
 };
 
@@ -101,6 +107,8 @@ interface RamoProps {
   abertos: Record<string, boolean>;
   alterna: (id: string, aberto: boolean) => void;
   contadorDe: (href: string) => number;
+  favoritos: string[];
+  alternarFavorito: (item: ItemMenu) => void;
 }
 
 const GrupoNavegacao: React.FC<Omit<RamoProps, 'nos'> & { grupo: GrupoMenu }> = ({ grupo, ...ramo }) => {
@@ -139,7 +147,7 @@ const RamoMenu: React.FC<RamoProps> = ({ nos, ...ramo }) => (
   <>
     {nos.map((no) =>
       no.tipo === 'item' ? (
-        <NavigationItem key={no.href} item={no} isActive={rotaAtiva(ramo.pathname, no.href)} isCollapsed={false} badge={ramo.contadorDe(no.href) || undefined} />
+          <NavigationItem key={no.href} item={no} isActive={rotaAtiva(ramo.pathname, no.href)} isCollapsed={false} badge={ramo.contadorDe(no.href) || undefined} favorite={ramo.favoritos.includes(no.href)} onToggleFavorite={() => ramo.alternarFavorito(no)} />
       ) : (
         <GrupoNavegacao key={no.id} grupo={no} {...ramo} />
       ),
@@ -171,6 +179,7 @@ const Sidebar: React.FC = () => {
   const [unreadNotices, setUnreadNotices] = useState(0);
   const [pendFila, setPendFila] = useState(0); // pedidos da fila de aplicação que dependem de você
   const pessoa = usePessoa();
+  const { favoritos, alternar: alternarFavorito } = useMenuFavoritos(pessoa.uid);
   const eu = useAdmin();
   const menu = montaMenu({ admin: eu.admin, processos: podeUsarProcessos(pessoa.perfil, pessoa.gitUser) });
   const [abertos, setAbertos] = useState<Record<string, boolean>>({});
@@ -282,12 +291,16 @@ const Sidebar: React.FC = () => {
       {/* Navegação por assunto */}
       <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent px-3 py-4">
         <nav className="flex flex-col gap-1" aria-label="Menu principal">
+          {!buscando && favoritos.length > 0 && !isCollapsed && <section className="mb-3 border-b border-[#ebebf0] pb-3"><p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-amber-600">Favoritos</p><div className="flex flex-col gap-0.5">{favoritos.map((favorito) => {
+            const item = itensDoMenu(menu).find((opcao) => opcao.href === favorito.href);
+            return item ? <NavigationItem key={`fav-${item.href}`} item={item} isActive={rotaAtiva(pathname, item.href)} isCollapsed={false} badge={contadorDe(item.href) || undefined} favorite onToggleFavorite={() => alternarFavorito(item)} /> : null;
+          })}</div></section>}
           {isCollapsed ? (
-            itensDoMenu(menuVisivel).map((item) => (
+            [...itensDoMenu(menuVisivel).filter((item) => favoritos.some((f) => f.href === item.href)), ...itensDoMenu(menuVisivel).filter((item) => !favoritos.some((f) => f.href === item.href))].map((item) => (
               <NavigationItem key={item.href} item={item} isActive={rotaAtiva(pathname, item.href)} isCollapsed badge={contadorDe(item.href) || undefined} />
             ))
           ) : (
-            <RamoMenu nos={menuVisivel} pathname={pathname} isCollapsed={false} forcaAberto={buscando} abertos={abertos} alterna={alterna} contadorDe={contadorDe} />
+            <RamoMenu nos={menuVisivel} pathname={pathname} isCollapsed={false} forcaAberto={buscando} abertos={abertos} alterna={alterna} contadorDe={contadorDe} favoritos={favoritos.map((item) => item.href)} alternarFavorito={alternarFavorito} />
           )}
           {buscando && !menuVisivel.length && <p className="px-3 py-2 text-xs text-zinc-500">Nada encontrado.</p>}
         </nav>

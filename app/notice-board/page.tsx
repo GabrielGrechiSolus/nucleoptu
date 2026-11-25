@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import withAuth from "../components/withAuth";
-import PersonalNotifications from "./PersonalNotifications";
+import { useNotificacoesPessoais } from "./PersonalNotifications";
 import { SortTh, sortRows, useSort } from "../components/SortableTable";
 import {
   collection,
@@ -85,6 +85,8 @@ const NoticesPage = () => {
   const [filterDate, setFilterDate] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "unread" | "read">("all");
   const [importanceFilter, setImportanceFilter] = useState<"all" | "low" | "medium" | "high">("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "aviso" | "BM" | "PR">("all");
+  const notificacoes = useNotificacoesPessoais();
   const [showInactive, setShowInactive] = useState(false);
 
   const [isAdding, setIsAdding] = useState(false);
@@ -420,6 +422,7 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
   };
 
   const filtered = notices.filter((n) => {
+    if (typeFilter === "BM" || typeFilter === "PR") return false;
     const s = search.toLowerCase();
     const matchesSearch =
       n.title.toLowerCase().includes(s) ||
@@ -456,6 +459,16 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
     );
   });
 
+  const notificacoesFiltradas = notificacoes.itens.filter((item) => {
+    if (typeFilter === "aviso" || (typeFilter !== "all" && item.tipo !== typeFilter)) return false;
+    const termo = search.trim().toLocaleLowerCase("pt-BR");
+    const correspondeBusca = !termo || `${item.titulo} ${item.detalhe}`.toLocaleLowerCase("pt-BR").includes(termo);
+    const correspondeData = !filterDate || (Number.isFinite(Date.parse(item.em)) && new Date(item.em).toISOString().slice(0, 10) === filterDate);
+    const correspondeStatus = statusFilter === "all" || (statusFilter === "read" ? item.lida : !item.lida);
+    return correspondeBusca && correspondeData && correspondeStatus;
+  });
+  const totalFiltrado = filtered.length + notificacoesFiltradas.length;
+
   const showMore = () => {
     const thresholds = [6, 12, 18, 24, 36, 48];
     const current = visibleCount;
@@ -481,7 +494,7 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
           </h1>
         </div>
         <p className="text-[var(--rel-muted)] text-sm">
-          {filtered.length} aviso(s) • {notices.filter(n => !n.readBy?.includes(user?.email || "") && n.active).length} não lidos
+          {totalFiltrado} item(ns) · {notices.filter(n => !n.readBy?.includes(user?.email || "") && n.active).length + notificacoes.itens.filter((n) => !n.lida).length} não lidos
         </p>
         
         {/* LED Decorativo */}
@@ -492,8 +505,6 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
         </div>
       </div>
 
-      <PersonalNotifications />
-
       {/* Filtros com LED toggle */}
       <div className="space-y-3">
         <div className="flex flex-wrap gap-2">
@@ -502,7 +513,7 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
               <Search className="w-4 h-4 text-[var(--rel-muted)]" />
               <input
                 type="text"
-                placeholder="Buscar aviso..."
+                placeholder="Buscar aviso, BM ou PR..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="bg-transparent outline-none w-full text-sm text-[var(--rel-text)] placeholder-[var(--rel-muted)]"
@@ -513,7 +524,7 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
-              showFilters || filterDate || statusFilter !== "all" || importanceFilter !== "all" || showInactive
+              showFilters || filterDate || statusFilter !== "all" || importanceFilter !== "all" || typeFilter !== "all" || showInactive
                 ? "bg-[var(--rel-primary-soft)] text-[var(--rel-primary)] border border-[var(--rel-primary)]"
                 : "bg-[var(--rel-surface)] border border-[var(--rel-line)] text-[var(--rel-muted)] hover:text-[var(--rel-text)]"
             }`}
@@ -532,7 +543,10 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
               className="overflow-hidden"
             >
               <div className="bg-[var(--rel-surface)] border border-[var(--rel-line)] rounded-xl p-4 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                  <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)} className="px-3 py-2 bg-[var(--rel-bg)] border border-[var(--rel-line)] rounded-xl text-sm text-[var(--rel-text)] focus:outline-none focus:border-[var(--rel-primary)]">
+                    <option value="all">Avisos, BM e PR</option><option value="aviso">Avisos cadastrados</option><option value="BM">Businessmap (BM)</option><option value="PR">Pull requests (PR)</option>
+                  </select>
                   <div className="flex items-center gap-2 bg-[var(--rel-bg)] border border-[var(--rel-line)] rounded-xl px-3 py-2">
                     <Calendar className="w-4 h-4 text-[var(--rel-muted)]" />
                     <input
@@ -624,6 +638,16 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
             </tr>
           </thead>
           <tbody>
+            {notificacoesFiltradas.slice(0, visibleCount).map((item) => <tr key={`notificacao-${item.tipo}-${item.id}`} className={`border-t border-[var(--rel-line)] hover:bg-[var(--rel-bg)]/40 ${item.lida ? '' : 'bg-[var(--rel-bg)]/60'}`}>
+              <td className="px-3 py-2">{!item.lida && <span title="Não lido" className="block h-2 w-2 rounded-full" style={{ backgroundColor: item.cor }}/>}</td>
+              <td className="max-w-[420px] px-3 py-2"><div className={`truncate text-[var(--rel-text)] ${item.lida ? 'font-medium' : 'font-semibold'}`}>{item.titulo}</div><div className="truncate text-xs text-[var(--rel-muted)]">{item.detalhe}</div></td>
+              <td className="hidden px-3 py-2 md:table-cell"><span className="rounded px-2 py-1 text-xs font-semibold" style={{ color: item.cor, backgroundColor: `${item.cor}18` }}>{item.tipo}</span></td>
+              <td className="hidden px-3 py-2 lg:table-cell text-xs text-[var(--rel-muted)]">Pessoal</td>
+              <td className="hidden px-3 py-2 sm:table-cell"><span className="rounded border border-[var(--rel-line)] px-2 py-0.5 text-xs text-[var(--rel-muted)]">Notificação</span></td>
+              <td className="hidden px-3 py-2 text-[var(--rel-muted)] lg:table-cell">Nucléo PTU</td>
+              <td className="hidden whitespace-nowrap px-3 py-2 text-[var(--rel-muted)] md:table-cell">{Number.isFinite(Date.parse(item.em)) ? getRelativeTime(Date.parse(item.em)) : item.em}</td>
+              <td className="px-3 py-2"><div className="flex items-center justify-end gap-1">{item.url && <a href={item.url} target="_blank" rel="noreferrer" onClick={() => notificacoes.marcarLida(item)} className="rounded bg-[var(--rel-bg)] p-2 text-[var(--rel-primary)]" title="Abrir"><Globe className="h-4 w-4"/></a>}{!item.lida && <button onClick={() => notificacoes.marcarLida(item)} className="rounded bg-green-500/20 p-2 text-green-600" title="Marcar como lida"><CheckCircle className="h-4 w-4"/></button>}</div></td>
+            </tr>)}
             {sortRows(filtered, sort, {
               lido: (i) => !(i.readBy?.includes(user?.email || "")) && !!i.active,
               aviso: (i) => i.title,
@@ -632,7 +656,7 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
               importancia: (i) => ({ low: 1, medium: 2, high: 3 }[i.importance || "medium"]),
               criador: (i) => i.creatorEmail,
               data: (i) => i.createdAt,
-            }).slice(0, visibleCount).map((item) => {
+            }).slice(0, Math.max(0, visibleCount - Math.min(notificacoesFiltradas.length, visibleCount))).map((item) => {
               const isRead = item.readBy?.includes(user?.email || "");
               const importance = importanceConfig[item.importance || "medium"];
               const tipo = typeConfig[item.type || "texto"];
@@ -770,26 +794,26 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
       </div>
 
       {/* Botão Mostrar Mais */}
-      {visibleCount < filtered.length && (
+      {visibleCount < totalFiltrado && (
         <div className="flex justify-center">
           <button
             onClick={showMore}
             className="mt-2 px-6 py-2 rounded-xl bg-[var(--rel-primary)] hover:bg-[var(--rel-primary-dark)] text-[var(--user-accent-contrast,#ffffff)] text-sm font-medium transition-all shadow-lg hover:shadow-xl"
           >
-            Mostrar mais ({Math.min(filtered.length, visibleCount + 6)} de {filtered.length})
+            Mostrar mais ({Math.min(totalFiltrado, visibleCount + 6)} de {totalFiltrado})
           </button>
         </div>
       )}
 
       {/* Estado Vazio */}
-      {filtered.length === 0 && (
+      {totalFiltrado === 0 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="text-center py-12 bg-[var(--rel-surface)] border border-[var(--rel-line)] rounded-xl"
         >
           <Bell className="w-12 h-12 mx-auto text-[var(--rel-muted)] mb-3" />
-          <p className="text-[var(--rel-muted)]">Nenhum aviso encontrado</p>
+          <p className="text-[var(--rel-muted)]">Nenhum aviso ou notificação encontrado</p>
           <p className="text-[var(--rel-muted)] text-sm mt-1">Tente ajustar os filtros ou criar um novo aviso</p>
         </motion.div>
       )}

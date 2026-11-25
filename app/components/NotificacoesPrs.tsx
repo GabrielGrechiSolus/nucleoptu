@@ -23,9 +23,11 @@ const chaveCommits = (uid: string) => `nucleoptu.commits.${uid}`;
 const chaveSnapshotBm = (uid: string) => `nucleoptu.bm.snapshot.${uid}`;
 const chaveAvisosBm = (uid: string) => `nucleoptu.bm.notificacoes.${uid}`;
 const chaveReunioes = (uid: string) => `nucleoptu.office.meetings.${uid}`;
+const chaveMesas = (uid: string) => `nucleoptu.office.mesas.${uid}`;
 
 interface NotificacaoCommit { id: string; repo: string; sha: string; mensagem: string; url: string; em: string; lida: boolean }
 interface NotificacaoReuniao { id: string; anfitriaoUid: string; anfitriaoNome: string; criadaEm: string; lida: boolean }
+interface NotificacaoMesa { id: string; uid: string; nome: string; mesaNome: string; assentoNome: string; em: string; lida: boolean }
 
 function leCommits(uid: string): NotificacaoCommit[] | null {
   try { const bruto = localStorage.getItem(chaveCommits(uid)); return bruto ? JSON.parse(bruto) as NotificacaoCommit[] : null; } catch { return null; }
@@ -82,6 +84,7 @@ export default function NotificacoesPrs() {
   const [lidos, setLidos] = useState<Set<string>>(new Set());
   const [commits, setCommits] = useState<NotificacaoCommit[]>([]);
   const [reunioes, setReunioes] = useState<NotificacaoReuniao[]>([]);
+  const [mudancasMesa, setMudancasMesa] = useState<NotificacaoMesa[]>([]);
   const [avisosBm, setAvisosBm] = useState<NotificacaoBm[]>([]);
   const [bmId, setBmId] = useState(0);
   const [aberto, setAberto] = useState(false);
@@ -90,6 +93,7 @@ export default function NotificacoesPrs() {
   const raiz = useRef<HTMLDivElement>(null);
   const primeira = useRef(true);
   const avisados = useRef<Set<string>>(new Set());
+  const idsMudancaMesa = useRef<Set<string>>(new Set());
   const cacheCartao = useRef<Map<string, RegistroDoCartao>>(new Map());
   const totalNaoLidasRef = useRef(0);
 
@@ -125,6 +129,25 @@ export default function NotificacoesPrs() {
       try { localStorage.setItem(chaveReunioes(pessoa.uid), JSON.stringify(atuais.slice(0, 100))); } catch { /* armazenamento local indisponível */ }
       primeiraLeitura = false;
     });
+    return () => parar();
+  }, [pessoa.carregado, pessoa.uid]);
+
+  useEffect(() => {
+    if (!pessoa.carregado || !pessoa.uid) return;
+    let primeiraLeitura = true;
+    const lidasAgora = () => { try { return new Set(JSON.parse(localStorage.getItem(chaveMesas(pessoa.uid)) ?? '[]') as string[]); } catch { return new Set<string>(); } };
+    const parar = onSnapshot(collection(db, 'office_seat_changes'), (snap) => {
+      const lidas = lidasAgora();
+      const atuais = snap.docs.map((d) => {
+        const dado = d.data();
+        const em = typeof dado.criadoEm?.toDate === 'function' ? dado.criadoEm.toDate().toISOString() : '';
+        return { id: d.id, uid: String(dado.uid ?? ''), nome: String(dado.nome ?? 'Um colega'), mesaNome: String(dado.mesaNome ?? 'uma mesa'), assentoNome: String(dado.assentoNome ?? ''), em, lida: lidas.has(d.id) || Date.now() - Date.parse(em || '2000-01-01') > 24 * 60 * 60_000 };
+      }).filter((item) => item.uid !== pessoa.uid).sort((a, b) => Date.parse(b.em) - Date.parse(a.em)).slice(0, 30);
+      if (!primeiraLeitura) for (const item of atuais.filter((n) => !n.lida && !idsMudancaMesa.current.has(n.id))) toast.info(<div className="text-sm"><strong>Mudança de mesa</strong><div>{item.nome} mudou para {item.mesaNome}, assento {item.assentoNome}.</div></div>, { autoClose: 9000 });
+      idsMudancaMesa.current = new Set(atuais.map((item) => item.id));
+      setMudancasMesa(atuais);
+      primeiraLeitura = false;
+    }, () => setMudancasMesa([]));
     return () => parar();
   }, [pessoa.carregado, pessoa.uid]);
 
@@ -304,7 +327,8 @@ export default function NotificacoesPrs() {
   const novasBm = avisosBm.filter((n) => !n.lida).length;
   const novasCommits = commits.filter((c) => !c.lida).length;
   const novasReunioes = reunioes.filter((r) => !r.lida).length;
-  const totalNaoLidas = novas + novasBm + novasCommits + novasReunioes;
+  const novasMudancasMesa = mudancasMesa.filter((m) => !m.lida).length;
+  const totalNaoLidas = novas + novasBm + novasCommits + novasReunioes + novasMudancasMesa;
 
   useEffect(() => {
     totalNaoLidasRef.current = totalNaoLidas;
@@ -356,6 +380,13 @@ export default function NotificacoesPrs() {
     try { localStorage.setItem(chaveReunioes(pessoa.uid), JSON.stringify(proximas)); } catch { /* armazenamento indisponível */ }
   };
 
+  const marcaMudancasMesa = (ids: string[]) => {
+    const marcados = new Set(ids);
+    const proximas = mudancasMesa.map((m) => marcados.has(m.id) ? { ...m, lida: true } : m);
+    setMudancasMesa(proximas);
+    try { localStorage.setItem(chaveMesas(pessoa.uid), JSON.stringify(proximas.filter((m) => m.lida).map((m) => m.id))); } catch { /* armazenamento local indisponível */ }
+  };
+
   if (!ativo) return null;
 
   return (
@@ -378,12 +409,13 @@ export default function NotificacoesPrs() {
         <div role="dialog" aria-label="Notificações" className="fixed left-2 right-2 top-[64px] z-50 overflow-hidden rounded-lg border border-[#ebebf0] bg-white text-[#333333] shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-11 sm:w-[380px]">
           <div className="flex items-center justify-between gap-2 border-b border-[#ebebf0] px-4 py-3">
             <span className="flex items-center gap-2 text-sm font-semibold"><Bell size={16} className="text-[#00518C]" /> Notificações</span>
-            <button type="button" onClick={() => { marca(itens.map((n) => n.id)); marcaBm(avisosBm.map((n) => n.id)); marcaCommits(commits.map((n) => n.id)); marcaReunioes(reunioes.map((n) => n.id)); }} disabled={!totalNaoLidas} className="text-xs text-[#00518C] hover:underline disabled:cursor-not-allowed disabled:opacity-40">Marcar todas como lidas</button>
+            <button type="button" onClick={() => { marca(itens.map((n) => n.id)); marcaBm(avisosBm.map((n) => n.id)); marcaCommits(commits.map((n) => n.id)); marcaReunioes(reunioes.map((n) => n.id)); marcaMudancasMesa(mudancasMesa.map((n) => n.id)); }} disabled={!totalNaoLidas} className="text-xs text-[#00518C] hover:underline disabled:cursor-not-allowed disabled:opacity-40">Marcar todas como lidas</button>
           </div>
           <div className="max-h-[70vh] overflow-y-auto">
             {erro && <p className="border-b border-[#ebebf0] bg-amber-50 px-4 py-2 text-xs text-amber-800">{erro}</p>}
-            {!itens.length && !avisosBm.length && !commits.length && !reunioes.length && !erro && <p className="px-4 py-6 text-center text-sm text-[#777]">Nenhuma notificação.</p>}
+            {!itens.length && !avisosBm.length && !commits.length && !reunioes.length && !mudancasMesa.length && !erro && <p className="px-4 py-6 text-center text-sm text-[#777]">Nenhuma notificação.</p>}
             <ul>
+              {mudancasMesa.map((m) => <li key={`mesa-${m.id}`} className={`border-b border-[#ebebf0] px-4 py-3 ${m.lida ? '' : 'bg-violet-50'}`}><div className="flex items-start justify-between gap-2"><div><span className="mb-1 inline-flex items-center gap-1 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-800">Escritório virtual</span><div className="text-sm font-medium">{m.nome} mudou para {m.mesaNome}, assento {m.assentoNome}</div><div className="text-xs text-[#777]">{m.em ? tempoRelativo(m.em, agora) : 'agora'}</div></div>{!m.lida && <span className="mt-1 h-2 w-2 rounded-full bg-violet-600"/>}</div>{!m.lida && <button type="button" onClick={() => marcaMudancasMesa([m.id])} className="mt-2 text-xs text-[#777] hover:underline">Marcar como lida</button>}</li>)}
               {reunioes.map((r) => <li key={`meeting-${r.id}`} className={`border-b border-[#ebebf0] px-4 py-3 ${r.lida ? '' : 'bg-amber-50'}`}><div className="flex items-start justify-between gap-2"><div><span className="mb-1 inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800"><Bell size={11}/> Reunião</span><div className="text-sm font-medium">{r.anfitriaoNome} chamou a equipe</div><div className="text-xs text-[#777]">{r.criadaEm ? tempoRelativo(r.criadaEm, agora) : 'agora'}</div></div>{!r.lida && <span className="mt-1 h-2 w-2 rounded-full bg-amber-600"/>}</div><div className="mt-2 flex items-center gap-3"><Link href={`/chat?sala=${encodeURIComponent(r.id)}`} onClick={() => marcaReunioes([r.id])} className="inline-flex items-center gap-1 rounded border border-amber-700 px-2 py-1 text-xs font-medium text-amber-800">Entrar na sala <ExternalLink size={12}/></Link>{!r.lida && <button type="button" onClick={() => marcaReunioes([r.id])} className="ml-auto text-xs text-[#777] hover:underline">Marcar como lida</button>}</div></li>)}
               {commits.map((c) => <li key={c.id} className={`border-b border-[#ebebf0] px-4 py-3 ${c.lida ? '' : 'bg-emerald-50'}`}>
                 <div className="flex items-start justify-between gap-2"><div className="min-w-0"><span className="mb-1 inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800"><GitCommit size={11} /> Commit novo · {c.repo}</span><div className="text-sm font-medium">{c.mensagem}</div><div className="text-xs text-[#777]">{c.sha.slice(0, 8)} · {c.em ? tempoRelativo(c.em, agora) : 'recente'}</div></div>{!c.lida && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-600" aria-label="não lida" />}</div>

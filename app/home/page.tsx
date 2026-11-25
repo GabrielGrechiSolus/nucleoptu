@@ -5,6 +5,7 @@ import RevisionDashboard from './RevisionDashboard';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../AuthContext';
+import { useMenuFavoritos } from '../components/menuFavoritos';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 
 // Ícones
@@ -269,6 +270,7 @@ const initialUnimedsData = {
 
 const HomePage = () => {
   const { user } = useAuth();
+  const { favoritos } = useMenuFavoritos(user?.uid);
   const [showAnimation, setShowAnimation] = useState(true);
   const [greeting, setGreeting] = useState('');
 
@@ -683,6 +685,11 @@ const HomePage = () => {
             </div>
           </div>
         </motion.div>
+
+        {favoritos.length > 0 && <section className="mb-8 rounded-2xl border border-[var(--rel-line)] bg-[var(--rel-surface)] p-5">
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-[var(--rel-text)]"><Star size={18} className="fill-amber-400 text-amber-400"/>Meus menus favoritos</h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">{favoritos.map((item) => <Link key={item.href} href={item.href} className="group flex items-center gap-3 rounded-xl border border-[var(--rel-line)] bg-[var(--rel-bg)] p-4 transition hover:border-[var(--rel-primary)] hover:shadow-sm"><span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--rel-primary-soft)] text-[var(--rel-primary)]"><Star size={18} className="fill-current"/></span><span className="min-w-0"><span className="block truncate text-sm font-semibold text-[var(--rel-text)]">{item.label}</span><span className="block text-xs text-[var(--rel-muted)]">Abrir menu</span></span><ChevronRight size={16} className="ml-auto text-[var(--rel-muted)] transition group-hover:translate-x-0.5"/></Link>)}</div>
+        </section>}
 
         {/* Botão Unimed - Destaque Principal */}
         <motion.div
