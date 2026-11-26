@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { RefreshCw, Search } from 'lucide-react';
 import RelatusDetalhes from './RelatusDetalhes';
 import { ConsultaSalva, consultaSalva, obtemRelatus } from './relatusCache';
-import { CAMPOS_RELATUS, formataData } from './relatusDados';
+import RelatusResumo from './RelatusResumo';
 
 export default function RelatusPanel({ chamadoInicial }: { chamadoInicial: string }) {
   const [numero, setNumero] = useState(chamadoInicial.replace(/\D/g, ''));
@@ -46,7 +46,7 @@ export default function RelatusPanel({ chamadoInicial }: { chamadoInicial: strin
 
   return <section className="space-y-4">
     <div>
-      <h3 className="rel-subtitle">Consulta de chamados no Web Relatus</h3>
+      <h3 className="rel-title">Consulta de chamados no Web Relatus</h3>
       <p className="rel-desc">Busca o chamado pelo número no Web Relatus.</p>
     </div>
     <form onSubmit={enviar} className="flex flex-wrap items-end gap-2">
@@ -58,15 +58,9 @@ export default function RelatusPanel({ chamadoInicial }: { chamadoInicial: strin
     {consulta && dados && <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <span className="rel-desc">Consulta salva em {new Date(consulta.salvoEm).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>
-        <button type="button" onClick={() => void consultar(dados.numero ?? numero, true)} disabled={carregando} className="rel-btn rel-btn-sm"><RefreshCw size={13} />Atualizar</button>
+        <button type="button" onClick={() => void consultar(dados.numero ?? numero, true)} disabled={carregando} className="rel-btn rel-btn-sm rel-btn-outline"><RefreshCw size={13} />Atualizar</button>
       </div>
-      <div className="rel-box-flat"><span className="rel-label">Atendimento</span><p className="rel-value">{dados.numero} · {dados.titulo ?? '-'}</p></div>
-      <div className="rel-grid rel-grid-2">
-        {CAMPOS_RELATUS.map((campo) => {
-          const valor = dados[campo.id];
-          return valor ? <div key={campo.id} className="rel-box-flat"><span className="rel-label">{campo.rotulo}</span><p className="rel-value">{'data' in campo ? formataData(valor) : valor}</p></div> : null;
-        })}
-      </div>
+      <RelatusResumo dados={dados} />
       <RelatusDetalhes key={dados.numero} dados={dados} />
     </div>}
   </section>;

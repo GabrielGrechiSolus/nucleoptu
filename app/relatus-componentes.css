@@ -53,6 +53,13 @@ html.dark {
 .rel-link:hover { text-decoration: underline; }
 .rel-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--rel-primary); }
 .rel-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.rel-secao-titulo { display: flex; align-items: center; gap: 8px; color: var(--rel-primary); font-size: 0.9rem; font-weight: 600; padding-bottom: 8px; border-bottom: 2px solid var(--rel-primary-soft); }
+.rel-destaque { border-left: 4px solid var(--rel-primary); border-radius: 5px; background: var(--rel-primary-soft); padding: 14px 16px; color: var(--rel-text); }
+.rel-box-flat.rel-msg { border-left: 4px solid var(--rel-primary); }
+.rel-box-flat.rel-msg-ok { border-left-color: var(--rel-success); }
+.rel-box-flat.rel-msg-alert { border-left-color: var(--rel-alert); }
+.rel-box-flat.rel-msg-error { border-left-color: var(--rel-error); }
+.rel-box-flat.rel-msg-neutro { border-left-color: var(--rel-shape); }
 .rel-label { color: var(--rel-muted); font-size: 0.75rem; }
 .rel-value { color: var(--rel-text); font-size: 0.85rem; overflow-wrap: anywhere; }
 
