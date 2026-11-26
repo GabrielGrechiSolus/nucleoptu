@@ -1,3 +1,4 @@
+import { exigeAdmin } from '../_admin';
 import { chaveDoAmbiente, cifra } from '../_cripto';
 import { permite } from '../_limite';
 import { COLECAO_CONEXOES, audita, exigeConexoes, falhaInterna, respostaSegura } from './_acesso';
@@ -27,13 +28,8 @@ async function grava(req: Request) {
     return respostaSegura({ erro: 'Requisição inválida.' }, 400);
   }
   // Importação por arquivo feita por administrador não passa pela trava de dados sensíveis; para os demais ela continua valendo.
-  let semTravaSensivel = false;
-  if ((corpo as { importacao?: unknown })?.importacao === true) {
-    // O Firebase Admin s� � necess�rio na importa��o administrativa de arquivo.
-    // Mant�m GET e grava��es comuns fora desse carregamento, que j� causou 500 na Vercel.
-    const { exigeAdmin } = await import('../_admin');
-    semTravaSensivel = (await exigeAdmin(req)).ok;
-  }
+  // Importação por arquivo feita por administrador não passa pela trava de dados sensíveis; para os demais ela continua valendo.
+  const semTravaSensivel = (corpo as { importacao?: unknown })?.importacao === true && (await exigeAdmin(req)).ok;
   const entrada = limpaEntrada((corpo as { cliente?: unknown })?.cliente, { semTravaSensivel });
   if (!entrada.ok) return respostaSegura({ erro: entrada.erro }, 400);
   const cliente = entrada.cliente;

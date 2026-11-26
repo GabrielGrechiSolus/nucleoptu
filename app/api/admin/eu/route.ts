@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ehAdminBase, listaAdmins } from '../../../admin/validacao';
+import { contasDoAmbiente } from '../../_contas';
 import { verificaFirebase } from '../../_servidor';
 
 export const runtime = 'nodejs';
@@ -11,17 +12,12 @@ export async function GET(req: Request) {
   if (!v.ok) return NextResponse.json({ admin: false, configurado: configuradoBase, motivo: v.motivo }, { status: 401 });
 
   let admin = ehAdminBase(v.email, listaAdmins(process.env.ADMIN_EMAILS));
-  let configurado = configuradoBase;
-  if (!admin && configuradoBase && v.token) {
+  if (!admin && v.uid) {
     try {
-      const { adminApp, adminConfigurado } = await import('../../_admin');
-      const { getAuth } = await import('firebase-admin/auth');
-      configurado = adminConfigurado();
-      const app = adminApp();
-      if (app) admin = (await getAuth(app).verifyIdToken(v.token)).admin === true;
+      admin = (await contasDoAmbiente()?.buscar(v.uid))?.atributos.admin === true;
     } catch {
       admin = false;
     }
   }
-  return NextResponse.json({ admin, configurado, email: v.email ?? '' });
+  return NextResponse.json({ admin, configurado: configuradoBase, email: v.email ?? '' });
 }

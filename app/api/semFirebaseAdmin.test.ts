@@ -2,12 +2,9 @@
 // Na Vercel o pacote firebase-admin não carrega: qualquer rota que o importe de forma estática responde 500 sem corpo.
 // Já aconteceu em 18/11 e em 24/11/2026. Quem precisar dele deve usar import() dentro de try/catch.
 import { existsSync, readFileSync, readdirSync, statSync } from 'fs';
-import { dirname, join, relative, resolve, sep } from 'path';
+import { dirname, join, relative, resolve } from 'path';
 
 const RAIZ = resolve(__dirname);
-// Administração de usuários depende do pacote para criar e alterar contas.
-const PERMITIDAS = ['admin/usuarios/'];
-
 const rotas = (pasta: string): string[] =>
   readdirSync(pasta).flatMap((nome) => {
     const caminho = join(pasta, nome);
@@ -34,7 +31,6 @@ function cadeiaAteFirebaseAdmin(arquivo: string, vistos = new Set<string>()): st
 
 test('nenhuma rota de API carrega firebase-admin de forma estática', () => {
   const problemas = rotas(RAIZ)
-    .filter((r) => !PERMITIDAS.some((p) => relative(RAIZ, r).split(sep).join('/').startsWith(p)))
     .map((r) => cadeiaAteFirebaseAdmin(r))
     .filter((c): c is string[] => !!c)
     .map((c) => c.map((x) => (x.startsWith(RAIZ) ? relative(RAIZ, x) : x)).join(' > '));

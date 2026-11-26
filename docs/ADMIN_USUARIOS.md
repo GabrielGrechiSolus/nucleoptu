@@ -23,7 +23,7 @@ Cada ação é registrada na coleção `auditoria_admin` do Firestore (quem fez,
 
 ## Configuração necessária (uma vez)
 
-As ações acima exigem o **Firebase Admin SDK**, que só funciona no servidor com uma chave de serviço:
+As ações acima rodam só no servidor, pelas **APIs REST do Firebase** (Identity Toolkit e Firestore) com uma chave de serviço. O pacote `firebase-admin` não é usado: na Vercel ele não carrega e as rotas respondem 500 sem corpo (o teste `app/api/semFirebaseAdmin.test.ts` impede que volte). A chave:
 
 1. No console do Firebase: Configurações do projeto > Contas de serviço > **Gerar nova chave privada**.
 2. Salve o `.json` fora do Git, por exemplo em `C:\RepositorioGit\nucleoptu\.secrets\firebase-admin.json` (a pasta `.secrets/` é ignorada pelo Git).

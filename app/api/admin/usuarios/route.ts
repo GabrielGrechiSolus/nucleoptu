@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
 import { ehAdminBase, normalizaEmail, validaNovoUsuario, type NovoUsuario } from '../../../admin/validacao';
 import { ADMINS_BASE, exigeAdmin } from '../../_admin';
 
@@ -25,38 +23,31 @@ export async function GET(req: Request) {
   if (!a.ok) return NextResponse.json({ erro: a.erro }, { status: a.status });
   let etapa = 'leitura dos perfis no Firestore';
   try {
-    const auth = getAuth(a.app);
     const perfis = new Map<string, { name?: string; noticeType?: string }>();
-    (await getFirestore(a.app).collection('profiles').get()).forEach((d) => perfis.set(d.id, d.data() as { name?: string; noticeType?: string }));
+    (await a.db.collection('profiles').get()).docs.forEach((d) => perfis.set(d.id, d.data() as { name?: string; noticeType?: string }));
 
-    const usuarios: UsuarioAdmin[] = [];
-    let token: string | undefined;
     etapa = 'listagem de usuários no Firebase Authentication';
-    do {
-      const pagina = await auth.listUsers(1000, token);
-      for (const u of pagina.users) {
-        const p = perfis.get(u.uid);
-        const adminBase = ehAdminBase(u.email, ADMINS_BASE);
-        usuarios.push({
-          uid: u.uid,
-          email: u.email ?? '',
-          nome: p?.name || u.displayName || (u.email ?? '').split('@')[0],
-          tipo: p?.noticeType ?? '',
-          admin: adminBase || (u.customClaims as { admin?: boolean } | undefined)?.admin === true,
-          adminBase,
-          inativo: u.disabled,
-          criadoEm: u.metadata.creationTime ?? '',
-          ultimoAcesso: u.metadata.lastSignInTime ?? '',
-        });
-      }
-      token = pagina.pageToken;
-    } while (token);
+    const usuarios: UsuarioAdmin[] = (await a.contas.listar()).map((u) => {
+      const p = perfis.get(u.uid);
+      const adminBase = ehAdminBase(u.email, ADMINS_BASE);
+      return {
+        uid: u.uid,
+        email: u.email,
+        nome: p?.name || u.nome || u.email.split('@')[0],
+        tipo: p?.noticeType ?? '',
+        admin: adminBase || u.atributos.admin === true,
+        adminBase,
+        inativo: u.inativo,
+        criadoEm: u.criadoEm,
+        ultimoAcesso: u.ultimoAcesso,
+      };
+    });
     usuarios.sort((x, y) => x.nome.localeCompare(y.nome, 'pt-BR'));
     return NextResponse.json({ usuarios });
   } catch (e) {
     const erro = e as { code?: string; message?: string };
     console.error('[admin/usuarios] Falha na etapa:', etapa, erro.code ?? 'sem código', erro.message ?? e);
-    if (etapa.includes('Authentication') && /permission/i.test(erro.code ?? '')) {
+    if (etapa.includes('Authentication') && /permission|403/i.test(`${erro.code ?? ''} ${erro.message ?? ''}`)) {
       return NextResponse.json({ erro: 'A conta de serviço do Firebase não tem permissão para listar usuários no Authentication. Revise as permissões da credencial do Admin no projeto Firebase.', codigo: erro.code }, { status: 503 });
     }
     return NextResponse.json({ erro: `Falha na ${etapa}${erro.code ? ` (${erro.code})` : ''}. Confira os logs do servidor para ver a causa.` }, { status: 502 });
@@ -79,20 +70,19 @@ export async function POST(req: Request) {
 
   const email = normalizaEmail(dados.email as string);
   try {
-    const auth = getAuth(a.app);
-    const u = await auth.createUser({ email, password: dados.senha as string, displayName: (dados.nome as string).trim(), emailVerified: true });
-    if (dados.admin) await auth.setCustomUserClaims(u.uid, { admin: true });
-    const db = getFirestore(a.app);
-    await db.collection('profiles').doc(u.uid).set(
-      { name: (dados.nome as string).trim(), email, noticeType: dados.tipo, ativo: true, createdAt: new Date(), criadoPor: a.email },
+    const nome = (dados.nome as string).trim();
+    const uid = await a.contas.criar({ email, senha: dados.senha as string, nome });
+    if (dados.admin) await a.contas.atualizar(uid, { atributos: { admin: true } });
+    await a.db.collection('profiles').doc(uid).set(
+      { name: nome, email, noticeType: dados.tipo, ativo: true, createdAt: new Date(), criadoPor: a.email },
       { merge: true },
     );
-    await db.collection('auditoria_admin').add({ em: new Date().toISOString(), por: a.email, acao: 'criar-usuario', uid: u.uid, email, admin: !!dados.admin }).catch(() => undefined);
-    return NextResponse.json({ uid: u.uid, email }, { status: 201 });
+    await a.db.collection('auditoria_admin').add({ em: new Date().toISOString(), por: a.email, acao: 'criar-usuario', uid, email, admin: !!dados.admin }).catch(() => undefined);
+    return NextResponse.json({ uid, email }, { status: 201 });
   } catch (e) {
     const codigo = (e as { code?: string }).code ?? '';
-    if (codigo === 'auth/email-already-exists') return NextResponse.json({ erro: 'Já existe um usuário com esse e-mail.' }, { status: 409 });
-    if (codigo === 'auth/invalid-password') return NextResponse.json({ erro: 'Senha inválida para o Firebase.' }, { status: 400 });
+    if (codigo === 'EMAIL_EXISTS' || codigo === 'DUPLICATE_EMAIL') return NextResponse.json({ erro: 'Já existe um usuário com esse e-mail.' }, { status: 409 });
+    if (codigo === 'WEAK_PASSWORD' || codigo === 'INVALID_PASSWORD') return NextResponse.json({ erro: 'Senha inválida para o Firebase.' }, { status: 400 });
     console.error(e);
     return NextResponse.json({ erro: 'Não foi possível cadastrar o usuário.' }, { status: 500 });
   }

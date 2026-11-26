@@ -1,42 +1,21 @@
-import { createSign, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { credencial } from './_credencial';
+import { tokenDeServico } from './_tokenServico';
 
 type Dados = Record<string, unknown>;
 type Valor = Record<string, unknown>;
 
 export type Documento = { id: string; exists: boolean; data: () => Dados };
-export type RefDocumento = { id: string; get: () => Promise<Documento>; set: (d: Dados) => Promise<void>; delete: () => Promise<void> };
+export type RefDocumento = { id: string; get: () => Promise<Documento>; set: (d: Dados, opcoes?: { merge?: boolean }) => Promise<void>; delete: () => Promise<void> };
 export type Colecao = { get: () => Promise<{ docs: Documento[] }>; doc: (id?: string) => RefDocumento; add: (d: Dados) => Promise<RefDocumento> };
 export type Db = { collection: (nome: string) => Colecao };
 
 const ESCOPO = 'https://www.googleapis.com/auth/datastore';
-let guardado: { token: string; expira: number; chave: string } | null = null;
-
-const b64url = (v: Buffer | string) => Buffer.from(v).toString('base64url');
-
-async function tokenDeAcesso(c: Dados): Promise<string> {
-  const email = String(c.client_email ?? '');
-  const chave = String(c.private_key ?? '');
-  if (guardado && guardado.chave === email && guardado.expira - 60_000 > Date.now()) return guardado.token;
-  const destino = String(c.token_uri ?? 'https://oauth2.googleapis.com/token');
-  const agora = Math.floor(Date.now() / 1000);
-  const corpo = `${b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))}.${b64url(JSON.stringify({ iss: email, scope: ESCOPO, aud: destino, iat: agora, exp: agora + 3600 }))}`;
-  const assinatura = createSign('RSA-SHA256').update(corpo).sign(chave).toString('base64url');
-  const r = await fetch(destino, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: `${corpo}.${assinatura}` }),
-    cache: 'no-store',
-  });
-  const j = (await r.json().catch(() => ({}))) as { access_token?: string; expires_in?: number; error?: string };
-  if (!r.ok || !j.access_token) throw Object.assign(new Error(`Falha ao obter token (${j.error ?? r.status})`), { code: `token-${r.status}` });
-  guardado = { token: j.access_token, expira: Date.now() + (j.expires_in ?? 3600) * 1000, chave: email };
-  return j.access_token;
-}
 
 export function paraValor(v: unknown): Valor | undefined {
   if (v === undefined) return undefined;
   if (v === null) return { nullValue: null };
+  if (v instanceof Date) return { timestampValue: v.toISOString() };
   if (typeof v === 'boolean') return { booleanValue: v };
   if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
   if (typeof v === 'string') return { stringValue: v };
@@ -81,7 +60,7 @@ export function bancoDeDados(c: Dados): Db {
   async function chama(metodo: string, caminho: string, corpo?: unknown, aceita404 = false) {
     const r = await fetch(`${raiz}${caminho}`, {
       method: metodo,
-      headers: { Authorization: `Bearer ${await tokenDeAcesso(c)}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${await tokenDeServico(c, ESCOPO)}`, 'Content-Type': 'application/json' },
       body: corpo === undefined ? undefined : JSON.stringify(corpo),
       cache: 'no-store',
     });
@@ -107,8 +86,11 @@ export function bancoDeDados(c: Dados): Db {
           const j = await chama('GET', caminho, undefined, true);
           return j ? comoDocumento(String(j.name), j.fields as Record<string, Valor>) : { id: docId, exists: false, data: () => ({}) };
         },
-        set: async (d) => {
-          await chama('PATCH', caminho, { fields: paraCampos(d) });
+        set: async (d, opcoes) => {
+          const campos = paraCampos(d);
+          // Sem a máscara, o PATCH substitui o documento inteiro; com merge, só os campos enviados mudam.
+          const mascara = opcoes?.merge ? Object.keys(campos).map((k) => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join('&') : '';
+          await chama('PATCH', mascara ? `${caminho}?${mascara}` : caminho, { fields: campos });
         },
         delete: async () => {
           await chama('DELETE', caminho, undefined, true);
