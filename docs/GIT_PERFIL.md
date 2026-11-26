@@ -6,11 +6,11 @@ No **Perfil > aba Git**, cada pessoa vincula o seu usuário do GitHub. O sistema
 
 - **Vincular Git:** valida o usuário no GitHub, mostra nome, foto e PRs, e grava o usuário em `profiles/{uid}.gitUser`.
 - **Período dos PRs fechados:** 30, 60 ou 180 dias, ou todos (até 300 por lista).
-- **Gerar e atualizar contextos:** cria o contexto de cada chamado dos PRs que ainda não existe e atualiza os existentes.
+- **Geração automática dos contextos:** não há botão. Assim que o vínculo é salvo, e depois a cada novo login e periodicamente, o sistema cria o contexto de cada chamado dos PRs que ainda não existe e atualiza os existentes (PRs abertos e fechados dos últimos 60 dias). O andamento aparece no canto inferior direito. O período escolhido na aba muda só a lista exibida. Regras de tempo em [FUNCIONAMENTO.md](FUNCIONAMENTO.md#atualização-ao-entrar).
   - Chamado vem do título do PR (`tipo/(000.000)-assunto`). PRs sem número de chamado são ignorados.
   - Situação: PR de código aberto = em correção; mesclado = corrigido; fechado sem merge = encerrado. PR de `TestesIntegracao` não decide a situação.
-  - Contextos existentes **mantêm** o texto de regra, o cliente, o módulo e a revision; recebem os PRs, autores e datas novos e uma aba **GitHub** com a tabela e a descrição de cada PR.
-  - A revision **não** é calculada aqui (depende das tags de release); preencha no `REGRA.md` ou pelo gerador de contextos.
+  - Contextos existentes **mantêm** o texto de regra, o cliente e o módulo; recebem os PRs, autores e datas novos e uma aba **GitHub** com a tabela e a descrição de cada PR.
+  - A revision dos PRs mesclados é consultada na API da Qualidade. Se a consulta falhar, as revisions existentes são mantidas. Sem revision, aparece a previsão.
 
 ## Configuração do servidor
 

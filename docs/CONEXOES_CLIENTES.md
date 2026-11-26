@@ -1,6 +1,6 @@
 # Conexões de clientes
 
-Tela `/client-connections` (menu "Conexões"), liberada a todos os usuários logados (e-mail confirmado). Os dados ficam no Firestore, na coleção `clientes_conexoes`.
+Tela `/client-connections` (menu **Apoio ao atendimento > Conexões de clientes**), liberada a todos os usuários logados (e-mail confirmado). Os dados ficam no Firestore, na coleção `clientes_conexoes`.
 
 ## Cadastro
 
@@ -13,7 +13,7 @@ Tela `/client-connections` (menu "Conexões"), liberada a todos os usuários log
 ## Proteção
 
 - **Senhas criptografadas** (AES-256-GCM) no servidor, com a chave `CONEXOES_CHAVE_CRIPTO` (base64, 32 bytes; ex.: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`). A senha nunca volta na listagem: só aparece quando alguém clica em mostrar ou copiar, some da tela em 30 segundos e cada consulta é gravada em `auditoria_conexoes`. Guarde a chave com segurança: sem ela as senhas não abrem, e trocá-la invalida as já gravadas.
-- **Tudo passa pela API** (`/api/conexoes`), com login do Firebase, e-mail confirmado, mesma origem, limite de consultas por usuário (60 leituras/min, 40 gravações/min, 20 senhas a cada 10 min) e validação de tamanho dos campos. Exige `FIREBASE_SERVICE_ACCOUNT_JSON` no servidor.
+- **Tudo passa pela API** (`/api/conexoes`), com login do Firebase, e-mail confirmado, mesma origem, limite de consultas por usuário (60 leituras/min, 40 gravações/min, 20 senhas a cada 10 min) e validação de tamanho dos campos. Exige a chave de serviço no servidor (`FIREBASE_SERVICE_ACCOUNT_JSON` ou `FIREBASE_SERVICE_ACCOUNT_PATH`).
 - **Agentes de IA e robôs:** `proxy.ts` recusa (403) agentes de IA conhecidos (GPTBot, ClaudeBot, PerplexityBot, CCBot, Bytespider etc.), ferramentas de raspagem e navegadores automatizados na tela e na API; `robots.txt` e o cabeçalho `X-Robots-Tag` pedem que não indexem nem usem o conteúdo. Isso é uma barreira adicional: a proteção real é o login, a criptografia e o limite de consultas.
 - **Cabeçalhos de segurança** em todo o site: não abrir em quadro de outro site, sem cache nas respostas da API e da tela, `nosniff`, política de referência e HSTS.
 

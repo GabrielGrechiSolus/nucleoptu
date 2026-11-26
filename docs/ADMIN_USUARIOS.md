@@ -1,13 +1,13 @@
 # Administração de usuários
 
-Qualquer pessoa com e-mail @solus.inf.br pode fazer o próprio cadastro na tela de login ("Cadastrar Agora"). Os **administradores**, em **Administração** no menu (`/admin/usuarios`), também cadastram, inativam e trocam a senha de usuários.
+A tela de login permite o cadastro próprio ("Cadastrar Agora") com e-mail @solus.inf.br. Os **administradores**, em **Conta e administração > Gestão de usuários** (`/admin/usuarios`), também cadastram, inativam e trocam a senha de usuários.
 
 ## Quem é administrador
 
-- Os e-mails de `ADMIN_EMAILS` (padrão `gabriel.grechi@solus.inf.br`). Esses não podem ser inativados nem ter a permissão retirada pela tela.
+- Os e-mails de `ADMIN_EMAILS` (há um padrão no código; defina a variável na sua instalação). Esses não podem ser inativados nem ter a permissão retirada pela tela.
 - Quem recebe a permissão de outro administrador na própria tela (ela vale no próximo login da pessoa).
 
-Para incluir o Diego, o Denys e o Rodrigo Zandoná: acrescente os e-mails deles em `ADMIN_EMAILS` (separados por vírgula) ou, depois que a página estiver funcionando, use o botão **Tornar administrador** na linha de cada um.
+Para incluir outras pessoas, acrescente os e-mails em `ADMIN_EMAILS` (separados por vírgula) ou use o botão **Tornar administrador** na linha de cada uma.
 
 ## O que um administrador pode fazer
 
