@@ -2,6 +2,12 @@
 
 A aba **Web Relatus** do detalhe do chamado busca o atendimento pelo número em `https://relatus.solus.inf.br/api`.
 
+## O que é mostrado
+
+Dados do atendimento, descritivo, anexos do chamado, mensagens (com os anexos de cada uma, carregados ao clicar em **Ver anexos**) e documentos Google já criados. PRs e etapa do BusinessMap continuam vindo das outras telas. A consulta só lê dados.
+
+O HTML do descritivo e das mensagens é exibido como texto simples. Os anexos passam pelo servidor (`/api/relatus/chamado/arquivo`) e são sempre entregues como download, com limite de 55 segundos por arquivo.
+
 ## Como o token é obtido
 
 O servidor entra no Relatus com o operador configurado (`POST /v1/login`), guarda o token em memória e gera outro quando ele vence ou é recusado. O token não vai para o navegador e não há token fixo para renovar. Depois de um login recusado, aquela instância do servidor espera 5 minutos antes de tentar de novo.

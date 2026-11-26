@@ -67,8 +67,10 @@ describe('Web Relatus restrito', () => {
       simula(Response.json({ guid: 'abc-123' }));
       const r = await pede();
       expect(r.status).toBe(200);
-      expect(await r.json()).toEqual({ numero: '568361', titulo: 'Ajuste', cliente: 'Cliente X', status: 'Aberto', horasOrcadas: '4' });
-      expect(urls).toEqual([
+      const corpo = await r.json();
+      expect(corpo).toMatchObject({ numero: '568361', titulo: 'Ajuste', cliente: 'Cliente X', status: 'Aberto', horasOrcadas: '4' });
+      expect(corpo).not.toHaveProperty('clienteId');
+      expect(urls.slice(0, 3)).toEqual([
         'https://relatus.solus.inf.br/api/v1/login',
         'https://relatus.solus.inf.br/api/v1/atendimentos/numero/568361',
         'https://relatus.solus.inf.br/api/v1/atendimentos/abc-123',

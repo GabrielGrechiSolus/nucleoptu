@@ -2,12 +2,13 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { Search } from 'lucide-react';
-import { tokenDoLogin } from './atualizaGit';
-import { AtendimentoRelatus, CAMPOS_RELATUS, formataData } from './relatusDados';
+import RelatusDetalhes from './RelatusDetalhes';
+import { consultaRelatus } from './relatusApi';
+import { CAMPOS_RELATUS, DetalheRelatus, formataData } from './relatusDados';
 
 export default function RelatusPanel({ chamadoInicial }: { chamadoInicial: string }) {
   const [numero, setNumero] = useState(chamadoInicial.replace(/\D/g, ''));
-  const [dados, setDados] = useState<AtendimentoRelatus | null>(null);
+  const [dados, setDados] = useState<DetalheRelatus | null>(null);
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
 
@@ -23,11 +24,7 @@ export default function RelatusPanel({ chamadoInicial }: { chamadoInicial: strin
     setDados(null);
     setCarregando(true);
     try {
-      const token = await tokenDoLogin();
-      const resposta = await fetch(`/api/relatus/chamado?numero=${encodeURIComponent(chamado)}`, { headers: { Authorization: `Bearer ${token}` } });
-      const resultado = await resposta.json();
-      if (!resposta.ok) throw new Error(resultado.erro ?? 'Não foi possível consultar esse chamado.');
-      setDados(resultado as AtendimentoRelatus);
+      setDados(await consultaRelatus<DetalheRelatus>('chamado', { numero: chamado }));
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível consultar o Relatus.');
     } finally {
@@ -65,6 +62,7 @@ export default function RelatusPanel({ chamadoInicial }: { chamadoInicial: strin
           return valor ? <div key={campo.id} className="rel-box-flat"><span className="rel-label">{campo.rotulo}</span><p className="rel-value">{'data' in campo ? formataData(valor) : valor}</p></div> : null;
         })}
       </div>
+      <RelatusDetalhes key={dados.numero} dados={dados} />
     </div>}
   </section>;
 }
