@@ -1,6 +1,7 @@
 'use client';
 
-import { collection, doc, getDocs, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { doc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { invalidaChamados, lerChamados } from './chamadosDados';
 import { auth, db } from '../../firebase';
 import { agrupaPorChamado, montaContextoDePrs, type PrevisoesPorPr, type PrGithub, type RevisoesPorPr, type UsuarioGithub } from './github';
 import type { Chamado } from './parse';
@@ -81,8 +82,7 @@ export interface ResumoGeracao {
 
 export async function geraContextosDoGit(dados: DadosGit, onStatus: (texto: string) => void = () => undefined): Promise<ResumoGeracao> {
   const { grupos, semChamado } = agrupaPorChamado([...dados.abertos, ...dados.fechados]);
-  const snap = await getDocs(collection(db, 'chamados'));
-  const existentes = new Map(snap.docs.map((d) => [d.id, d.data() as Chamado]));
+  const existentes = new Map((await lerChamados(true)).map((c) => [c.id, c]));
   const hoje = new Date().toISOString();
   const por = auth.currentUser?.email ?? '';
   const aConsultar = [...grupos.values()].flat().filter((p) => p.estado === 'mesclado' && p.repo !== 'TestesIntegracao').map((p) => ({ repo: p.repo, numero: p.numero }));
@@ -101,6 +101,7 @@ export async function geraContextosDoGit(dados: DadosGit, onStatus: (texto: stri
     const lote = writeBatch(db);
     for (const { chamado } of itens.slice(i, i + 20)) lote.set(doc(db, 'chamados', chamado.id), { ...chamado, importadoEm: serverTimestamp(), importadoPor: por, origem: 'github' });
     await lote.commit();
+    invalidaChamados();
   }
   const criados = itens.filter((i) => i.novo).length;
   return { criados, atualizados: itens.length - criados, comRevision: itens.filter((i) => i.chamado.revision).length, semChamado: semChamado.length, aviso };

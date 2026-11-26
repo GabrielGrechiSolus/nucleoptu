@@ -6,6 +6,8 @@ import { cabecalhoBm, gravaEuBm, lerEuBm, type EuBm } from './bmChave';
 import { mudou, type CartaoQuadro } from './bmQuadro';
 import { semIndefinidos } from './bmRegistro';
 import { tokenDoLogin } from './atualizaGit';
+import { VALIDADE_LISTA_MS } from './chamadosDados';
+import { criaConsultaSalva } from './dadosSalvos';
 
 export const COLECAO_QUADRO = 'bm_quadro';
 export const DOC_META_QUADRO = 'bm_quadro_meta';
@@ -17,7 +19,18 @@ export interface MetaQuadro {
   ids: number[];
 }
 
-export async function lerQuadroBm(): Promise<{ cartoes: CartaoQuadro[]; meta: MetaQuadro | null }> {
+type Quadro = { cartoes: CartaoQuadro[]; meta: MetaQuadro | null };
+
+const quadroSalvo = criaConsultaSalva<Quadro>({ nome: 'bm-quadro', validade: () => VALIDADE_LISTA_MS });
+
+export const invalidaQuadroBm = () => quadroSalvo.invalida();
+
+export async function lerQuadroBm(atualizar = false): Promise<Quadro> {
+  const { cartoes, meta } = await quadroSalvo.obtem('todos', carregaQuadroBm, atualizar);
+  return { cartoes: [...cartoes], meta };
+}
+
+async function carregaQuadroBm(): Promise<Quadro> {
   const [snap, meta] = await Promise.all([getDocs(collection(db, COLECAO_QUADRO)), getDoc(doc(db, DOC_META_QUADRO, 'atual'))]);
   const todos = snap.docs.map((d) => d.data() as CartaoQuadro);
   const m = meta.exists() ? (meta.data() as MetaQuadro) : null;
@@ -82,5 +95,7 @@ export async function sincronizaQuadroBm(por: string, atuais: CartaoQuadro[]): P
       return { total, gravados, aviso: `Sem permissão para ${etapa}. Confira as regras do Firestore para bm_quadro e bm_quadro_meta.` };
     }
     return { total, gravados, aviso: `Falha ao ${etapa}${codigo ? ` (${codigo})` : ''}.` };
+  } finally {
+    invalidaQuadroBm();
   }
 }

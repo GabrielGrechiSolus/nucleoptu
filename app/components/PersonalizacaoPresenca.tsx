@@ -5,6 +5,9 @@ import { collection, doc, getDoc, getDocs, setDoc, serverTimestamp } from 'fireb
 import { useAuth } from '../AuthContext';
 import { db } from '../../firebase';
 import { auth } from '../../firebase';
+import { lerChamados } from '../chamados/chamadosDados';
+import { lerQuadroBm } from '../chamados/bmQuadroSync';
+import { lerRegistrosBm } from '../chamados/bmSync';
 
 const STATUS_KEY = (uid: string) => `nucleoptu.presenca.${uid}`;
 
@@ -66,9 +69,9 @@ export async function carregarFontesChat() {
   };
   const carregarContextosEPrs = async () => {
     try {
-      const snap = await getDocs(collection(db, 'chamados'));
-      snap.docs.forEach((docChamado) => {
-        const d = docChamado.data();
+      (await lerChamados()).forEach((chamado) => {
+        const docChamado = { id: chamado.id };
+        const d = chamado as unknown as Record<string, any>;
         const numero = String(d.numero || docChamado.id);
         fontes.push({ tipo: 'Contexto', id: docChamado.id, titulo: `Chamado ${numero} · ${d.cliente || ''} · ${d.assunto || ''}`.trim(), url: `/chamados?chamado=${encodeURIComponent(docChamado.id)}` });
         (Array.isArray(d.prs) ? d.prs : []).forEach((pr: Record<string, any>) => {
@@ -79,10 +82,25 @@ export async function carregarFontesChat() {
       });
     } catch { /* os demais tipos continuam pesquisáveis */ }
   };
+  const carregarCartoesBm = async () => {
+    try {
+      Object.values(await lerRegistrosBm()).forEach((registro) => {
+        const d = registro as unknown as Record<string, any>;
+        const titulo = `BM #${d.cardId || d.chamado} · ${d.resumo?.titulo || d.cartao?.titulo || d.chamado || ''}`;
+        if (d.encontrado) fontes.push({ tipo: 'Cartão BM', id: String(d.chamado), titulo, url: `/chamados-bm?cartao=${d.cardId || ''}` });
+      });
+    } catch { /* os demais tipos continuam pesquisáveis */ }
+    try {
+      (await lerQuadroBm()).cartoes.forEach((cartao) => {
+        const d = cartao as unknown as Record<string, any>;
+        const titulo = `BM #${d.cardId} · ${d.numero || ''} · ${d.titulo || ''}`.trim();
+        fontes.push({ tipo: 'Cartão BM', id: String(d.cardId), titulo, url: `/chamados-bm?cartao=${encodeURIComponent(String(d.cardId))}` });
+      });
+    } catch { /* os demais tipos continuam pesquisáveis */ }
+  };
   await Promise.all([
     carregarContextosEPrs(),
-    carregar('chamados_bm', 'Cartão BM', (id, d) => d.encontrado ? { titulo: `BM #${d.cardId || id} · ${d.resumo?.titulo || d.cartao?.titulo || d.chamado || ''}`, url: `/chamados-bm?cartao=${d.cardId || ''}` } : null),
-    carregar('bm_quadro', 'Cartão BM', (id, d) => ({ titulo: `BM #${d.cardId || id} · ${d.numero || d.chamado || ''} · ${d.titulo || d.title || ''}`.trim(), url: `/chamados-bm?cartao=${encodeURIComponent(String(d.cardId || id))}` })),
+    carregarCartoesBm(),
     carregar('notices', 'Aviso', (id, d) => d.active === false ? null : ({ titulo: d.title || 'Aviso', url: `/notice-board/${id}` })),
     carregar('usefulLinks', 'Link', (id, d) => ({ titulo: d.title || d.name || 'Link útil', url: d.url || '/links' })),
   ]);

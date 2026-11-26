@@ -1,5 +1,6 @@
 /** @jest-environment node */
 import { podeVerRelatus } from '../../../chamados/relatusAcesso';
+import { esqueceGuids } from '../_consulta';
 import { esqueceSessaoRelatus } from '../_sessao';
 
 let mockEmail = '';
@@ -18,6 +19,7 @@ describe('Web Relatus restrito', () => {
     delete process.env.RELATUS_LOGIN;
     delete process.env.RELATUS_SENHA;
     esqueceSessaoRelatus();
+    esqueceGuids();
     delete process.env.NEXT_PUBLIC_RELATUS_USUARIOS;
   });
 

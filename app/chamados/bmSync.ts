@@ -3,6 +3,8 @@
 import { collection, doc, getDocs, setDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import { cabecalhoBm } from './bmChave';
+import { VALIDADE_LISTA_MS } from './chamadosDados';
+import { criaConsultaSalva } from './dadosSalvos';
 import type { BmCartao, BmResumoLista } from './bm';
 import { bmJaImportadoEConcluido, COLECAO_BM, montaRegistro, precisaAtualizar, semIndefinidos, soDigitos, type RegistroBm } from './bmRegistro';
 import type { Chamado } from './parse';
@@ -17,7 +19,15 @@ async function post<T>(url: string, corpo: unknown): Promise<T> {
   return j as T;
 }
 
-export async function lerRegistrosBm(): Promise<Record<string, RegistroBm>> {
+const registrosSalvos = criaConsultaSalva<Record<string, RegistroBm>>({ nome: 'chamados-bm', validade: () => VALIDADE_LISTA_MS });
+
+export const invalidaRegistrosBm = () => registrosSalvos.invalida();
+
+export async function lerRegistrosBm(atualizar = false): Promise<Record<string, RegistroBm>> {
+  return { ...(await registrosSalvos.obtem('todos', carregaRegistrosBm, atualizar)) };
+}
+
+async function carregaRegistrosBm(): Promise<Record<string, RegistroBm>> {
   const snap = await getDocs(collection(db, COLECAO_BM));
   const out: Record<string, RegistroBm> = {};
   for (const d of snap.docs) {
@@ -85,6 +95,7 @@ export async function sincronizaBm(opc: {
         if (resumo) cartao = (await post<{ cartao: BmCartao }>('/api/bm/cartao', { cardId: resumo.cardId, chamado: n, temPr: c.temPr, temEvidencia: c.temEvidencia, fresco: true })).cartao;
         const reg = montaRegistro(n, resumo, cartao, opc.por, agora.toISOString());
         await setDoc(doc(db, COLECAO_BM, n), semIndefinidos(reg));
+        invalidaRegistrosBm();
         registros[n] = reg;
         if (resumo) res.atualizados++;
         else res.semCartao++;

@@ -9,6 +9,9 @@ const ID = /^[A-Za-z0-9-]{1,64}$/;
 
 export const idValido = (id: string) => ID.test(id);
 
+const guids = new Map<string, string>();
+export const esqueceGuids = () => guids.clear();
+
 export const recusado = (erro: string, status: number) => NextResponse.json({ erro }, { status });
 
 export async function autoriza(req: Request): Promise<NextResponse | { numero: string; params: URLSearchParams }> {
@@ -39,8 +42,9 @@ export const buscaJson = async <T>(token: string, caminho: string): Promise<T> =
 
 export async function noAtendimento<T>(numero: string, consulta: (token: string, caminho: string) => Promise<T>): Promise<T> {
   return comTokenRelatus(BASE, async (token) => {
-    const { guid } = await buscaJson<{ guid?: string }>(token, `/v1/atendimentos/numero/${numero}`);
+    const guid = guids.get(numero) ?? (await buscaJson<{ guid?: string }>(token, `/v1/atendimentos/numero/${numero}`)).guid;
     if (!guid) throw Object.assign(new Error('Chamado não encontrado no Relatus.'), { status: 404 });
+    guids.set(numero, guid);
     return consulta(token, `/v1/atendimentos/${encodeURIComponent(guid)}`);
   });
 }

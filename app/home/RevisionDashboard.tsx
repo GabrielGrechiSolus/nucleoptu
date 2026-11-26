@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
 import { ChevronDown, ChevronRight, GitPullRequest, Search, Tag } from 'lucide-react';
-import { db } from '../../firebase';
+import { lerChamados } from '../chamados/chamadosDados';
+import { lerRevisoes } from './revisoesDados';
 import type { Chamado } from '../chamados/parse';
 import { tokenDoLogin } from '../chamados/atualizaGit';
 
@@ -26,21 +26,10 @@ export default function RevisionDashboard() {
       setCarregando(true);
       try {
         const token = await tokenDoLogin();
-        const [resposta, snap] = await Promise.all([
-          fetch('/api/git/revisoes', { headers: { Authorization: `Bearer ${token}` } }),
-          getDocs(collection(db, 'chamados')),
-        ]);
-        const corpo = await resposta.text();
-        let dados: { erro?: string; revisoes?: Revision[]; falhas?: { repo: string; erro: string }[] };
-        try {
-          dados = JSON.parse(corpo) as typeof dados;
-        } catch {
-          throw new Error(corpo.trim() ? 'A API de revisions retornou uma resposta inválida.' : 'A API de revisions retornou uma resposta vazia. Tente novamente mais tarde.');
-        }
-        if (!resposta.ok) throw new Error(dados.erro ?? dados.falhas?.map((f) => `${f.repo}: ${f.erro}`).join(' · ') ?? 'Não foi possível carregar as revisions da Qualidade.');
+        const [dados, lista] = await Promise.all([lerRevisoes<Revision>(token), lerChamados()]);
         if (!ativo) return;
-        setRevisoes((dados.revisoes ?? []) as Revision[]);
-        setChamados(snap.docs.map((d) => ({ ...d.data(), id: d.id }) as Chamado));
+        setRevisoes(dados.revisoes ?? []);
+        setChamados(lista);
         setErro(dados.falhas?.length ? `A API da Qualidade falhou em alguns repositórios: ${dados.falhas.map((f) => `${f.repo}: ${f.erro}`).join(' · ')}` : '');
       } catch (e) {
         if (ativo) setErro(e instanceof Error ? e.message : 'Falha ao carregar revisions.');

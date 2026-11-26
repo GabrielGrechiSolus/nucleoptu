@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import RelatusPanel from './RelatusPanel';
+import { limpaRelatusSalvo } from './relatusCache';
 
 jest.mock('./atualizaGit', () => ({ tokenDoLogin: jest.fn(async () => 'token-de-teste') }));
 
@@ -20,6 +21,7 @@ describe('painel do Web Relatus', () => {
   let baixados: string[] = [];
 
   beforeEach(() => {
+    limpaRelatusSalvo();
     urls = [];
     baixados = [];
     URL.createObjectURL = jest.fn(() => 'blob:teste');

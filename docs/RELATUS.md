@@ -8,6 +8,19 @@ Dados do atendimento, descritivo, anexos do chamado, mensagens (com os anexos de
 
 O HTML do descritivo e das mensagens é exibido como texto simples. Os anexos passam pelo servidor (`/api/relatus/chamado/arquivo`) e são sempre entregues como download, com limite de 55 segundos por arquivo.
 
+## Consulta salva
+
+Para evitar requisições repetidas, o resultado fica salvo no navegador (até 30 chamados) e é apagado ao sair do sistema.
+
+| Situação | Quando consulta de novo |
+|---|---|
+| Chamado com data de fechamento | só em **Atualizar** (use se ele for reaberto) |
+| Chamado aberto | após 30 minutos ou em **Atualizar** |
+| Consulta com alguma parte não devolvida | na próxima abertura |
+| Anexos de uma mensagem já vistos | não consulta de novo |
+
+Os arquivos baixados não são guardados. No servidor, o identificador interno do chamado é reaproveitado em memória.
+
 ## Como o token é obtido
 
 O servidor entra no Relatus com o operador configurado (`POST /v1/login`), guarda o token em memória e gera outro quando ele vence ou é recusado. O token não vai para o navegador e não há token fixo para renovar. Depois de um login recusado, aquela instância do servidor espera 5 minutos antes de tentar de novo.

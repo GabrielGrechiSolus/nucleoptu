@@ -4,6 +4,8 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useRouter } from 'next/navigation';
+import { limpaDadosSalvos } from './chamados/dadosSalvos';
+import { limpaRelatusSalvo } from './chamados/relatusCache';
 
 interface AuthContextType {
     user: User | null;
@@ -21,6 +23,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                limpaRelatusSalvo();
+                limpaDadosSalvos();
+            }
             setUser(user);
             setLoading(false);
         });

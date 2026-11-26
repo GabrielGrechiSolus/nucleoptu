@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { Download, ExternalLink, Paperclip } from 'lucide-react';
-import { baixaAnexoRelatus, consultaRelatus } from './relatusApi';
+import { baixaAnexoRelatus } from './relatusApi';
+import { consultaSalva, obtemAnexosDaMensagem } from './relatusCache';
 import { AnexoRelatus, DetalheRelatus, MensagemRelatus, TIPOS_MENSAGEM, formataData } from './relatusDados';
 
 const MENSAGENS_INICIAIS = 5;
@@ -40,15 +41,15 @@ function ListaAnexos({ numero, mensagem, anexos }: { numero: string; mensagem?: 
 }
 
 function Mensagem({ numero, mensagem }: { numero: string; mensagem: MensagemRelatus }) {
-  const [anexos, setAnexos] = useState<AnexoRelatus[] | null>(null);
+  const [anexos, setAnexos] = useState<AnexoRelatus[] | null>(() => consultaSalva(numero)?.anexosMensagem[mensagem.id] ?? null);
   const [aviso, setAviso] = useState('');
 
   const verAnexos = async () => {
     setAviso('Carregando anexos…');
     try {
-      const r = await consultaRelatus<{ anexos: AnexoRelatus[] }>('chamado/anexos', { numero, mensagem: mensagem.id });
-      setAnexos(r.anexos);
-      setAviso(r.anexos.length ? '' : 'Nenhum anexo.');
+      const lista = await obtemAnexosDaMensagem(numero, mensagem.id);
+      setAnexos(lista);
+      setAviso(lista.length ? '' : 'Nenhum anexo.');
     } catch (e) {
       setAviso((e as Error).message);
     }

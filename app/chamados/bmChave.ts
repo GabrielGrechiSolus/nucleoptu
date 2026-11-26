@@ -1,4 +1,6 @@
 // Chave pessoal do Businessmap, guardada só neste navegador (localStorage). O servidor não a grava.
+import { limpaDadosSalvos } from './dadosSalvos';
+
 const K = 'nucleoptu.bm.chave';
 const aviso = () => typeof window !== 'undefined' && window.dispatchEvent(new Event('nucleoptu-bm-chave'));
 
@@ -16,6 +18,7 @@ export function gravaChaveBm(chave: string) {
   } catch {
     /* navegador sem armazenamento: a chave vale só até recarregar */
   }
+  limpaDadosSalvos();
   aviso();
 }
 export const cabecalhoBm = (): Record<string, string> => {

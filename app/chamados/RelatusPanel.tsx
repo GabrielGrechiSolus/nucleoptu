@@ -1,30 +1,31 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
-import { Search } from 'lucide-react';
+import { RefreshCw, Search } from 'lucide-react';
 import RelatusDetalhes from './RelatusDetalhes';
-import { consultaRelatus } from './relatusApi';
-import { CAMPOS_RELATUS, DetalheRelatus, formataData } from './relatusDados';
+import { ConsultaSalva, consultaSalva, obtemRelatus } from './relatusCache';
+import { CAMPOS_RELATUS, formataData } from './relatusDados';
 
 export default function RelatusPanel({ chamadoInicial }: { chamadoInicial: string }) {
   const [numero, setNumero] = useState(chamadoInicial.replace(/\D/g, ''));
-  const [dados, setDados] = useState<DetalheRelatus | null>(null);
+  const [consulta, setConsulta] = useState<ConsultaSalva | null>(null);
+  const dados = consulta?.dados;
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
 
-  const consultar = async (valor: string) => {
+  const consultar = async (valor: string, atualizar = false) => {
     const chamado = valor.replace(/\D/g, '');
     if (!/^\d{5,12}$/.test(chamado)) {
       setErro('Digite um número de chamado válido, com 5 a 12 dígitos.');
-      setDados(null);
+      setConsulta(null);
       return;
     }
     setNumero(chamado);
     setErro('');
-    setDados(null);
+    setConsulta(consultaSalva(chamado));
     setCarregando(true);
     try {
-      setDados(await consultaRelatus<DetalheRelatus>('chamado', { numero: chamado }));
+      setConsulta(await obtemRelatus(chamado, atualizar));
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível consultar o Relatus.');
     } finally {
@@ -54,7 +55,11 @@ export default function RelatusPanel({ chamadoInicial }: { chamadoInicial: strin
     </form>
     {erro && <div role="status" className="rel-notice rel-notice-alert">{erro}</div>}
     {carregando && <p className="rel-desc">Consultando o chamado…</p>}
-    {dados && <div className="space-y-3">
+    {consulta && dados && <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rel-desc">Consulta salva em {new Date(consulta.salvoEm).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+        <button type="button" onClick={() => void consultar(dados.numero ?? numero, true)} disabled={carregando} className="rel-btn rel-btn-sm"><RefreshCw size={13} />Atualizar</button>
+      </div>
       <div className="rel-box-flat"><span className="rel-label">Atendimento</span><p className="rel-value">{dados.numero} · {dados.titulo ?? '-'}</p></div>
       <div className="rel-grid rel-grid-2">
         {CAMPOS_RELATUS.map((campo) => {

@@ -8,7 +8,7 @@ import { htmlParaTexto } from '../chamados/bm';
 import type { Chamado } from '../chamados/parse';
 import type { RegistroBm } from '../chamados/bmRegistro';
 import { anexaLinksNaDescricao, avaliaChecks, avaliaCriterio, linksDoChamado, linksQueFaltam, propostasDeCampos, textoConclusaoComplementado } from './automacao';
-import { aplicarProcesso, consultaChecksGit, lerProcesso, simularProcesso, type EstadoProcesso, type MudancaProcesso, type RequisicaoSimulada, type ResultadoGravacao } from './clienteProcesso';
+import { aplicarProcesso, consultaChecksGit, lerProcesso, processoLidoEm, simularProcesso, type EstadoProcesso, type MudancaProcesso, type RequisicaoSimulada, type ResultadoGravacao } from './clienteProcesso';
 
 const norma = (t: string) => t.replace(/\s+/g, ' ').trim().toLowerCase();
 
@@ -66,11 +66,11 @@ export default function ProcessoTela({ chamado, registro, onVoltar, rotuloVoltar
     [chamado, links],
   );
 
-  const carrega = useCallback(async () => {
+  const carrega = useCallback(async (atualizar = false) => {
     setCarregando(true);
     setErro('');
     try {
-      const e = await lerProcesso(cardId, chamado.numero);
+      const e = await lerProcesso(cardId, chamado.numero, atualizar);
       setEstado(e);
       iniciaSelecao(e);
     } catch (e) {
@@ -170,6 +170,7 @@ export default function ProcessoTela({ chamado, registro, onVoltar, rotuloVoltar
     }
   };
 
+  const lidoEm = processoLidoEm(cardId, chamado.numero);
   const colunaAtual = estado?.colunas.find((c) => c.id === estado.card.colunaId)?.nome ?? '—';
   const progresso = criterios.length ? Math.round((totalMarcados / criterios.length) * 100) : 100;
 
@@ -190,13 +191,14 @@ export default function ProcessoTela({ chamado, registro, onVoltar, rotuloVoltar
           </div>
           <h1 className="rel-strong mt-1 text-xl">{chamado.assunto}</h1>
           <p className="rel-desc">Escolha o que atualizar no cartão. Nada é gravado sem a sua confirmação.</p>
+          {estado && lidoEm && <p className="rel-desc">Lido do BM em {new Date(lidoEm).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}. Use “Reler do BM” se o cartão mudou.</p>}
         </div>
       }
       rodape={
         <>
           <span className="rel-desc">A gravação fica registrada no BM em nome do dono da chave.</span>
           <div className="flex gap-2">
-            <button onClick={carrega} disabled={carregando || trabalhando} className="rel-btn rel-btn-ghost">Reler do BM</button>
+            <button onClick={() => void carrega(true)} disabled={carregando || trabalhando} className="rel-btn rel-btn-ghost">Reler do BM</button>
             <button onClick={revisar} disabled={!estado || trabalhando || quantidade === 0} className="rel-btn rel-btn-primary">{trabalhando ? 'Aguarde...' : `Revisar alterações${quantidade ? ` (${quantidade})` : ''}`}</button>
           </div>
         </>

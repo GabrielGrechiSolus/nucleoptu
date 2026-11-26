@@ -10,6 +10,7 @@ import { buscaPerfilGit, geraContextosDoGit, textoDoResumo } from '../chamados/a
 import { lerChaveBm } from '../chamados/bmChave';
 import { chamadosDaPessoa } from '../chamados/bmRegistro';
 import { lerRegistrosBm, sincronizaBm } from '../chamados/bmSync';
+import { lerChamados } from '../chamados/chamadosDados';
 import { lerQuadroBm, sincronizaQuadroBm } from '../chamados/bmQuadroSync';
 import type { Chamado } from '../chamados/parse';
 import { exigeVerificacaoEmail } from '../verificacao-email';
@@ -67,11 +68,10 @@ export default function AtualizaAoEntrar() {
     if (lerChaveBm()) {
       try {
         setEstado({ texto: 'Verificando atualizações do Businessmap...', tipo: 'info' });
-        const snap = await getDocs(collection(db, 'chamados'));
-        const meus = chamadosDaPessoa(snap.docs.map((d) => d.data() as Chamado), gitUser);
+        const meus = chamadosDaPessoa(await lerChamados(true), gitUser);
         const rb = await sincronizaBm({
           chamados: meus,
-          registros: await lerRegistrosBm(),
+          registros: await lerRegistrosBm(true),
           por: auth.currentUser?.email ?? '',
           onProgresso: (feito, total) => setEstado({ texto: `Businessmap: ${feito} de ${total} chamados verificados...`, tipo: 'info' }),
           deveParar: () => false,
@@ -80,7 +80,7 @@ export default function AtualizaAoEntrar() {
         if (rb.erros || rb.aviso) erro = true;
 
         setEstado({ texto: 'Verificando o quadro do Businessmap...', tipo: 'info' });
-        const quadro = await lerQuadroBm();
+        const quadro = await lerQuadroBm(true);
         const rq = await sincronizaQuadroBm(auth.currentUser?.email ?? '', quadro.cartoes);
         partes.push(rq.aviso ? rq.aviso : `Quadro do BM: ${rq.total} cartões, ${rq.gravados} atualização(ões).`);
         if (rq.aviso) erro = true;

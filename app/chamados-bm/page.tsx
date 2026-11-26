@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
 import { ExternalLink, Inbox, Search } from 'lucide-react';
-import { db } from '../../firebase';
 import withAuth from '../components/withAuth';
 import Link from 'next/link';
 import TelaDetalhe, { useDetalheNaUrl } from '../components/TelaDetalhe';
 import { SortTh, sortRows, useSort } from '../components/SortableTable';
 import { ROTULO_PRIORIDADE, ROTULO_SECAO, atencaoDe, concluido, diasDesde, ehReport, pontuacao, reportsAtivos, reportsPorNumero, type Atencao, type CartaoQuadro } from '../chamados/bmQuadro';
 import { lerQuadroBm, type MetaQuadro } from '../chamados/bmQuadroSync';
+import { lerChamados } from '../chamados/chamadosDados';
+import BotaoAtualizarDados from '../components/BotaoAtualizarDados';
 import type { Chamado } from '../chamados/parse';
 
 type Aba = 'andamento' | 'atencao' | 'concluidos' | 'todos';
@@ -54,13 +54,13 @@ function ChamadosBmPage() {
   const { sort, toggleSort } = useSort({ key: 'relevancia', dir: 'desc' });
   const [agora] = useState(() => Date.now());
 
-  const carregar = useCallback(async () => {
+  const carregar = useCallback(async (atualizar = false) => {
     setCarregando(true);
     try {
-      const [quadro, snap] = await Promise.all([lerQuadroBm(), getDocs(collection(db, 'chamados'))]);
+      const [quadro, lista] = await Promise.all([lerQuadroBm(atualizar), lerChamados(atualizar)]);
       setCartoes(quadro.cartoes);
       setMeta(quadro.meta);
-      setComPr(new Set(snap.docs.map((d) => d.data() as Chamado).filter((c) => c.temPr).map((c) => c.id)));
+      setComPr(new Set(lista.filter((c) => c.temPr).map((c) => c.id)));
     } catch (e) {
       const codigo = (e as { code?: string })?.code ?? 'erro';
       setMsg(`Não foi possível carregar os dados (${codigo}).${codigo === 'permission-denied' ? ' Libere a leitura das coleções bm_quadro e bm_quadro_meta nas regras do Firestore.' : ''}`);
@@ -71,8 +71,9 @@ function ChamadosBmPage() {
 
   useEffect(() => {
     carregar();
-    window.addEventListener('nucleoptu-dados-atualizados', carregar);
-    return () => window.removeEventListener('nucleoptu-dados-atualizados', carregar);
+    const recarrega = () => void carregar();
+    window.addEventListener('nucleoptu-dados-atualizados', recarrega);
+    return () => window.removeEventListener('nucleoptu-dados-atualizados', recarrega);
   }, [carregar]);
 
 
@@ -200,6 +201,7 @@ function ChamadosBmPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {meta && <span className="rel-desc">Sincronizado em {dataBr(meta.sincronizadoEm)} por {meta.por || '—'}</span>}
+          <BotaoAtualizarDados carregando={carregando} onAtualizar={() => void carregar(true)} />
 
         </div>
       </header>

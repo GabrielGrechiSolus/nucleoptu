@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import withAuth from '../components/withAuth';
-import { collection, doc, getDocs, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { doc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 import { FolderSearch, Search, Upload, FileText, Copy } from 'lucide-react';
 import { Chamado, lerPasta, ROTULO_SITUACAO, ROTULO_TIPO } from './parse';
@@ -14,6 +14,8 @@ import { semGitChamado } from './semgit';
 import { BmColuna } from './BmPainel';
 import { soDigitos, type RegistroBm } from './bmRegistro';
 import { lerRegistrosBm } from './bmSync';
+import { invalidaChamados, lerChamados } from './chamadosDados';
+import BotaoAtualizarDados from '../components/BotaoAtualizarDados';
 import DetalheChamado from './DetalheChamado';
 import Link from 'next/link';
 import TelaDetalhe, { useDetalheNaUrl, useDetalheNoHistorico } from '../components/TelaDetalhe';
@@ -173,12 +175,11 @@ function ChamadosPage() {
     } catch {}
   }, []);
 
-  const carregar = useCallback(async () => {
+  const carregar = useCallback(async (atualizar = false) => {
     setCarregando(true);
     setErro('');
     try {
-      const snap = await getDocs(collection(db, COLECAO));
-      setItens(snap.docs.map((d) => d.data() as Chamado));
+      setItens(await lerChamados(atualizar));
     } catch (e) {
       console.error(e);
       const codigo = (e as { code?: string })?.code ?? 'erro desconhecido';
@@ -257,6 +258,7 @@ function ChamadosPage() {
         const lote = writeBatch(db);
         for (const c of previa.slice(i, i + 20)) lote.set(doc(db, COLECAO, c.id), { ...c, importadoEm: serverTimestamp(), importadoPor: por });
         await lote.commit();
+        invalidaChamados();
       }
       // Substituir tudo: remove da coleção os chamados que não estão na importação.
       const sobrando = substituir ? itens.filter((i) => !previa.some((p) => p.id === i.id)) : [];
@@ -264,6 +266,7 @@ function ChamadosPage() {
         const lote = writeBatch(db);
         for (const c of sobrando.slice(i, i + 400)) lote.delete(doc(db, COLECAO, c.id));
         await lote.commit();
+        invalidaChamados();
       }
       setMsg(
         `${previa.length} chamado(s) importado(s). Quem já existia foi atualizado.${substituir ? ` ${sobrando.length} chamado(s) que não estavam na pasta foram removidos da lista.` : ''}`,
@@ -470,7 +473,15 @@ function ChamadosPage() {
           <h1 className="rel-title"><FolderSearch className="h-5 w-5" /> Contexto de chamados</h1>
           <p className="rel-desc">O que está em correção, o que já foi corrigido (e em qual revision saiu) e as regras que estavam escondidas.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <BotaoAtualizarDados
+            carregando={carregando}
+            onAtualizar={() => {
+              void carregar(true);
+              lerRegistrosBm(true).then(setRegistros).catch(() => undefined);
+              lerQuadroBm(true).then((q) => setQuadro(q.cartoes)).catch(() => undefined);
+            }}
+          />
           <Link href={urlModelo.hrefDe('1')} className="rel-btn rel-btn-outline">
             <FileText className="h-4 w-4" /> Modelo de contexto
           </Link>

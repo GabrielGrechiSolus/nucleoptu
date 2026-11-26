@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../../firebase';
 import withAuth from '../components/withAuth';
 import { usePessoa } from '../components/usePessoa';
 import { SortTh, sortRows, useSort } from '../components/SortableTable';
 import { BmColuna } from '../chamados/BmPainel';
 import { chamadosDaPessoa, soDigitos, type RegistroBm } from '../chamados/bmRegistro';
 import { lerRegistrosBm } from '../chamados/bmSync';
+import { lerChamados } from '../chamados/chamadosDados';
+import BotaoAtualizarDados from '../components/BotaoAtualizarDados';
 import type { Chamado } from '../chamados/parse';
 import { ROTULO_SITUACAO } from '../chamados/parse';
 import { ArrowDown, GripVertical, ListChecks } from 'lucide-react';
@@ -72,12 +72,12 @@ function ProcessosPage() {
   const urlCartao = useDetalheNaUrl('cartao');
   const { sort, toggleSort } = useSort({ key: 'numero', dir: 'desc' });
 
-  const carregar = useCallback(async () => {
+  const carregar = useCallback(async (atualizar = false) => {
     setCarregando(true);
     setErro('');
     try {
-      const [snap, regs, q] = await Promise.all([getDocs(collection(db, 'chamados')), lerRegistrosBm(), lerQuadroBm().catch(() => ({ cartoes: [] as CartaoQuadro[], meta: null }))]);
-      setItens(snap.docs.map((d) => d.data() as Chamado));
+      const [lista, regs, q] = await Promise.all([lerChamados(atualizar), lerRegistrosBm(atualizar), lerQuadroBm(atualizar).catch(() => ({ cartoes: [] as CartaoQuadro[], meta: null }))]);
+      setItens(lista);
       setRegistros(regs);
       setQuadro(q.cartoes);
       setMetaQuadro(q.meta);
@@ -92,8 +92,9 @@ function ProcessosPage() {
     carregar();
     permissaoProcessos().then(setPermissao);
     buscaEuBm().then(setEu);
-    window.addEventListener(EVENTO_DADOS_ATUALIZADOS, carregar);
-    return () => window.removeEventListener(EVENTO_DADOS_ATUALIZADOS, carregar);
+    const recarrega = () => void carregar();
+    window.addEventListener(EVENTO_DADOS_ATUALIZADOS, recarrega);
+    return () => window.removeEventListener(EVENTO_DADOS_ATUALIZADOS, recarrega);
   }, [carregar]);
 
 
@@ -170,7 +171,7 @@ function ProcessosPage() {
     if (movendo || secaoDestino !== card.secao + 1 || card.bloqueado) return;
     setMovendo(true); setErro('');
     try {
-      const estado = await lerProcesso(card.cardId, card.numero || String(card.cardId));
+      const estado = await lerProcesso(card.cardId, card.numero || String(card.cardId), true);
       const destino = estado.colunas.filter((coluna) => (coluna.secao ?? 0) === secaoDestino).sort((a, b) => a.posicao - b.posicao)[0];
       if (!destino) throw new Error('Não há uma coluna seguinte configurada para este cartão.');
       const gravacao = await aplicarProcesso(card.cardId, card.numero || String(card.cardId), [{ tipo: 'mover', colunaId: destino.id }]);
@@ -212,7 +213,7 @@ function ProcessosPage() {
         registro={{ chamado: abertoSemPr.numero || String(abertoSemPr.cardId), encontrado: true, cardId: abertoSemPr.cardId, resumo: registroResumoDoCartao(abertoSemPr), cartao: null, sincronizadoEm: metaQuadro?.sincronizadoEm ?? '', sincronizadoPor: metaQuadro?.por ?? '' }}
         onVoltar={urlCartao.voltar}
         rotuloVoltar="Voltar aos processos"
-        onGravado={carregar}
+        onGravado={() => void carregar()}
       />
     );
   }
@@ -224,7 +225,10 @@ function ProcessosPage() {
   return (
     <div className="rel-page">
       <section className="rel-box">
-        <h1 className="rel-title rel-title-line"><ListChecks size={20} /> Processos do BM</h1>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="rel-title rel-title-line"><ListChecks size={20} /> Processos do BM</h1>
+          <BotaoAtualizarDados carregando={carregando} onAtualizar={() => void carregar(true)} />
+        </div>
         <p className="rel-desc mb-4">Preenche o texto de conclusão e os links a partir do Git, marca os critérios de saída que o Git comprova, comenta e move o cartão. Cada gravação pede a sua confirmação.</p>
         <div className="rel-filters">
           <div className="rel-field rel-filter-wide">

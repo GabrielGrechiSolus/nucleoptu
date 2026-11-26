@@ -1,5 +1,6 @@
 /** @jest-environment node */
 import { textoDeHtml } from '../../../chamados/relatusDados';
+import { esqueceGuids } from '../_consulta';
 import { esqueceSessaoRelatus } from '../_sessao';
 
 let mockEmail = '';
@@ -37,6 +38,7 @@ describe('Web Relatus: descritivo, mensagens, anexos e documentos', () => {
     process.env.RELATUS_SENHA = 'senha-de-teste';
     delete process.env.NEXT_PUBLIC_RELATUS_USUARIOS;
     esqueceSessaoRelatus();
+    esqueceGuids();
   });
 
   it('transforma HTML em texto simples, sem scripts', () => {
@@ -99,6 +101,13 @@ describe('Web Relatus: descritivo, mensagens, anexos e documentos', () => {
       expect(await r.text()).toBe('<script>x</script>');
     }
     expect(urls).toContain('/atendimentos/abc-123/mensagens/7/anexos/9');
+  });
+
+  it('não repete a busca do identificador do chamado, que não muda', async () => {
+    simula({ '/atendimentos/abc-123/mensagens/7/anexos': () => Response.json([]) });
+    await chama('./anexos/route', 'numero=568361&mensagem=7');
+    await chama('./anexos/route', 'numero=568361&mensagem=7');
+    expect(urls.filter((u) => u.includes('/numero/'))).toHaveLength(1);
   });
 
   it('recusa identificador que mude o caminho, sem consultar o Relatus', async () => {
