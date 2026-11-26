@@ -15,6 +15,10 @@ export interface PessoaLogada {
   carregado: boolean;
 }
 
+const EVENTO_PERFIL_ATUALIZADO = 'nucleoptu-perfil-salvo';
+
+export const avisaPerfilAtualizado = () => window.dispatchEvent(new Event(EVENTO_PERFIL_ATUALIZADO));
+
 // Usuário logado com o usuário Git e o tipo de perfil cadastrados no perfil (profiles/{uid}).
 export function usePessoa(): PessoaLogada {
   const { user } = useAuth();
@@ -22,6 +26,13 @@ export function usePessoa(): PessoaLogada {
   const [nomePerfil, setNomePerfil] = useState('');
   const [perfil, setPerfil] = useState('');
   const [carregado, setCarregado] = useState(false);
+  const [versao, setVersao] = useState(0);
+
+  useEffect(() => {
+    const releia = () => setVersao((v) => v + 1);
+    window.addEventListener(EVENTO_PERFIL_ATUALIZADO, releia);
+    return () => window.removeEventListener(EVENTO_PERFIL_ATUALIZADO, releia);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -39,7 +50,7 @@ export function usePessoa(): PessoaLogada {
     return () => {
       ativo = false;
     };
-  }, [user]);
+  }, [user, versao]);
 
   return {
     uid: user?.uid ?? '',

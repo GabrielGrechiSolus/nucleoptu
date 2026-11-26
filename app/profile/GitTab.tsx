@@ -9,6 +9,7 @@ import { fotoDoGit } from '../components/fotoGit';
 import { SortTh, sortRows, useSort } from '../components/SortableTable';
 import { chamadoDoTitulo, type PrGithub } from '../chamados/github';
 import { buscaPerfilGit, type DadosGit as Dados } from '../chamados/atualizaGit';
+import { avisaPerfilAtualizado } from '../components/usePessoa';
 
 const dataBr = (iso: string) => (iso ? iso.slice(0, 10).split('-').reverse().join('/') : '—');
 
@@ -107,7 +108,8 @@ export default function GitTab({ uid, gitUser, onVinculado }: { uid: string; git
     try {
       await setDoc(doc(db, 'profiles', uid), { gitUser: d.usuario.login, avatar: fotoDoGit(d.usuario.login, 200), avatarOrigem: 'git' }, { merge: true });
       onVinculado(d.usuario.login);
-      toast.success(`Git vinculado: ${d.usuario.login}`);
+      avisaPerfilAtualizado();
+      toast.success(`Git vinculado: ${d.usuario.login}. Os contextos são gerados automaticamente.`);
     } catch (e) {
       console.error(e);
       setErro('O usuário existe no GitHub, mas não foi possível salvar no seu perfil.');

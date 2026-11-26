@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-toastify";
+import { avisaPerfilAtualizado } from '../components/usePessoa';
 
 interface Skill {
   name: string;
@@ -211,7 +212,7 @@ export default function ProfilePage() {
       };
 
       await setDoc(doc(db, "profiles", user.uid), profileData, { merge: true });
-      window.dispatchEvent(new Event("nucleoptu-perfil-salvo"));
+      avisaPerfilAtualizado();
       toast.success("Perfil atualizado com sucesso!");
     } catch (error) {
       console.error(error);
