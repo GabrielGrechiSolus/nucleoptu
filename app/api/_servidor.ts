@@ -1,8 +1,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { exigeVerificacaoEmail } from '../verificacao-email';
-import { adminApp } from './_admin';
-import { getFirestore } from 'firebase-admin/firestore';
+import { bancoDoAmbiente } from './_firestore';
 
 // Utilitários das rotas de API (somente servidor).
 
@@ -42,15 +41,16 @@ export async function tipoDePerfil(uid: string, idToken: string): Promise<{ ok: 
 
 async function lerPerfil(uid: string, idToken: string): Promise<{ ok: boolean; tipo: string; gitUser: string; nome: string; status?: number }> {
   if (!uid) return { ok: false, tipo: '', gitUser: '', nome: '', status: 0 };
+  // Sem o pacote firebase-admin: na Vercel ele não carrega e derruba a rota com 500 sem corpo. A leitura usa o Firestore por REST.
   try {
-    const app = adminApp();
-    if (app) {
-      const snap = await getFirestore(app).collection('profiles').doc(uid).get();
-      const d = snap.exists ? snap.data() ?? {} : {};
+    const db = bancoDoAmbiente();
+    if (db) {
+      const snap = await db.collection('profiles').doc(uid).get();
+      const d = snap.exists ? snap.data() : {};
       return { ok: true, tipo: String(d.noticeType ?? ''), gitUser: String(d.gitUser ?? ''), nome: String(d.name ?? d.displayName ?? '') };
     }
   } catch (e) {
-    console.error('[perfil] Falha na leitura de profiles/{uid} pelo Firebase Admin:', e);
+    console.error('[perfil] Falha na leitura de profiles/{uid} com a chave de serviço:', e);
   }
   const projeto = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
   if (!projeto) return { ok: false, tipo: '', gitUser: '', nome: '', status: 0 };
