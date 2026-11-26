@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { ClipboardList, ExternalLink, FlaskConical, GitPullRequest } from 'lucide-react';
 import TelaDetalhe from '../components/TelaDetalhe';
+import { useAuth } from '../AuthContext';
+import { podeVerRelatus } from './relatusAcesso';
 import { Chamado, ROTULO_SITUACAO, ROTULO_TIPO } from './parse';
 import Vinculos from './Vinculos';
 import BmPainel, { BmColuna } from './BmPainel';
@@ -65,11 +67,14 @@ export default function DetalheChamado({
   const outrosDocs = Object.keys(c.docs ?? {}).filter((n) => n !== 'REGRA.md');
   const docAtual = outrosDocs.includes(doc) ? doc : outrosDocs[0] ?? '';
 
+  const { user } = useAuth();
+  const comRelatus = podeVerRelatus(user?.email);
+
   const abas: { id: Aba; rotulo: string; mostra: boolean }[] = [
     { id: 'resumo', rotulo: 'Resumo', mostra: true },
     { id: 'regra', rotulo: 'Regra de negócio', mostra: !!c.docs?.['REGRA.md'] },
     { id: 'bm', rotulo: 'Businessmap', mostra: true },
-    { id: 'relatus', rotulo: 'Web Relatus', mostra: true },
+    { id: 'relatus', rotulo: 'Web Relatus', mostra: comRelatus },
     { id: 'docs', rotulo: `Documentos (${outrosDocs.length})`, mostra: outrosDocs.length > 0 },
   ];
 
@@ -168,7 +173,7 @@ export default function DetalheChamado({
             </div>
           )}
 
-          {aba === 'relatus' && <div className="rel-box"><RelatusPanel chamadoInicial={c.numero} /></div>}
+          {aba === 'relatus' && comRelatus && <div className="rel-box"><RelatusPanel chamadoInicial={c.numero} /></div>}
 
           {aba === 'docs' && (
             <div className="rel-grid" style={{ gridTemplateColumns: 'minmax(0, 14rem) minmax(0, 1fr)' }}>

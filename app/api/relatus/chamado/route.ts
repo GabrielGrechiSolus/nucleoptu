@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { podeVerRelatus } from '../../../chamados/relatusAcesso';
 import { permite } from '../../_limite';
 import { dadosDoPerfil, verificaFirebase } from '../../_servidor';
 
@@ -94,6 +95,7 @@ async function buscaRelatus(numero: string, nomeUsuario: string, base: string, t
 export async function GET(req: Request) {
   const login = await verificaFirebase(req);
   if (!login.ok) return NextResponse.json({ erro: login.motivo }, { status: 401 });
+  if (!podeVerRelatus(login.email)) return NextResponse.json({ erro: 'Recurso não encontrado.' }, { status: 404 });
   if (!permite(`relatus:${login.uid}`, 10, 60_000)) return NextResponse.json({ erro: 'Muitas consultas ao Relatus. Aguarde um minuto.' }, { status: 429 });
 
   const numero = (new URL(req.url).searchParams.get('numero') ?? '').replace(/\D/g, '');
