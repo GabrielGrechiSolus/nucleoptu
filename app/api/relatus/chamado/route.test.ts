@@ -62,7 +62,8 @@ describe('Web Relatus restrito', () => {
       process.env.RELATUS_SENHA = 'senha-de-teste';
     });
 
-    it('busca pelo número no endereço padrão e devolve só os campos exibidos', async () => {
+    it('busca pelo número no endereço oficial, ignorando variável antiga, e devolve só os campos exibidos', async () => {
+      process.env.RELATUS_API_BASE_URL = 'https://api.solus.inf.br/relatus/v1';
       simula(Response.json({ guid: 'abc-123' }));
       const r = await pede();
       expect(r.status).toBe(200);

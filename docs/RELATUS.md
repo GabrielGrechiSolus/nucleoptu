@@ -14,7 +14,8 @@ Em **Settings > Environment Variables**, no ambiente **Production**:
 |---|---|
 | `RELATUS_LOGIN` | operador com que se entra em relatus.solus.inf.br |
 | `RELATUS_SENHA` | senha desse operador, marcada como **Sensitive** |
-| `RELATUS_API_BASE_URL` | opcional; só para apontar para outro endereço |
+
+O endereço é fixo no código; `RELATUS_API_BASE_URL` e `RELATUS_SERVICE_TOKEN` não são usadas e podem ser apagadas.
 
 Depois, faça um **Redeploy**. Nunca use `NEXT_PUBLIC_` nessas variáveis. Ao trocar a senha no Solus, atualize `RELATUS_SENHA` e publique de novo, antes de consultar, para não acumular tentativas recusadas.
 

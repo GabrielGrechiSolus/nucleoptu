@@ -71,6 +71,7 @@ describe('sessão do Relatus', () => {
     for (let i = 0; i < 3; i++) {
       await expect(comTokenRelatus(BASE, consulta)).rejects.toMatchObject({ status: 502, message: expect.stringContaining('Senha inválida') });
     }
+    await expect(comTokenRelatus(BASE, consulta)).rejects.toMatchObject({ message: expect.stringContaining(`${BASE}/v1/login`) });
     expect(consulta).not.toHaveBeenCalled();
     expect(chamadas).toHaveLength(1);
   });

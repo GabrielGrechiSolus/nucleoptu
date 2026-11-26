@@ -8,7 +8,7 @@ import { comTokenRelatus, relatusConfigurado } from '../_sessao';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const BASE_PADRAO = 'https://relatus.solus.inf.br/api';
+const BASE = 'https://relatus.solus.inf.br/api';
 
 async function requisicao<T>(base: string, token: string, caminho: string): Promise<T> {
   const resposta = await fetch(`${base}${caminho}`, {
@@ -30,13 +30,12 @@ export async function GET(req: Request) {
   const numero = (new URL(req.url).searchParams.get('numero') ?? '').replace(/\D/g, '');
   if (!/^\d{5,12}$/.test(numero)) return NextResponse.json({ erro: 'Informe um número de chamado válido.' }, { status: 400 });
   if (!relatusConfigurado()) return NextResponse.json({ erro: 'Integração do Relatus não configurada no servidor. Configure RELATUS_LOGIN e RELATUS_SENHA.' }, { status: 503 });
-  const base = (process.env.RELATUS_API_BASE_URL || BASE_PADRAO).replace(/\/$/, '');
 
   try {
-    const atendimento = await comTokenRelatus(base, async (token) => {
-      const { guid } = await requisicao<{ guid?: string }>(base, token, `/v1/atendimentos/numero/${numero}`);
+    const atendimento = await comTokenRelatus(BASE, async (token) => {
+      const { guid } = await requisicao<{ guid?: string }>(BASE, token, `/v1/atendimentos/numero/${numero}`);
       if (!guid) throw Object.assign(new Error('Chamado não encontrado no Relatus.'), { status: 404 });
-      return requisicao<Record<string, unknown>>(base, token, `/v1/atendimentos/${encodeURIComponent(guid)}`);
+      return requisicao<Record<string, unknown>>(BASE, token, `/v1/atendimentos/${encodeURIComponent(guid)}`);
     });
     return NextResponse.json({ ...somenteCamposExibidos(atendimento), numero });
   } catch (erro) {

@@ -39,7 +39,7 @@ async function entra(base: string): Promise<Sessao> {
   });
   const corpo = (await resposta.json().catch(() => ({}))) as { token?: string; mensagem?: string };
   if (resposta.ok && corpo.token) return { token: corpo.token, ate: validade(corpo.token) };
-  const erro = falha(`O Relatus recusou o login configurado (HTTP ${resposta.status}). ${corpo.mensagem ?? ''}`.trim());
+  const erro = falha(`O Relatus recusou o login configurado (HTTP ${resposta.status} em ${base}/v1/login). ${corpo.mensagem ?? ''}`.trim());
   if (resposta.status >= 400 && resposta.status < 500) recusa = { ate: Date.now() + PAUSA_APOS_RECUSA_MS, erro };
   throw erro;
 }
