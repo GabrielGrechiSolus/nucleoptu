@@ -308,3 +308,19 @@ html[data-user-accent] [class*="border-sky-"], html[data-user-accent] [class*="b
 html.dark .rel-ref-tag-pr { color:#93c5fd; }
 html.dark .rel-ref-tag-bm { color:#facc15; }
 html.dark .rel-ref-tag-chamado { color:#5eead4; }
+
+.cron-meses { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; align-items: start; }
+.rel-box-flat.cron-mes { padding: 10px; }
+.cron-grade { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; margin-top: 8px; text-align: center; }
+.cron-semana { color: var(--rel-muted); font-size: 0.6rem; font-weight: 600; }
+.cron-dia { display: flex; align-items: center; justify-content: center; height: 26px; border: 0; border-radius: 4px; background: transparent; color: var(--rel-text); font-size: 0.72rem; line-height: 1; }
+button.cron-dia { cursor: pointer; }
+button.cron-dia:hover { filter: brightness(1.12); }
+.cron-dia-fds { color: var(--rel-muted); }
+.cron-dia-passado { background: var(--rel-bg); color: var(--rel-muted); }
+.cron-dia-feriado { color: var(--rel-error); font-weight: 700; }
+.cron-dia-projeto { border: 1px dashed var(--rel-muted); background: var(--rel-bg); }
+.cron-dia-confirmado { font-weight: 700; text-decoration: underline; }
+.cron-dia-reservado { font-style: italic; }
+.cron-dia-hoje { outline: 2px solid var(--rel-secondary); outline-offset: -2px; font-weight: 700; }
+.cron-dia-escolhido { box-shadow: 0 0 0 2px var(--rel-primary); }

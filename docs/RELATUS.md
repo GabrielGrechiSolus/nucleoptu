@@ -8,6 +8,15 @@ Dados do atendimento, descritivo, anexos do chamado, mensagens (com os anexos de
 
 O HTML do descritivo e das mensagens é exibido como texto simples. Os anexos passam pelo servidor (`/api/relatus/chamado/arquivo`) e são sempre entregues como download, com limite de 55 segundos por arquivo.
 
+## Cronograma
+
+A tela **Cronograma** (`/cronograma`, no menu) mostra a visão anual da agenda do Web Relatus, **somente leitura**: compromissos confirmados e reservados, férias, fases de projeto, feriados e marcadores. Clicar num dia mostra os detalhes.
+
+- Cada pessoa vê **a própria agenda**: o servidor a identifica pelo e-mail do login na lista de colaboradores do Relatus. Só para o titular do operador, se o e-mail não for encontrado, vale o nome do operador. Sem correspondência única, nenhuma agenda é mostrada.
+- O acesso tem lista própria, `NEXT_PUBLIC_CRONOGRAMA_USUARIOS` (padrão: só o titular). Liberar o cronograma **não** libera os chamados do Relatus. A consulta usa o operador configurado, então a pessoa liberada precisa estar visível para ele.
+- O servidor usa apenas leituras e não devolve valores, cobrança nem dados de outros colaboradores.
+- A consulta de cada ano fica salva no navegador: anos anteriores até **Atualizar**; o ano atual e os futuros por 30 minutos.
+
 ## Consulta salva
 
 Para evitar requisições repetidas, o resultado fica salvo no navegador (até 30 chamados) e é apagado ao sair do sistema.

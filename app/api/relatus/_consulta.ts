@@ -4,7 +4,7 @@ import { permite } from '../_limite';
 import { verificaFirebase } from '../_servidor';
 import { comTokenRelatus, relatusConfigurado } from './_sessao';
 
-const BASE = 'https://relatus.solus.inf.br/api';
+export const BASE = 'https://relatus.solus.inf.br/api';
 const ID = /^[A-Za-z0-9-]{1,64}$/;
 
 export const idValido = (id: string) => ID.test(id);
@@ -14,17 +14,23 @@ export const esqueceGuids = () => guids.clear();
 
 export const recusado = (erro: string, status: number) => NextResponse.json({ erro }, { status });
 
-export async function autoriza(req: Request): Promise<NextResponse | { numero: string; params: URLSearchParams }> {
+export async function autorizaRelatus(req: Request, libera: (email: string | undefined) => boolean): Promise<NextResponse | { email: string; params: URLSearchParams }> {
   const login = await verificaFirebase(req);
   if (!login.ok) return recusado(login.motivo ?? 'Entre no sistema para usar este recurso.', 401);
-  if (!podeVerRelatus(login.email)) return recusado('Recurso não encontrado.', 404);
+  if (!libera(login.email)) return recusado('Recurso não encontrado.', 404);
   if (!permite(`relatus:${login.uid}`, 40, 60_000)) return recusado('Muitas consultas ao Relatus. Aguarde um minuto.', 429);
+  return { email: login.email ?? '', params: new URL(req.url).searchParams };
+}
 
-  const params = new URL(req.url).searchParams;
-  const numero = (params.get('numero') ?? '').replace(/\D/g, '');
+export const exigeConfiguracao = (): NextResponse | null =>
+  relatusConfigurado() ? null : recusado('Integração do Relatus não configurada no servidor. Configure RELATUS_LOGIN e RELATUS_SENHA.', 503);
+
+export async function autoriza(req: Request): Promise<NextResponse | { numero: string; params: URLSearchParams }> {
+  const pedido = await autorizaRelatus(req, (email) => podeVerRelatus(email));
+  if (pedido instanceof NextResponse) return pedido;
+  const numero = (pedido.params.get('numero') ?? '').replace(/\D/g, '');
   if (!/^\d{5,12}$/.test(numero)) return recusado('Informe um número de chamado válido.', 400);
-  if (!relatusConfigurado()) return recusado('Integração do Relatus não configurada no servidor. Configure RELATUS_LOGIN e RELATUS_SENHA.', 503);
-  return { numero, params };
+  return exigeConfiguracao() ?? { numero, params: pedido.params };
 }
 
 export async function busca(token: string, caminho: string, limite = 20_000): Promise<Response> {

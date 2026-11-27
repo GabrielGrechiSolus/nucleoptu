@@ -16,6 +16,7 @@ O tipo de perfil é o campo **Tipo de Aviso Padrão** do Perfil: Todos, Análise
 | Sustentação | sem Git: não vê PRs, branches nem links do GitHub; sem Processos |
 | Administrador | **Gestão de usuários** e importação de conexões sem a trava de dados sensíveis |
 | Lista do Web Relatus | vê a aba Web Relatus |
+| Lista do Cronograma | vê a própria agenda |
 
 O tipo de perfil é editado pelo próprio usuário; não use como barreira de segurança. Detalhes em [GIT_PERFIL.md](GIT_PERFIL.md).
 
@@ -37,6 +38,9 @@ Conversa geral, conversas diretas e salas de reunião, status, elogios e referê
 - Sala de reunião, copa (pausa) e convites para café.
 - Pedidos de ajuda, com vínculo opcional a chamado, PR ou cartão.
 - Lousa da equipe e celebrações. A **meta de chamados** é o **máximo de abertos** no mês: quanto menos, melhor. Ela só é considerada batida depois que o mês termina.
+
+### Cronograma (`/cronograma`)
+Visão anual da própria agenda do Web Relatus, somente leitura, para os e-mails liberados. Ver [RELATUS.md](RELATUS.md#cronograma).
 
 ### Contexto de chamados (`/chamados`)
 Histórico de cada chamado: situação, revision ou previsão, regra de negócio, PRs, evidências, plano de testes e documentos.

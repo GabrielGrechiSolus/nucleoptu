@@ -82,7 +82,8 @@ A chave pessoal de cada usuário **não é variável de ambiente**: é informada
 |---|---|---|
 | `RELATUS_LOGIN` | sim | operador do Relatus usado pelo servidor |
 | `RELATUS_SENHA` | sim | senha do operador |
-| `NEXT_PUBLIC_RELATUS_USUARIOS` | não | e-mails que veem o Web Relatus, separados por vírgula. Padrão: um e-mail definido em `app/chamados/relatusAcesso.ts` |
+| `NEXT_PUBLIC_RELATUS_USUARIOS` | não | e-mails que veem o Web Relatus nos chamados, separados por vírgula. Padrão: um e-mail definido em `app/chamados/relatusAcesso.ts` |
+| `NEXT_PUBLIC_CRONOGRAMA_USUARIOS` | não | e-mails que veem o Cronograma (cada um a própria agenda). Mesmo padrão. Substitui o padrão, então inclua o seu |
 
 O endereço é fixo no código. As consultas usam o acesso do operador configurado: quem for liberado enxerga o que ele enxerga. Detalhes em [RELATUS.md](RELATUS.md).
 

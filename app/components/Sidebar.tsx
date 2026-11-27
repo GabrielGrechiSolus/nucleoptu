@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../AuthContext';
+import { podeVerCronograma } from '../chamados/relatusAcesso';
 import Header from './Header';
 import { auth, db } from '../../firebase';
 import Link from 'next/link';
@@ -181,7 +182,7 @@ const Sidebar: React.FC = () => {
   const pessoa = usePessoa();
   const { favoritos, alternar: alternarFavorito } = useMenuFavoritos(pessoa.uid);
   const eu = useAdmin();
-  const menu = montaMenu({ admin: eu.admin, processos: podeUsarProcessos(pessoa.perfil, pessoa.gitUser) });
+  const menu = montaMenu({ admin: eu.admin, processos: podeUsarProcessos(pessoa.perfil, pessoa.gitUser), cronograma: podeVerCronograma(user?.email) });
   const [abertos, setAbertos] = useState<Record<string, boolean>>({});
   const contadorDe = (href: string) => (href === '/notice-board' ? unreadNotices : href === '/fila' ? pendFila : 0);
   const alterna = (id: string, aberto: boolean) => setAbertos((a) => ({ ...a, [id]: aberto }));

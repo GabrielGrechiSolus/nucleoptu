@@ -77,6 +77,7 @@ Next.js 16 (App Router), React 19.2, TypeScript, Tailwind CSS, `lucide-react`, `
 | `/api/git/revisao` | POST | logado, com Git | revision de até 80 PRs mesclados |
 | `/api/git/revisao/ultima` | GET | logado | última revision e previsão |
 | `/api/git/revisoes` | GET | logado | revisions publicadas |
+| `/api/relatus/cronograma` | GET | lista do Cronograma | agenda anual da própria pessoa |
 | `/api/relatus/chamado` | GET | lista do Relatus | atendimento, mensagens, anexos e documentos |
 | `/api/relatus/chamado/anexos` | GET | lista do Relatus | anexos de uma mensagem |
 | `/api/relatus/chamado/arquivo` | GET | lista do Relatus | baixar anexo |
