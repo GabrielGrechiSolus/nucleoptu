@@ -55,7 +55,7 @@ No detalhe há as abas **Resumo**, **Regra de negócio**, **Businessmap**, **Web
 Pedidos para aplicar uma correção no cliente antes da revision. Status: Aberto, Aplicando, Aplicado, Concluído e Cancelado, com histórico. Ver [FILA_APLICACAO.md](FILA_APLICACAO.md).
 
 ### Chamados sem PR (`/chamados-bm`)
-Cartões do quadro do BM sem PR, ordenados por relevância (report, bloqueio, prazo, prioridade, tempo parado e falta de responsável). Ver [BUSINESSMAP.md](BUSINESSMAP.md).
+Cartões do quadro do BM sem PR, ordenados por relevância (report, bloqueio, prazo, prioridade, tempo parado e falta de responsável). No detalhe do cartão, usuários liberados têm a aba **Web Relatus**, consultada só quando aberta. Ver [BUSINESSMAP.md](BUSINESSMAP.md).
 
 ### Processos do BM (`/processos`)
 Ajuda a preencher texto de conclusão e links, marcar critérios de saída, comentar e mover cartões, em lista ou kanban. **Toda gravação no BM pede confirmação**, com simulação do que será enviado, e usa a chave pessoal de quem está logado.

@@ -11,6 +11,9 @@ import { lerQuadroBm, type MetaQuadro } from '../chamados/bmQuadroSync';
 import { lerChamados } from '../chamados/chamadosDados';
 import BotaoAtualizarDados from '../components/BotaoAtualizarDados';
 import type { Chamado } from '../chamados/parse';
+import { useAuth } from '../AuthContext';
+import { podeVerRelatus } from '../chamados/relatusAcesso';
+import RelatusPanel from '../chamados/RelatusPanel';
 
 type Aba = 'andamento' | 'atencao' | 'concluidos' | 'todos';
 
@@ -51,6 +54,9 @@ function ChamadosBmPage() {
   const [incluiPr, setIncluiPr] = useState(false);
   const [semNumero, setSemNumero] = useState(false);
   const url = useDetalheNaUrl('cartao');
+  const { user } = useAuth();
+  const comRelatus = podeVerRelatus(user?.email);
+  const [relatusDe, setRelatusDe] = useState<number | null>(null);
   const { sort, toggleSort } = useSort({ key: 'relevancia', dir: 'desc' });
   const [agora] = useState(() => Date.now());
 
@@ -137,10 +143,17 @@ function ChamadosBmPage() {
   if (aberto) {
     const pontosAtencao = atencaoDe(aberto, reportsDe(aberto), agora);
     const reportsAbertos = reportsAtivos(reportsDe(aberto));
+    const noRelatus = comRelatus && relatusDe === aberto.cardId;
     return (
       <TelaDetalhe
         onVoltar={url.voltar}
         rotuloVoltar="Voltar à lista"
+        abas={comRelatus ? [
+          { id: null, rotulo: 'Cartão' },
+          { id: aberto.cardId, rotulo: 'Web Relatus' },
+        ].map((a) => (
+          <button key={a.rotulo} type="button" onClick={() => setRelatusDe(a.id)} className={`rel-tab ${noRelatus === (a.id !== null) ? 'rel-tab-active' : ''}`}>{a.rotulo}</button>
+        )) : undefined}
         cabecalho={
           <>
             <div className="min-w-0">
@@ -154,39 +167,45 @@ function ChamadosBmPage() {
           </>
         }
       >
-        <section className="rel-box">
-          <div className="rel-grid rel-grid-s2 rel-grid-3">
-            {[
-              ['Fase', ROTULO_SECAO[aberto.secao] ?? '—'],
-              ['Tipo', aberto.tipo || '—'],
-              ['Responsável', aberto.responsavel || 'Sem responsável'],
-              ['Prioridade', aberto.prioridade ? ROTULO_PRIORIDADE[aberto.prioridade] : '—'],
-              ['Prazo', dataBr(aberto.prazo)],
-              ['Criado em', dataBr(aberto.criadoEm)],
-              ['Atualizado em', dataBr(aberto.atualizadoEm)],
-              ['Na coluna desde', dataBr(aberto.naColunaDesde)],
-            ].map(([k, v]) => (
-              <div key={k} className="rel-field"><span className="rel-label">{k}</span><span className="rel-value">{v}</span></div>
-            ))}
-          </div>
-        </section>
-        {pontosAtencao.length > 0 && (
-          <section className="rel-box">
-            <h3 className="rel-subtitle">Pontos de atenção</h3>
-            <div className="flex flex-wrap gap-1">
-              {pontosAtencao.map((a) => <span key={a} className={`rel-tag ${COR_ATENCAO[a]}`}>{ROTULO_ATENCAO[a]}</span>)}
-            </div>
-          </section>
-        )}
-        {reportsAbertos.length > 0 && (
-          <section className="rel-box">
-            <h3 className="rel-subtitle">Reports abertos</h3>
-            <ul className="rel-list">
-              {reportsAbertos.map((r) => (
-                <li key={r.cardId}><a href={r.url} target="_blank" rel="noreferrer" className="rel-link inline-flex items-center gap-1">{r.titulo} <ExternalLink className="h-3 w-3" /></a> <span className="rel-desc">({r.coluna}{r.responsavel ? `, ${r.responsavel}` : ''})</span></li>
-              ))}
-            </ul>
-          </section>
+        {noRelatus ? (
+          <div className="rel-box"><RelatusPanel key={aberto.cardId} chamadoInicial={aberto.numero} /></div>
+        ) : (
+          <>
+            <section className="rel-box">
+              <div className="rel-grid rel-grid-s2 rel-grid-3">
+                {[
+                  ['Fase', ROTULO_SECAO[aberto.secao] ?? '—'],
+                  ['Tipo', aberto.tipo || '—'],
+                  ['Responsável', aberto.responsavel || 'Sem responsável'],
+                  ['Prioridade', aberto.prioridade ? ROTULO_PRIORIDADE[aberto.prioridade] : '—'],
+                  ['Prazo', dataBr(aberto.prazo)],
+                  ['Criado em', dataBr(aberto.criadoEm)],
+                  ['Atualizado em', dataBr(aberto.atualizadoEm)],
+                  ['Na coluna desde', dataBr(aberto.naColunaDesde)],
+                ].map(([k, v]) => (
+                  <div key={k} className="rel-field"><span className="rel-label">{k}</span><span className="rel-value">{v}</span></div>
+                ))}
+              </div>
+            </section>
+            {pontosAtencao.length > 0 && (
+              <section className="rel-box">
+                <h3 className="rel-subtitle">Pontos de atenção</h3>
+                <div className="flex flex-wrap gap-1">
+                  {pontosAtencao.map((a) => <span key={a} className={`rel-tag ${COR_ATENCAO[a]}`}>{ROTULO_ATENCAO[a]}</span>)}
+                </div>
+              </section>
+            )}
+            {reportsAbertos.length > 0 && (
+              <section className="rel-box">
+                <h3 className="rel-subtitle">Reports abertos</h3>
+                <ul className="rel-list">
+                  {reportsAbertos.map((r) => (
+                    <li key={r.cardId}><a href={r.url} target="_blank" rel="noreferrer" className="rel-link inline-flex items-center gap-1">{r.titulo} <ExternalLink className="h-3 w-3" /></a> <span className="rel-desc">({r.coluna}{r.responsavel ? `, ${r.responsavel}` : ''})</span></li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </>
         )}
       </TelaDetalhe>
     );
