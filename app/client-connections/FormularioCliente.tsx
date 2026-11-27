@@ -10,8 +10,8 @@ function CampoSenha({ valor, onChange, rotulo, mantida }: { valor: string; onCha
   return (
     <div className="rel-field">
       <label className="rel-label">{rotulo}</label>
-      <div className="relative">
-        <input type={vendo ? 'text' : 'password'} autoComplete="new-password" value={valor} onChange={(e) => onChange(e.target.value)} placeholder={mantida ? 'Senha cadastrada: deixe em branco para manter' : ''} className="rel-input pr-9" />
+      <div className="rel-com-botao relative">
+        <input type={vendo ? 'text' : 'password'} autoComplete="new-password" value={valor} onChange={(e) => onChange(e.target.value)} placeholder={mantida ? 'Senha cadastrada: deixe em branco para manter' : ''} className="rel-input" />
         <button type="button" onClick={() => setVendo((v) => !v)} aria-label={vendo ? 'Ocultar senha' : 'Mostrar senha'} className="absolute right-2 top-2.5" style={{ color: 'var(--rel-muted)' }}>
           {vendo ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>

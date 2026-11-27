@@ -2,13 +2,14 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import withAuth from '../../components/withAuth';
-import { KeyRound, Search, ShieldCheck, ShieldOff, UserCheck, UserPlus, UserX, X } from 'lucide-react';
+import { KeyRound, ShieldCheck, ShieldOff, UserCheck, UserPlus, UserX, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { SortTh, sortRows, useSort } from '../../components/SortableTable';
 import { chamaApi } from '../api';
 import { useAdmin } from '../useAdmin';
 import { ROTULO_PERFIL, TIPOS_PERFIL, SENHA_MINIMA, validaNovoUsuario, validaSenha, type TipoPerfil } from '../validacao';
 import type { UsuarioAdmin } from '../../api/admin/usuarios/route';
+import CampoBusca from '../../components/CampoBusca';
 
 type Modal = { tipo: 'novo' } | { tipo: 'senha'; usuario: UsuarioAdmin } | { tipo: 'confirma'; usuario: UsuarioAdmin; acao: 'inativar' | 'ativar' | 'admin-sim' | 'admin-nao' } | null;
 
@@ -169,10 +170,7 @@ function UsuariosAdminPage() {
       <section className="rel-box rel-filters">
         <label className="rel-field rel-label rel-filter-wide">
           Pesquisar
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-500" />
-            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome ou e-mail" className="rel-input pl-8" />
-          </div>
+          <CampoBusca valor={busca} onChange={(v) => setBusca(v)} placeholder="Nome ou e-mail" />
         </label>
         <label className="rel-field rel-label">
           Situação

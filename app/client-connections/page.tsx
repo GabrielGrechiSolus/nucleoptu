@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Network, Plus, Search, Upload } from 'lucide-react';
+import { Network, Plus, Upload } from 'lucide-react';
 import { toast } from 'react-toastify';
 import withAuth from '../components/withAuth';
 import Link from 'next/link';
@@ -12,6 +12,7 @@ import { excluiCliente, listaClientes, salvaCliente } from './api';
 import DetalheCliente from './DetalheCliente';
 import FormularioCliente from './FormularioCliente';
 import { FILTROS_CLIENTES_INICIAIS, PERFIS_CONTATO, ROTULO_PERFIL, ROTULO_TIPO_CONEXAO, TIPOS_CONEXAO, filtraClientes, migraDadosLocais, novoCliente, previaImportacao, resumoConexoes, type ClienteConexao, type FiltrosClientes, type PerfilContato, type TipoConexao } from './modelo';
+import CampoBusca from '../components/CampoBusca';
 
 const CHAVE_LOCAL = 'client_connections';
 
@@ -195,10 +196,7 @@ ${previa.repetidos.length} já cadastrado(s) serão mantidos sem alteração${pr
         <div className="rel-filters">
           <label className="rel-field rel-label rel-filter-wide">
             Pesquisar
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4" style={{ color: 'var(--rel-muted)' }} />
-              <input value={filtros.busca} onChange={(e) => altera('busca', e.target.value)} placeholder="Cliente, código, ID de acesso, servidor ou contato" className="rel-input pl-8" />
-            </div>
+            <CampoBusca valor={filtros.busca} onChange={(v) => altera('busca', v)} placeholder="Cliente, código, ID de acesso, servidor ou contato" />
           </label>
           <label className="rel-field rel-label">
             Situação

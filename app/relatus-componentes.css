@@ -324,3 +324,22 @@ button.cron-dia:hover { filter: brightness(1.12); }
 .cron-dia-reservado { font-style: italic; }
 .cron-dia-hoje { outline: 2px solid var(--rel-secondary); outline-offset: -2px; font-weight: 700; }
 .cron-dia-escolhido { box-shadow: 0 0 0 2px var(--rel-primary); }
+
+.rel-busca { position: relative; }
+.rel-busca-icone { position: absolute; left: 12px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); color: var(--rel-muted); pointer-events: none; }
+html .rel-busca .rel-input { min-height: 40px; padding-left: 38px; padding-right: 38px; text-overflow: ellipsis; }
+.rel-busca-limpar { position: absolute; right: 7px; top: 50%; display: flex; width: 26px; height: 26px; transform: translateY(-50%); align-items: center; justify-content: center; border: 0; border-radius: 4px; background: transparent; color: var(--rel-muted); cursor: pointer; }
+.rel-busca-limpar:hover { background: var(--rel-bg); color: var(--rel-title); }
+html .rel-com-botao .rel-input { padding-right: 40px; }
+.rel-btn-alto { height: 40px; }
+.rel-segmentos { display: flex; flex-wrap: wrap; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid var(--rel-line); }
+.rel-segmento { height: 32px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: var(--rel-muted); font-size: 0.82rem; font-weight: 500; cursor: pointer; }
+.rel-segmento:hover { background: var(--rel-primary-soft); color: var(--rel-primary); }
+.rel-segmento-ativo { background: var(--rel-primary-soft); color: var(--rel-primary); font-weight: 600; }
+.rel-segmento-contagem { opacity: 0.75; }
+.rel-contador { display: inline-flex; min-width: 18px; height: 18px; padding: 0 5px; align-items: center; justify-content: center; border-radius: 999px; background: var(--rel-secondary); color: #fff; font-size: 0.68rem; font-weight: 600; }
+.rel-grupo-filtros { min-width: 0; margin: 0; padding: 10px 14px 14px; border: 1px solid var(--rel-line); border-radius: 5px; }
+.rel-grupo-filtros legend { padding: 0 6px; color: var(--rel-primary); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.rel-tag-remover { border: 0; cursor: pointer; }
+.rel-tag-remover:hover { filter: brightness(0.95); }
+.rel-filtros-rodape { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; min-height: 30px; }

@@ -5,12 +5,13 @@ import withAuth from '../components/withAuth';
 import Link from 'next/link';
 import TelaDetalhe, { useDetalheNaUrl } from '../components/TelaDetalhe';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import { ListChecks, Search } from 'lucide-react';
+import { ListChecks } from 'lucide-react';
 import { db } from '../../firebase';
 import { usePessoa } from '../components/usePessoa';
 import { SortTh, sortRows, useSort } from '../components/SortableTable';
 import { BotoesAcao, COLECAO_VINCULOS, Historico, estiloStatus } from '../chamados/Vinculos';
 import { ROTULO_STATUS, ROTULO_STATUS_CURTO, STATUS_ABERTOS, STATUS_FILA, StatusAplicacao, Vinculo, ehDono, ehSolicitante, pendenciasPara } from '../chamados/aplicacao';
+import CampoBusca from '../components/CampoBusca';
 
 type Aba = 'aplicar' | 'continuar' | 'meus' | 'todos';
 
@@ -147,10 +148,7 @@ function FilaPage() {
       <section className="rel-box rel-filters">
         <label className="rel-field rel-label rel-filter-wide">
           Pesquisar
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-500" />
-            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Chamado, cliente, correção, PR, dono..." className="rel-input pl-8" />
-          </div>
+          <CampoBusca valor={busca} onChange={(v) => setBusca(v)} placeholder="Chamado, cliente, correção, PR, dono..." />
         </label>
         <label className="rel-field rel-label">
           Status

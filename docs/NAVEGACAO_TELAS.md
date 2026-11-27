@@ -22,6 +22,8 @@
 
 ## Filtros
 
+- Campo de busca com lupa: use o componente `CampoBusca` (`app/components/CampoBusca.tsx`). Não posicione ícone sobre `rel-input` com classes `pl-*` ou `pr-*`: o estilo de `rel-input` tem prioridade, o espaço não é aplicado e o ícone cobre o texto. Para botão dentro do campo, envolva em `rel-com-botao`.
+- No Contexto de chamados, os filtros ficam recolhidos no botão **Filtros** e os ativos aparecem como etiquetas removíveis (`app/chamados/FiltrosChamados.tsx`).
 - Use `<div className="rel-filters">`: grade que quebra por largura mínima de 190px (campos nunca ficam espremidos), uma coluna no celular.
 - A busca leva `rel-filter-wide` (duas colunas); botões ficam em `rel-filter-actions`; caixas de seleção usam `rel-check-inline`.
 - Não limite a largura de `select` com `max-w-*` dentro de `.rel-filters`.

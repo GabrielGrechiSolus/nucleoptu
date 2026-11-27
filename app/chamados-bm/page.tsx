@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ExternalLink, Inbox, Search } from 'lucide-react';
+import { ExternalLink, Inbox } from 'lucide-react';
 import withAuth from '../components/withAuth';
 import Link from 'next/link';
 import TelaDetalhe, { useDetalheNaUrl } from '../components/TelaDetalhe';
@@ -14,6 +14,7 @@ import type { Chamado } from '../chamados/parse';
 import { useAuth } from '../AuthContext';
 import { podeVerRelatus } from '../chamados/relatusAcesso';
 import RelatusPanel from '../chamados/RelatusPanel';
+import CampoBusca from '../components/CampoBusca';
 
 type Aba = 'andamento' | 'atencao' | 'concluidos' | 'todos';
 
@@ -239,10 +240,7 @@ function ChamadosBmPage() {
         <div className="rel-filters">
           <label className="rel-field rel-label rel-filter-wide">
             Pesquisar
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4" style={{ color: 'var(--rel-muted)' }} />
-              <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Chamado, assunto, responsável, coluna..." className="rel-input pl-8" />
-            </div>
+            <CampoBusca valor={busca} onChange={(v) => setBusca(v)} placeholder="Chamado, assunto, responsável, coluna..." />
           </label>
           <label className="rel-field rel-label">
             Responsável

@@ -4,11 +4,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import withAuth from '../components/withAuth';
 import { doc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
-import { FolderSearch, Search, Upload, FileText, Copy } from 'lucide-react';
+import { FolderSearch, Upload, FileText, Copy } from 'lucide-react';
 import { Chamado, lerPasta, ROTULO_SITUACAO, ROTULO_TIPO } from './parse';
 import { CAMPOS_REGRA, MODELO_REGRA } from './modelo';
 import { SortTh, sortRows, useSort } from '../components/SortableTable';
-import { filtraChamados } from './filtro';
+import { filtraChamados, type Tri } from './filtro';
+import FiltrosChamados, { type AbaChamados, type FiltrosTela } from './FiltrosChamados';
 import { usePessoa } from '../components/usePessoa';
 import { semGitChamado } from './semgit';
 import { BmColuna } from './BmPainel';
@@ -25,14 +26,10 @@ import { reportsAtivos, reportsPorNumero, type CartaoQuadro } from './bmQuadro';
 import { lerQuadroBm } from './bmQuadroSync';
 import { usePrevisaoRevisao } from './usePrevisaoRevisao';
 
-type Tri = 'todos' | 'sim' | 'nao';
-type Aba = 'todos' | 'em-correcao' | 'corrigidos' | 'regras';
 
 const COLECAO = 'chamados';
 
 const tokenDoLogin = async () => (await (auth.currentUser as unknown as { getIdToken(): Promise<string> } | null)?.getIdToken()) ?? '';
-
-const passa = (v: boolean, f: Tri) => f === 'todos' || (f === 'sim' ? v : !v);
 
 const dataParaNumero = (d: string) => {
   const m = d.match(/(\d{2})\/(\d{2})\/(\d{4})/);
@@ -52,19 +49,6 @@ function Selo({ ok }: { ok: boolean }) {
     <span className={`rel-tag ${ok ? 'rel-tag-ok' : ''}`}>
       {ok ? 'Sim' : 'Não'}
     </span>
-  );
-}
-
-function FiltroTri({ rotulo, valor, onChange }: { rotulo: string; valor: Tri; onChange: (v: Tri) => void }) {
-  return (
-    <label className="rel-field rel-label">
-      {rotulo}
-      <select value={valor} onChange={(e) => onChange(e.target.value as Tri)} className="rel-input">
-        <option value="todos">Todos</option>
-        <option value="sim">Sim</option>
-        <option value="nao">Não</option>
-      </select>
-    </label>
   );
 }
 
@@ -129,7 +113,7 @@ function ChamadosPage() {
   const [erro, setErro] = useState('');
   const [busca, setBusca] = useState('');
   const [noConteudo, setNoConteudo] = useState(false);
-  const [aba, setAba] = useState<Aba>('todos');
+  const [aba, setAba] = useState<AbaChamados>('todos');
   const [fPr, setFPr] = useState<Tri>('todos');
   const [fEvid, setFEvid] = useState<Tri>('todos');
   const [fPlano, setFPlano] = useState<Tri>('todos');
@@ -343,12 +327,21 @@ function ChamadosPage() {
     }
   };
 
-  const abas: { id: Aba; rotulo: string }[] = [
-    { id: 'todos', rotulo: 'Todos' },
-    { id: 'em-correcao', rotulo: 'Em correção' },
-    { id: 'corrigidos', rotulo: 'Corrigidos' },
-    { id: 'regras', rotulo: 'Regras e orientações' },
-  ];
+  const mudaFiltro = <K extends keyof FiltrosTela>(campo: K, valor: FiltrosTela[K]) => {
+    const define: { [C in keyof FiltrosTela]: (v: FiltrosTela[C]) => void } = {
+      busca: setBusca,
+      noConteudo: setNoConteudo,
+      cliente: setFCliente,
+      modulo: setFModulo,
+      autor: setFAutor,
+      revision: setFRevision,
+      pr: setFPr,
+      evidencia: setFEvid,
+      plano: setFPlano,
+      regra: setFRegra,
+    };
+    (define[campo] as (v: FiltrosTela[K]) => void)(valor);
+  };
 
   const aberto = useMemo(() => (urlChamado.valor ? itens.find((c) => c.id === urlChamado.valor) ?? null : null), [itens, urlChamado.valor]);
   const mostraModelo = urlModelo.valor === '1';
@@ -537,79 +530,20 @@ function ChamadosPage() {
         </section>
       )}
 
-      <div className="flex flex-wrap gap-2">
-        {abas.map((a) => (
-          <button
-            key={a.id}
-            onClick={() => setAba(a.id)}
-            className={`rel-btn rel-btn-sm ${aba === a.id ? 'rel-btn-primary' : 'rel-btn-ghost'}`}
-          >
-            {a.rotulo} <span className="opacity-75">({contagem[a.id]})</span>
-          </button>
-        ))}
-      </div>
+      <FiltrosChamados
+        filtros={{ busca, noConteudo, cliente: fCliente, modulo: fModulo, autor: fAutor, revision: fRevision, pr: fPr, evidencia: fEvid, plano: fPlano, regra: fRegra }}
+        onMuda={mudaFiltro}
+        onLimpar={limpar}
+        aba={aba}
+        onAba={setAba}
+        contagem={contagem}
+        opcoes={{ clientes, modulos, autores: autoresLista, revisions }}
+        exibidos={filtrados.length}
+        total={itens.length}
+        semGit={semGit}
+      />
 
-      <section className="rel-box">
-        <div className="rel-filters">
-          <label className="rel-field rel-label rel-filter-wide">
-            Pesquisar
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-500" />
-              <input
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Chamado, cliente, assunto, módulo, revision, PR..."
-                className="rel-input pl-8"
-              />
-            </div>
-          </label>
-          <label className="rel-field rel-label">
-            Módulo
-            <select value={fModulo} onChange={(e) => setFModulo(e.target.value)} className="rel-input">
-              <option value="">Todos</option>
-              {modulos.map((m) => <option key={m} value={m}>{m}</option>)}
-            </select>
-          </label>
-          <label className="rel-field rel-label">
-            Autor do PR
-            <select value={fAutor} onChange={(e) => setFAutor(e.target.value)} className="rel-input">
-              <option value="">Todos</option>
-              {autoresLista.map((a) => <option key={a} value={a}>{a}</option>)}
-            </select>
-          </label>
-          <label className="rel-field rel-label">
-            Cliente
-            <select value={fCliente} onChange={(e) => setFCliente(e.target.value)} className="rel-input">
-              <option value="">Todos</option>
-              {clientes.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </label>
-          <label className="rel-field rel-label">
-            Revision
-            <select value={fRevision} onChange={(e) => setFRevision(e.target.value)} className="rel-input">
-              <option value="">Todas</option>
-              {revisions.map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </label>
-          {!semGit && <FiltroTri rotulo="Tem PR" valor={fPr} onChange={setFPr} />}
-          <FiltroTri rotulo="Evidência" valor={fEvid} onChange={setFEvid} />
-          <FiltroTri rotulo="Plano de testes" valor={fPlano} onChange={setFPlano} />
-          <FiltroTri rotulo="Tem REGRA.md" valor={fRegra} onChange={setFRegra} />
-        </div>
-        <div className="rel-desc mt-3 flex flex-wrap items-center justify-between gap-3">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={noConteudo} onChange={(e) => setNoConteudo(e.target.checked)} />
-            Pesquisar também dentro dos documentos (mais lento)
-          </label>
-
-          <span>
-            {filtrados.length} de {itens.length} chamado(s)
-            <button onClick={limpar} className="ml-2 text-sky-400 hover:underline">limpar filtros</button>
-          </span>
-        </div>
-      </section>
-
-      {msgBm && <p className="mb-2 text-xs text-amber-300">Businessmap: {msgBm}</p>}
+      {msgBm && <p className="rel-notice rel-notice-alert">Businessmap: {msgBm}</p>}
       <section className="rel-table-wrap">
         <table className="w-full text-left text-sm">
           <thead className="text-xs">
