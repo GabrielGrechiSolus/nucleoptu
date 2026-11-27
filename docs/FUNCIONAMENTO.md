@@ -49,7 +49,7 @@ Os contextos entram de duas formas:
 1. **Pelo Git, automaticamente** (ver Rotinas automáticas).
 2. **Importar contextos:** lê pastas de chamados com arquivos `.md` (modelo em [MODELO_REGRA.md](MODELO_REGRA.md)), pelo seletor de pasta do navegador ou pelo caminho `CONTEXTOS_DIR` em servidor local. Há prévia antes de gravar, e a opção de substituir remove o que não estiver na importação.
 
-**Abas:** Todos, **Em correção** e **Corrigidos** (somente com PR) e **Regras e orientações**, que reúne **tudo o que ainda não tem PR**: contextos sem PR e os cartões do quadro do BM sem contexto, ordenados por relevância (report, bloqueio, prazo, prioridade, tempo parado e falta de responsável), com filtros próprios e aba Web Relatus no detalhe para usuários liberados. **Quando o chamado ganha um PR** (contexto gerado ou atualizado), sai dessa aba e vai para Em correção ou Corrigidos. O endereço antigo `/chamados-bm` redireciona para ela.
+**Abas:** Todos, **Em correção** e **Corrigidos** (somente com PR) e **Regras e orientações**, que reúne **tudo o que ainda não tem PR**: contextos sem PR e os cartões do quadro do BM sem contexto, **na mesma lista e com a mesma busca e os mesmos filtros** (também aparecem em Todos). Os cartões mostram etiquetas de atenção (report, bloqueio, prazo, prioridade, tempo parado e falta de responsável); cartão sem número de chamado só aparece quando buscado. No detalhe há a aba Web Relatus para usuários liberados. **Quando o chamado ganha um PR** (contexto gerado ou atualizado), sai dessa aba e vai para Em correção ou Corrigidos. O endereço antigo `/chamados-bm` redireciona para ela.
 
 A busca é profunda e há busca ao vivo no GitHub e no BM. Ver [BUSCA.md](BUSCA.md).
 

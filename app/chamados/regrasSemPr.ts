@@ -1,45 +1,35 @@
-import { indexa, indiceContem, termosDaBusca } from '../busca/motor';
-import { atencaoDe, concluido, ehReport, type CartaoQuadro } from './bmQuadro';
-import type { RegistroBm } from './bmRegistro';
-import { textoDoBm } from './buscaChamado';
-
-export type AbaCartoes = 'andamento' | 'atencao' | 'concluidos' | 'todos';
-
-export interface FiltrosCartoes {
-  aba: AbaCartoes;
-  responsavel: string;
-  coluna: string;
-  tipo: string;
-  semNumero: boolean;
-}
-
-export const FILTROS_CARTOES: FiltrosCartoes = { aba: 'andamento', responsavel: '', coluna: '', tipo: '', semNumero: false };
+import { concluido, ehReport, pontuacao, type CartaoQuadro } from './bmQuadro';
+import type { Chamado } from './parse';
 
 const digitos = (v: string) => v.replace(/\D/g, '');
 
-// Cartões do quadro que ainda não têm PR. Quando o chamado já tem contexto, ele aparece pela lista de contextos.
+export type LinhaLista = Chamado & { cartao?: CartaoQuadro };
+
+// Cartões do quadro que ainda não têm PR. Quando o chamado já tem contexto, ele aparece pelo próprio contexto.
 export function cartoesSemContexto(cartoes: CartaoQuadro[], contextos: { id: string }[]): CartaoQuadro[] {
   const comContexto = new Set(contextos.map((c) => digitos(c.id)));
   return cartoes.filter((c) => !ehReport(c) && !(c.numero && comContexto.has(digitos(c.numero))));
 }
 
-export function buscaCartoes(cartoes: CartaoQuadro[], busca: string, registros: Record<string, RegistroBm>, semGit = false): CartaoQuadro[] {
-  const termos = termosDaBusca(busca);
-  if (!termos.length) return cartoes;
-  return cartoes.filter((c) => {
-    const registro = c.numero ? registros[digitos(c.numero)] : undefined;
-    return indiceContem(indexa([c.numero, ...textoDoBm(registro, [c], semGit)]), termos);
-  });
+const dataBr = (iso: string) => {
+  const [, ano, mes, dia] = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso) ?? [];
+  return ano ? `${dia}/${mes}/${ano}` : '';
+};
+
+function linhaDoCartao(c: CartaoQuadro): LinhaLista {
+  const numero = digitos(c.numero);
+  return {
+    id: `cartao-${c.cardId}`,
+    numero: numero.length === 6 ? `${numero.slice(0, 3)}.${numero.slice(3)}` : c.numero,
+    cliente: '', assunto: c.titulo, resumo: '', status: c.coluna, revision: '', previsaoRevision: '', atualizadoEm: dataBr(c.atualizadoEm),
+    prs: [], branches: [], evidencias: [], planosTeste: [], temPr: false, temEvidencia: false, temPlano: false, temBm: true,
+    tipo: '', situacao: '', modulo: '', caminhoTela: '', publicadoEm: '', temRegra: false, autores: [], autoresLogin: [], docs: {},
+    cartao: c,
+  };
 }
 
-export function filtraCartoes(cartoes: CartaoQuadro[], f: FiltrosCartoes, reports: Map<string, CartaoQuadro[]>, agora: number): CartaoQuadro[] {
-  return cartoes.filter((c) => {
-    if (!f.semNumero && !c.numero) return false;
-    if (f.aba === 'andamento' && concluido(c)) return false;
-    if (f.aba === 'concluidos' && !concluido(c)) return false;
-    if (f.aba === 'atencao' && atencaoDe(c, c.numero ? reports.get(c.numero) : undefined, agora).length === 0) return false;
-    if (f.responsavel && c.responsavel !== f.responsavel) return false;
-    if (f.coluna && c.coluna !== f.coluna) return false;
-    return !f.tipo || c.tipo === f.tipo;
-  });
+// Os que pedem mais atenção vêm primeiro; a ordenação da tabela mantém essa ordem entre os empatados.
+export function linhasDosCartoes(cartoes: CartaoQuadro[], reports: Map<string, CartaoQuadro[]>, agora: number): LinhaLista[] {
+  const peso = (c: CartaoQuadro) => pontuacao(c, c.numero ? reports.get(c.numero) : undefined, agora) + (concluido(c) ? 0 : 0.5);
+  return [...cartoes].sort((a, b) => peso(b) - peso(a)).map(linhaDoCartao);
 }

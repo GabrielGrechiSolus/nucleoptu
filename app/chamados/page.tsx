@@ -22,13 +22,12 @@ import Link from 'next/link';
 import TelaDetalhe, { useDetalheNaUrl, useDetalheNoHistorico } from '../components/TelaDetalhe';
 import { previsaoDe } from './previsao';
 import { EVENTO_DADOS_ATUALIZADOS } from '../components/AtualizaAoEntrar';
-import { ehReport, reportsAtivos, reportsPorNumero, type CartaoQuadro } from './bmQuadro';
-import CartoesSemPr from './CartoesSemPr';
+import { atencaoDe, concluido, ehReport, reportsAtivos, reportsPorNumero, type CartaoQuadro } from './bmQuadro';
 import DetalheCartao from './DetalheCartao';
-import { FILTROS_CARTOES, buscaCartoes, cartoesSemContexto, type FiltrosCartoes } from './regrasSemPr';
+import { cartoesSemContexto, linhasDosCartoes, type LinhaLista } from './regrasSemPr';
 import { indiceDoChamado, ondeEncontrou } from './buscaChamado';
 import BuscaExterna from '../busca/BuscaExterna';
-import { dataBr } from './rotulosCartao';
+import { COR_ATENCAO, ROTULO_ATENCAO } from './rotulosCartao';
 import { lerQuadroBm } from './bmQuadroSync';
 import { usePrevisaoRevisao } from './usePrevisaoRevisao';
 
@@ -132,8 +131,6 @@ function ChamadosPage() {
   const urlBusca = useDetalheNaUrl('busca');
   const urlAba = useDetalheNaUrl('aba');
   const urlCartao = useDetalheNaUrl('cartao');
-  const [filtrosCartoes, setFiltrosCartoes] = useState<FiltrosCartoes>(FILTROS_CARTOES);
-  const [sincronizadoQuadro, setSincronizadoQuadro] = useState('');
   const [quadroLido, setQuadroLido] = useState(false);
   const [agora] = useState(() => Date.now());
   const [previa, setPrevia] = useState<Chamado[] | null>(null);
@@ -191,7 +188,6 @@ function ChamadosPage() {
   useEffect(() => {
     if (!urlBusca.valor) return;
     setBusca(urlBusca.valor);
-    setFiltrosCartoes((f) => ({ ...f, aba: 'todos', semNumero: true }));
   }, [urlBusca.valor]);
 
   useEffect(() => {
@@ -200,10 +196,7 @@ function ChamadosPage() {
 
   const carregaQuadro = useCallback((atualizar = false) => {
     lerQuadroBm(atualizar)
-      .then((q) => {
-        setQuadro(q.cartoes);
-        setSincronizadoQuadro(q.meta ? `Quadro sincronizado em ${dataBr(q.meta.sincronizadoEm)} por ${q.meta.por || '—'}.` : '');
-      })
+      .then((q) => setQuadro(q.cartoes))
       .catch(() => undefined)
       .finally(() => setQuadroLido(true));
   }, []);
@@ -308,42 +301,43 @@ function ChamadosPage() {
     return mapa;
   }, [quadro, reportsDoQuadro]);
 
-  const indices = useMemo(
-    () => new Map(itens.map((c) => [c.id, indiceDoChamado(c, registros[soDigitos(c.numero)], quadroPorNumero.get(soDigitos(c.numero)), semGit)])),
-    [itens, registros, quadroPorNumero, semGit],
-  );
-
-  const semPr = useMemo(() => cartoesSemContexto(quadro, itens), [quadro, itens]);
-  const cartoesDaBusca = useMemo(() => buscaCartoes(semPr, busca, registros, semGit), [semPr, busca, registros, semGit]);
+  const cartoesSemPr = useMemo(() => linhasDosCartoes(cartoesSemContexto(quadro, itens), reportsDoQuadro, agora), [quadro, itens, reportsDoQuadro, agora]);
+  // Cartão sem número de chamado só aparece quando a busca o procura.
+  const linhas: LinhaLista[] = useMemo(() => [...itens, ...cartoesSemPr.filter((c) => c.numero || busca.trim())], [itens, cartoesSemPr, busca]);
   const idsComContexto = useMemo(() => new Set(itens.map((c) => soDigitos(c.numero))), [itens]);
+
+  const indices = useMemo(
+    () => new Map(linhas.map((c: LinhaLista) => [c.id, indiceDoChamado(c, registros[soDigitos(c.numero)], c.cartao ? [c.cartao, ...(reportsDoQuadro.get(c.cartao.numero) ?? [])] : quadroPorNumero.get(soDigitos(c.numero)), semGit)])),
+    [linhas, registros, quadroPorNumero, reportsDoQuadro, semGit],
+  );
 
   const contagem = useMemo(
     () => ({
-      todos: itens.length,
-      'em-correcao': itens.filter((c) => pertenceAba(c, 'em-correcao')).length,
-      corrigidos: itens.filter((c) => pertenceAba(c, 'corrigidos')).length,
-      regras: itens.filter((c) => pertenceAba(c, 'regras')).length + semPr.filter((c) => c.numero).length,
+      todos: linhas.length,
+      'em-correcao': linhas.filter((c) => pertenceAba(c, 'em-correcao')).length,
+      corrigidos: linhas.filter((c) => pertenceAba(c, 'corrigidos')).length,
+      regras: linhas.filter((c) => pertenceAba(c, 'regras')).length,
     }),
-    [itens, semPr],
+    [linhas],
   );
 
   // Sem useMemo: a lista é pequena e assim nenhum filtro fica de fora das dependências (o filtro de autor já ficou).
   const filtrados = sortRows(
-    filtraChamados(itens, { busca, aba, pr: fPr, evidencia: fEvid, plano: fPlano, regra: fRegra, cliente: fCliente, modulo: fModulo, autor: fAutor, revision: fRevision }, indices),
+    filtraChamados(linhas, { busca, aba, pr: fPr, evidencia: fEvid, plano: fPlano, regra: fRegra, cliente: fCliente, modulo: fModulo, autor: fAutor, revision: fRevision }, indices),
     sort,
     {
     numero: (c) => c.id,
     assunto: (c) => c.assunto,
-    tipo: (c) => ROTULO_TIPO[c.tipo ?? ''] === '—' ? '' : ROTULO_TIPO[c.tipo ?? ''],
-    situacao: (c) => (c.situacao ? ROTULO_SITUACAO[c.situacao] : ''),
+    tipo: (c) => c.cartao?.tipo ?? (ROTULO_TIPO[c.tipo ?? ''] === '—' ? '' : ROTULO_TIPO[c.tipo ?? '']),
+    situacao: (c) => (c.cartao ? (concluido(c.cartao) ? 'Concluído no BM' : 'Sem PR') : c.situacao ? ROTULO_SITUACAO[c.situacao] : ''),
     modulo: (c) => c.modulo,
-    autor: (c) => (c.autores ?? []).join(', '),
+    autor: (c) => c.cartao?.responsavel ?? (c.autores ?? []).join(', '),
     revision: (c) => c.revision,
     publicado: (c) => c.publicadoEm || '',
     prs: (c) => c.prs.length,
     evidencia: (c) => c.temEvidencia,
     plano: (c) => c.temPlano,
-    bm: (c) => registros[soDigitos(c.numero)]?.resumo?.coluna ?? '',
+    bm: (c) => c.cartao?.coluna ?? registros[soDigitos(c.numero)]?.resumo?.coluna ?? '',
     atualizado: (c) => dataParaNumero(c.atualizadoEm),
     },
   );
@@ -359,10 +353,9 @@ function ChamadosPage() {
     setFAutor('');
     setFRevision('');
     setAba('todos');
-    setFiltrosCartoes(FILTROS_CARTOES);
   };
 
-  const buscaEmTudo = useMemo(() => (busca.trim() ? filtraChamados(itens, { ...FILTROS_VAZIOS, busca }, indices).length : 0), [itens, busca, indices]);
+  const buscaEmTudo = useMemo(() => (busca.trim() ? filtraChamados(linhas, { ...FILTROS_VAZIOS, busca }, indices).length : 0), [linhas, busca, indices]);
 
   const verTudo = () => {
     const texto = busca;
@@ -381,11 +374,7 @@ function ChamadosPage() {
 
   const mudaFiltro = <K extends keyof FiltrosTela>(campo: K, valor: FiltrosTela[K]) => {
     const define: { [C in keyof FiltrosTela]: (v: FiltrosTela[C]) => void } = {
-      busca: (texto) => {
-        if (!busca && texto) setFiltrosCartoes((f) => ({ ...f, aba: 'todos', semNumero: true }));
-        if (busca && !texto) setFiltrosCartoes(FILTROS_CARTOES);
-        setBusca(texto);
-      },
+      busca: setBusca,
       cliente: setFCliente,
       modulo: setFModulo,
       autor: setFAutor,
@@ -599,7 +588,7 @@ function ChamadosPage() {
         contagem={contagem}
         opcoes={{ clientes, modulos, autores: autoresLista, revisions }}
         exibidos={filtrados.length}
-        total={itens.length}
+        total={linhas.length}
         semGit={semGit}
       />
 
@@ -607,12 +596,6 @@ function ChamadosPage() {
         <div className="rel-notice flex flex-wrap items-center justify-between gap-2">
           <span>Há mais {buscaEmTudo - filtrados.length} chamado(s) com esse texto em outras abas ou escondidos pelos filtros.</span>
           <button type="button" onClick={verTudo} className="rel-btn rel-btn-sm rel-btn-outline">Ver todos os {buscaEmTudo}</button>
-        </div>
-      )}
-      {busca.trim() && aba !== 'regras' && cartoesDaBusca.length > 0 && (
-        <div className="rel-notice flex flex-wrap items-center justify-between gap-2">
-          <span>{cartoesDaBusca.length} cartão(ões) do BM sem PR também correspondem.</span>
-          <button type="button" onClick={() => setAba('regras')} className="rel-btn rel-btn-sm rel-btn-outline">Ver em Regras e orientações</button>
         </div>
       )}
 
@@ -640,26 +623,35 @@ function ChamadosPage() {
             {!carregando && !filtrados.length && (
               <tr>
                 <td colSpan={semGit ? 11 : 12} className="rel-empty">
-                  {itens.length ? 'Nenhum chamado com esses filtros.' : 'Nenhum contexto importado ainda. Use “Importar contextos”.'}
+                  {linhas.length ? 'Nenhum chamado com esses filtros.' : 'Nenhum contexto importado ainda. Use “Importar contextos”.'}
                 </td>
               </tr>
             )}
-            {filtrados.map((c) => (
-              <tr key={c.id} onClick={() => urlChamado.abrir(c.id)} className="rel-row">
-                <td className="rel-mono whitespace-nowrap px-3 py-2"><Link href={urlChamado.hrefDe(c.id)} onClick={(e) => e.stopPropagation()} className="rel-link">{c.numero}</Link></td>
+            {filtrados.map((c) => {
+              const abre = () => (c.cartao ? urlCartao.abrir(String(c.cartao.cardId)) : urlChamado.abrir(c.id));
+              const href = c.cartao ? urlCartao.hrefDe(String(c.cartao.cardId)) : urlChamado.hrefDe(c.id);
+              const atencao = c.cartao ? atencaoDe(c.cartao, reportsDoQuadro.get(c.cartao.numero), agora) : [];
+              return (
+              <tr key={c.id} onClick={abre} className="rel-row">
+                <td className="rel-mono whitespace-nowrap px-3 py-2"><Link href={href} onClick={(e) => e.stopPropagation()} className="rel-link">{c.numero || 'sem número'}</Link></td>
                 <td className="max-w-[360px] px-3 py-2">
                   <div className="rel-strong">{c.assunto}</div>
-                  <div className="rel-desc">{c.cliente || '—'}</div>
+                  <div className="rel-desc">{c.cartao ? 'Cartão do BM sem PR' : c.cliente || '—'}</div>
+                  {atencao.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {atencao.map((a) => <span key={a} className={`rel-tag ${COR_ATENCAO[a]}`}>{ROTULO_ATENCAO[a]}</span>)}
+                    </div>
+                  )}
                   {busca.trim() && indices.has(c.id) && ondeEncontrou(indices.get(c.id)!, busca).length > 0 && (
                     <div className="rel-tag mt-1">Encontrado em: {ondeEncontrou(indices.get(c.id)!, busca).join(', ')}</div>
                   )}
                 </td>
-                <td className="hidden px-3 py-2 text-zinc-300 md:table-cell">{ROTULO_TIPO[c.tipo ?? '']}</td>
+                <td className="hidden px-3 py-2 text-zinc-300 md:table-cell">{c.cartao ? c.cartao.tipo || '—' : ROTULO_TIPO[c.tipo ?? '']}</td>
                 <td className="px-3 py-2">
-                  {c.situacao ? <span className={`rel-tag ${estiloSituacao[c.situacao]}`}>{ROTULO_SITUACAO[c.situacao]}</span> : <span className="text-zinc-600">—</span>}
+                  {c.cartao ? <span className={`rel-tag ${concluido(c.cartao) ? 'rel-tag-ok' : 'rel-tag-alert'}`}>{concluido(c.cartao) ? 'Concluído no BM' : 'Sem PR'}</span> : c.situacao ? <span className={`rel-tag ${estiloSituacao[c.situacao]}`}>{ROTULO_SITUACAO[c.situacao]}</span> : <span className="text-zinc-600">—</span>}
                 </td>
-                <td className="hidden px-3 py-2 md:table-cell"><BmColuna r={registros[soDigitos(c.numero)]?.resumo} />{reportsAtivos(reportsDoQuadro.get(soDigitos(c.numero))).length > 0 && <span className="rel-tag rel-tag-error mt-1">Report</span>}</td>
-                <td className="hidden px-3 py-2 text-zinc-300 sm:table-cell">{(c.autores ?? []).join(', ') || '—'}</td>
+                <td className="hidden px-3 py-2 md:table-cell">{c.cartao ? <span className="rel-tag rel-tag-info">{c.cartao.coluna || '—'}</span> : <BmColuna r={registros[soDigitos(c.numero)]?.resumo} />}{reportsAtivos(reportsDoQuadro.get(soDigitos(c.numero))).length > 0 && <span className="rel-tag rel-tag-error mt-1">Report</span>}</td>
+                <td className="hidden px-3 py-2 text-zinc-300 sm:table-cell">{c.cartao ? c.cartao.responsavel || 'Sem responsável' : (c.autores ?? []).join(', ') || '—'}</td>
                 <td className="hidden px-3 py-2 text-zinc-300 lg:table-cell">{c.modulo || '—'}</td>
                 <td className="hidden px-3 py-2 text-zinc-300 sm:table-cell">{c.revision || (previsaoDe(c, previsaoGlobal) ? `previsão ${previsaoDe(c, previsaoGlobal)}` : c.situacao === 'em-correcao' ? 'ainda não saiu' : '—')}</td>
                 <td className="hidden whitespace-nowrap px-3 py-2 text-zinc-400 md:table-cell">{formataIso(c.publicadoEm) || '—'}</td>
@@ -674,24 +666,11 @@ function ChamadosPage() {
                 <td className="hidden px-3 py-2 xl:table-cell"><Selo ok={c.temEvidencia} /></td>
                 <td className="hidden px-3 py-2 xl:table-cell"><Selo ok={c.temPlano} /></td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </section>
-
-      {aba === 'regras' && (
-        <CartoesSemPr
-          cartoes={cartoesDaBusca}
-          filtros={filtrosCartoes}
-          onFiltros={setFiltrosCartoes}
-          reports={reportsDoQuadro}
-          agora={agora}
-          carregando={!quadroLido}
-          sincronizado={sincronizadoQuadro}
-          onAbrir={urlCartao.abrir}
-          hrefDe={urlCartao.hrefDe}
-        />
-      )}
 
       <BuscaExterna consulta={busca} semGit={semGit} idsComContexto={idsComContexto} hrefDoChamado={urlChamado.hrefDe} />
     </div>

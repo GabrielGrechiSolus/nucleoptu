@@ -44,7 +44,7 @@ export function pertenceAba(c: Chamado, aba: Aba): boolean {
   return !!c.temPr && c.situacao === (aba === 'em-correcao' ? 'em-correcao' : 'corrigido');
 }
 
-export function filtraChamados(itens: Chamado[], f: Filtros, indices?: Map<string, IndiceChamado>): Chamado[] {
+export function filtraChamados<T extends Chamado>(itens: T[], f: Filtros, indices?: Map<string, IndiceChamado>): T[] {
   const termos = termosDaBusca(f.busca);
   const autor = normaliza(f.autor);
   return itens.filter((c) => {
