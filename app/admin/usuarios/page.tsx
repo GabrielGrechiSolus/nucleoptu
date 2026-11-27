@@ -10,6 +10,7 @@ import { useAdmin } from '../useAdmin';
 import { ROTULO_PERFIL, TIPOS_PERFIL, SENHA_MINIMA, validaNovoUsuario, validaSenha, type TipoPerfil } from '../validacao';
 import type { UsuarioAdmin } from '../../api/admin/usuarios/route';
 import CampoBusca from '../../components/CampoBusca';
+import { corresponde } from '../../busca/motor';
 
 type Modal = { tipo: 'novo' } | { tipo: 'senha'; usuario: UsuarioAdmin } | { tipo: 'confirma'; usuario: UsuarioAdmin; acao: 'inativar' | 'ativar' | 'admin-sim' | 'admin-nao' } | null;
 
@@ -121,7 +122,7 @@ function UsuariosAdminPage() {
       if (fPerfil && u.tipo !== fPerfil) return false;
       if (fAdmin === 'sim' && !u.admin) return false;
       if (fAdmin === 'nao' && u.admin) return false;
-      return !q || `${u.nome} ${u.email}`.toLowerCase().includes(q);
+      return corresponde([u.nome, u.email], q);
     });
     return sortRows(lista, sort, {
       nome: (u) => u.nome,

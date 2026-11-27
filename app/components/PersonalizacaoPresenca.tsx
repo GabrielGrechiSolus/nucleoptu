@@ -87,14 +87,14 @@ export async function carregarFontesChat() {
       Object.values(await lerRegistrosBm()).forEach((registro) => {
         const d = registro as unknown as Record<string, any>;
         const titulo = `BM #${d.cardId || d.chamado} · ${d.resumo?.titulo || d.cartao?.titulo || d.chamado || ''}`;
-        if (d.encontrado) fontes.push({ tipo: 'Cartão BM', id: String(d.chamado), titulo, url: `/chamados-bm?cartao=${d.cardId || ''}` });
+        if (d.encontrado) fontes.push({ tipo: 'Cartão BM', id: String(d.chamado), titulo, url: `/chamados?aba=regras&cartao=${d.cardId || ''}` });
       });
     } catch { /* os demais tipos continuam pesquisáveis */ }
     try {
       (await lerQuadroBm()).cartoes.forEach((cartao) => {
         const d = cartao as unknown as Record<string, any>;
         const titulo = `BM #${d.cardId} · ${d.numero || ''} · ${d.titulo || ''}`.trim();
-        fontes.push({ tipo: 'Cartão BM', id: String(d.cardId), titulo, url: `/chamados-bm?cartao=${encodeURIComponent(String(d.cardId))}` });
+        fontes.push({ tipo: 'Cartão BM', id: String(d.cardId), titulo, url: `/chamados?aba=regras&cartao=${encodeURIComponent(String(d.cardId))}` });
       });
     } catch { /* os demais tipos continuam pesquisáveis */ }
   };

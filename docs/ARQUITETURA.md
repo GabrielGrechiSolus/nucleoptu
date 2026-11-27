@@ -28,6 +28,7 @@ Next.js 16 (App Router), React 19.2, TypeScript, Tailwind CSS, `lucide-react`, `
 | `app/api/` | rotas do servidor; arquivos com `_` são apoio interno |
 | `app/components/` | menu, cabeçalho, autenticação e rotinas globais |
 | `app/chamados/` | contextos, BM, Relatus (tela), consultas salvas e regras puras |
+| `app/busca/` | motor de busca e busca ao vivo |
 | `app/processos/` | processo do BM, etapas e automações |
 | `app/escritorio/`, `app/client-connections/`, `app/admin/` | módulos próprios |
 | `app/layout.tsx` | layout raiz: autenticação, atualização automática e presença |
@@ -73,6 +74,7 @@ Next.js 16 (App Router), React 19.2, TypeScript, Tailwind CSS, `lucide-react`, `
 | `/api/git/perfil` | GET | logado, com Git | usuário e PRs |
 | `/api/git/mergeados` | GET | logado, com Git | PRs mergeados |
 | `/api/git/commits` | GET | logado, com Git | commits recentes |
+| `/api/git/busca` | GET | logado, com Git | busca de PRs na organização |
 | `/api/git/checks` | POST | logado, com Git | checks de até 20 PRs |
 | `/api/git/revisao` | POST | logado, com Git | revision de até 80 PRs mesclados |
 | `/api/git/revisao/ultima` | GET | logado | última revision e previsão |
@@ -102,6 +104,7 @@ Next.js 16 (App Router), React 19.2, TypeScript, Tailwind CSS, `lucide-react`, `
 | Assistente | 20 perguntas por minuto por pessoa |
 | PRs mergeados e commits | 30 por minuto por pessoa |
 | Conexões | 60 leituras, 40 gravações e 20 exclusões por minuto; 20 senhas a cada 10 minutos |
+| Busca no GitHub | 15 por minuto por pessoa |
 | Relatus | 40 consultas por minuto por pessoa |
 
 Os limites e caches do servidor ficam **em memória por instância**. Na Vercel, não são globais e se perdem quando a instância reinicia.

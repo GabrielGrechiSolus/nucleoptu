@@ -5,8 +5,7 @@
 - Nada de modal para detalhe ou formulário grande: o detalhe ocupa a tela, com botão **Voltar**.
 - O detalhe aberto fica na URL, então o link pode ser enviado e o Voltar do navegador funciona:
   - Processos do BM: `?chamado=<número só com dígitos>` ou `?cartao=<id do cartão>`
-  - Contexto de chamados: `?chamado=<id>` e `?modelo=1`
-  - Chamados sem PR (BM): `?cartao=<id>`
+  - Contexto de chamados: `?chamado=<id>`, `?modelo=1`, `?aba=regras` e `?cartao=<id do cartão sem PR>`
   - Conexões de clientes: `?cliente=<id>`, `?editar=<id>` ou `?editar=novo`
   - Fila de aplicação: `?pedido=<id>`
 - A lista e os filtros continuam montados enquanto o detalhe está aberto; ao voltar, nada se perde.
@@ -30,6 +29,6 @@
 
 ## Menu lateral
 
-- O menu é uma árvore por assunto, definida em `app/components/navegacao.ts` (`montaMenu`): Início, Mural, **Chamados** (Contexto, Fila e a subárvore **Businessmap (BM)** com Chamados sem PR e Processos do BM), **Apoio ao atendimento** (Conexões e Links úteis) e **Conta e administração** (Perfil, Usuários e Gestão de usuários).
+- O menu é uma árvore por assunto, definida em `app/components/navegacao.ts` (`montaMenu`): Início, Mural, **Chamados** (Contexto, Fila e Processos do BM), **Apoio ao atendimento** (Conexões e Links úteis) e **Conta e administração** (Perfil, Usuários e Gestão de usuários).
 - Para uma tela nova, acrescente o item no grupo do assunto em `montaMenu`; itens restritos (como Processos do BM) entram por opção. A busca do menu, os grupos recolhíveis, o realce da rota ativa e os contadores já funcionam a partir daí.
 - Com o menu recolhido (só ícones), os itens aparecem em lista simples.

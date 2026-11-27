@@ -36,8 +36,8 @@ describe('filtros da lista de contextos', () => {
 
   it('filtra por situação (abas), tipo, módulo, cliente e revision', () => {
     expect(nums(filtraChamados(itens, f({ aba: 'em-correcao' })))).toEqual(['568.002']);
-    expect(nums(filtraChamados(itens, f({ aba: 'corrigidos' })))).toEqual(['568.001', '568.003']);
-    expect(nums(filtraChamados(itens, f({ aba: 'regras' })))).toEqual(['568.004']);
+    expect(nums(filtraChamados(itens, f({ aba: 'corrigidos' })))).toEqual(['568.001']);
+    expect(nums(filtraChamados(itens, f({ aba: 'regras' })))).toEqual(['568.003', '568.004']);
     expect(nums(filtraChamados(itens, f({ modulo: 'PTU A500' })))).toEqual(['568.001', '568.003']);
     expect(nums(filtraChamados(itens, f({ cliente: 'Unimed B' })))).toEqual(['568.002']);
     expect(nums(filtraChamados(itens, f({ revision: '40125' })))).toEqual(['568.003']);
@@ -49,8 +49,16 @@ describe('filtros da lista de contextos', () => {
     expect(nums(filtraChamados(itens, f({ autor: 'Denys Sousa', modulo: 'PTU A500', revision: '40127' })))).toEqual(['568.001']);
   });
 
-  it('a busca no conteúdo dos documentos só vale quando marcada', () => {
-    expect(nums(filtraChamados(itens, f({ busca: 'carencia' })))).toEqual([]);
-    expect(nums(filtraChamados(itens, f({ busca: 'carencia', noConteudo: true })))).toEqual(['568.002']);
+  it('a busca sempre inclui o conteúdo dos documentos', () => {
+    expect(nums(filtraChamados(itens, f({ busca: 'carencia' })))).toEqual(['568.002']);
+  });
+
+  it('chamado sem PR fica em Regras e, ao ganhar um PR, muda para a aba da situação', () => {
+    const semPr = itens.filter((c) => c.numero === '568.003');
+    expect(filtraChamados(semPr, f({ aba: 'regras' }))).toHaveLength(1);
+    expect(filtraChamados(semPr, f({ aba: 'corrigidos' }))).toHaveLength(0);
+    const comPr = semPr.map((c) => ({ ...c, temPr: true, prs: [{ numero: '12', repo: 'banco' }] }));
+    expect(filtraChamados(comPr, f({ aba: 'regras' }))).toHaveLength(0);
+    expect(filtraChamados(comPr, f({ aba: 'corrigidos' }))).toHaveLength(1);
   });
 });

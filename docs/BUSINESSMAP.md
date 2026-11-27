@@ -36,7 +36,9 @@
 
 ## Chamados sem PR e reports (quadro do BM)
 
-- A página **Chamados sem PR (BM)** lista os cartões do quadro do BM que não têm PR, inclusive os concluídos. Os dados ficam no Firestore (coleções `bm_quadro` e `bm_quadro_meta`), então todos leem; só quem tem a chave do BM atualiza, pelo botão "Atualizar do BM" ou automaticamente ao entrar.
+Desde 27/11/2026 os cartões sem PR ficam em **Contexto de chamados > Regras e orientações**; não há mais o item próprio no menu. Cartões cujo chamado já tem contexto aparecem pela lista de contextos.
+
+- A lista traz os cartões do quadro do BM que não têm PR, inclusive os concluídos. Os dados ficam no Firestore (coleções `bm_quadro` e `bm_quadro_meta`), então todos leem; só quem tem a chave do BM atualiza, pelo botão "Atualizar do BM" ou automaticamente ao entrar.
 - A lista vem ordenada pela relevância: report aberto (50), bloqueio (30), prazo vencido (30), prioridade crítica (20) ou alta (10), tempo parado (até 20) e falta de responsável (5). Há abas Em andamento, Com atenção, Concluídos e Todos, além de filtros por responsável, coluna e tipo.
 - Report é o cartão do tipo Bug cujo título cita o chamado ("Report: 566.577"). Ele aparece como etiqueta vermelha no chamado de origem, na página de processos, na lista de contexto e nesta página, enquanto não estiver concluído.
 - Em **Processos do BM**, uma segunda lista mostra os cartões em que o usuário é responsável e que não têm PR, e o processo (critérios de saída, comentário e mover) funciona também para eles.

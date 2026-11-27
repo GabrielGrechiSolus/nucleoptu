@@ -27,6 +27,7 @@ import {
   Tag
 } from "lucide-react";
 import { toast } from "react-toastify";
+import { corresponde } from '../busca/motor';
 
 interface Skill {
   name: string;
@@ -113,10 +114,10 @@ function UsersPage() {
   const filteredAndSortedUsers = useMemo(() => {
     let filtered = users.filter((user) => {
       // Filtro por nome
-      const nameMatch = user.name?.toLowerCase().includes(searchName.toLowerCase()) ?? true;
+      const nameMatch = corresponde([user.name], searchName);
       
       // Filtro por email
-      const emailMatch = user.email?.toLowerCase().includes(searchEmail.toLowerCase()) ?? true;
+      const emailMatch = corresponde([user.email], searchEmail);
       
       // Filtro por setor/departamento
       let departmentMatch = true;

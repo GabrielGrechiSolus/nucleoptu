@@ -1,6 +1,6 @@
 # Web Relatus
 
-A aba **Web Relatus**, no detalhe do Contexto de chamados e dos Chamados sem PR (BM), busca o atendimento pelo número em `https://relatus.solus.inf.br/api`.
+A aba **Web Relatus**, no detalhe do chamado e do cartão sem PR (em Contexto de chamados), busca o atendimento pelo número em `https://relatus.solus.inf.br/api`.
 
 ## O que é mostrado
 

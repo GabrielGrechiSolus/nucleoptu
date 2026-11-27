@@ -8,7 +8,7 @@ import { FolderSearch, Upload, FileText, Copy } from 'lucide-react';
 import { Chamado, lerPasta, ROTULO_SITUACAO, ROTULO_TIPO } from './parse';
 import { CAMPOS_REGRA, MODELO_REGRA } from './modelo';
 import { SortTh, sortRows, useSort } from '../components/SortableTable';
-import { filtraChamados, type Tri } from './filtro';
+import { FILTROS_VAZIOS, filtraChamados, pertenceAba, type Tri } from './filtro';
 import FiltrosChamados, { type AbaChamados, type FiltrosTela } from './FiltrosChamados';
 import { usePessoa } from '../components/usePessoa';
 import { semGitChamado } from './semgit';
@@ -22,7 +22,13 @@ import Link from 'next/link';
 import TelaDetalhe, { useDetalheNaUrl, useDetalheNoHistorico } from '../components/TelaDetalhe';
 import { previsaoDe } from './previsao';
 import { EVENTO_DADOS_ATUALIZADOS } from '../components/AtualizaAoEntrar';
-import { reportsAtivos, reportsPorNumero, type CartaoQuadro } from './bmQuadro';
+import { ehReport, reportsAtivos, reportsPorNumero, type CartaoQuadro } from './bmQuadro';
+import CartoesSemPr from './CartoesSemPr';
+import DetalheCartao from './DetalheCartao';
+import { FILTROS_CARTOES, buscaCartoes, cartoesSemContexto, type FiltrosCartoes } from './regrasSemPr';
+import { indiceDoChamado, ondeEncontrou } from './buscaChamado';
+import BuscaExterna from '../busca/BuscaExterna';
+import { dataBr } from './rotulosCartao';
 import { lerQuadroBm } from './bmQuadroSync';
 import { usePrevisaoRevisao } from './usePrevisaoRevisao';
 
@@ -112,7 +118,6 @@ function ChamadosPage() {
 
   const [erro, setErro] = useState('');
   const [busca, setBusca] = useState('');
-  const [noConteudo, setNoConteudo] = useState(false);
   const [aba, setAba] = useState<AbaChamados>('todos');
   const [fPr, setFPr] = useState<Tri>('todos');
   const [fEvid, setFEvid] = useState<Tri>('todos');
@@ -125,6 +130,12 @@ function ChamadosPage() {
   const urlChamado = useDetalheNaUrl('chamado');
   const urlModelo = useDetalheNaUrl('modelo');
   const urlBusca = useDetalheNaUrl('busca');
+  const urlAba = useDetalheNaUrl('aba');
+  const urlCartao = useDetalheNaUrl('cartao');
+  const [filtrosCartoes, setFiltrosCartoes] = useState<FiltrosCartoes>(FILTROS_CARTOES);
+  const [sincronizadoQuadro, setSincronizadoQuadro] = useState('');
+  const [quadroLido, setQuadroLido] = useState(false);
+  const [agora] = useState(() => Date.now());
   const [previa, setPrevia] = useState<Chamado[] | null>(null);
   const [gravando, setGravando] = useState(false);
   const [substituir, setSubstituir] = useState(false);
@@ -178,22 +189,38 @@ function ChamadosPage() {
   }, [carregar]);
 
   useEffect(() => {
-    if (urlBusca.valor) setBusca(urlBusca.valor);
+    if (!urlBusca.valor) return;
+    setBusca(urlBusca.valor);
+    setFiltrosCartoes((f) => ({ ...f, aba: 'todos', semNumero: true }));
   }, [urlBusca.valor]);
 
   useEffect(() => {
-    lerQuadroBm().then((q) => setQuadro(q.cartoes)).catch(() => undefined);
+    if (urlAba.valor === 'regras') setAba('regras');
+  }, [urlAba.valor]);
+
+  const carregaQuadro = useCallback((atualizar = false) => {
+    lerQuadroBm(atualizar)
+      .then((q) => {
+        setQuadro(q.cartoes);
+        setSincronizadoQuadro(q.meta ? `Quadro sincronizado em ${dataBr(q.meta.sincronizadoEm)} por ${q.meta.por || '—'}.` : '');
+      })
+      .catch(() => undefined)
+      .finally(() => setQuadroLido(true));
   }, []);
+
+  useEffect(() => {
+    carregaQuadro();
+  }, [carregaQuadro]);
 
   useEffect(() => {
     const recarrega = () => {
       carregar();
       lerRegistrosBm().then(setRegistros).catch(() => undefined);
-      lerQuadroBm().then((q) => setQuadro(q.cartoes)).catch(() => undefined);
+      carregaQuadro();
     };
     window.addEventListener(EVENTO_DADOS_ATUALIZADOS, recarrega);
     return () => window.removeEventListener(EVENTO_DADOS_ATUALIZADOS, recarrega);
-  }, [carregar]);
+  }, [carregar, carregaQuadro]);
 
   const aoEscolherPasta = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const arquivos = Array.from(e.target.files ?? []);
@@ -274,19 +301,35 @@ function ChamadosPage() {
   const autoresLista = useMemo(() => [...new Set(itens.flatMap((i) => i.autores ?? []))].sort(), [itens]);
   const revisions = useMemo(() => [...new Set(itens.map((i) => i.revision).filter(Boolean))].sort().reverse(), [itens]);
 
+  const quadroPorNumero = useMemo(() => {
+    const mapa = new Map<string, CartaoQuadro[]>();
+    for (const c of quadro) if (c.numero && !ehReport(c)) mapa.set(c.numero, [...(mapa.get(c.numero) ?? []), c]);
+    for (const [numero, lista] of reportsDoQuadro) mapa.set(numero, [...(mapa.get(numero) ?? []), ...lista]);
+    return mapa;
+  }, [quadro, reportsDoQuadro]);
+
+  const indices = useMemo(
+    () => new Map(itens.map((c) => [c.id, indiceDoChamado(c, registros[soDigitos(c.numero)], quadroPorNumero.get(soDigitos(c.numero)), semGit)])),
+    [itens, registros, quadroPorNumero, semGit],
+  );
+
+  const semPr = useMemo(() => cartoesSemContexto(quadro, itens), [quadro, itens]);
+  const cartoesDaBusca = useMemo(() => buscaCartoes(semPr, busca, registros, semGit), [semPr, busca, registros, semGit]);
+  const idsComContexto = useMemo(() => new Set(itens.map((c) => soDigitos(c.numero))), [itens]);
+
   const contagem = useMemo(
     () => ({
       todos: itens.length,
-      'em-correcao': itens.filter((c) => c.situacao === 'em-correcao').length,
-      corrigidos: itens.filter((c) => c.situacao === 'corrigido').length,
-      regras: itens.filter((c) => c.tipo === 'regra' || c.tipo === 'orientacao').length,
+      'em-correcao': itens.filter((c) => pertenceAba(c, 'em-correcao')).length,
+      corrigidos: itens.filter((c) => pertenceAba(c, 'corrigidos')).length,
+      regras: itens.filter((c) => pertenceAba(c, 'regras')).length + semPr.filter((c) => c.numero).length,
     }),
-    [itens],
+    [itens, semPr],
   );
 
   // Sem useMemo: a lista é pequena e assim nenhum filtro fica de fora das dependências (o filtro de autor já ficou).
   const filtrados = sortRows(
-    filtraChamados(itens, { busca, noConteudo, aba, pr: fPr, evidencia: fEvid, plano: fPlano, regra: fRegra, cliente: fCliente, modulo: fModulo, autor: fAutor, revision: fRevision }),
+    filtraChamados(itens, { busca, aba, pr: fPr, evidencia: fEvid, plano: fPlano, regra: fRegra, cliente: fCliente, modulo: fModulo, autor: fAutor, revision: fRevision }, indices),
     sort,
     {
     numero: (c) => c.id,
@@ -316,6 +359,15 @@ function ChamadosPage() {
     setFAutor('');
     setFRevision('');
     setAba('todos');
+    setFiltrosCartoes(FILTROS_CARTOES);
+  };
+
+  const buscaEmTudo = useMemo(() => (busca.trim() ? filtraChamados(itens, { ...FILTROS_VAZIOS, busca }, indices).length : 0), [itens, busca, indices]);
+
+  const verTudo = () => {
+    const texto = busca;
+    limpar();
+    setBusca(texto);
   };
 
   const copiarModelo = async () => {
@@ -329,8 +381,11 @@ function ChamadosPage() {
 
   const mudaFiltro = <K extends keyof FiltrosTela>(campo: K, valor: FiltrosTela[K]) => {
     const define: { [C in keyof FiltrosTela]: (v: FiltrosTela[C]) => void } = {
-      busca: setBusca,
-      noConteudo: setNoConteudo,
+      busca: (texto) => {
+        if (!busca && texto) setFiltrosCartoes((f) => ({ ...f, aba: 'todos', semNumero: true }));
+        if (busca && !texto) setFiltrosCartoes(FILTROS_CARTOES);
+        setBusca(texto);
+      },
       cliente: setFCliente,
       modulo: setFModulo,
       autor: setFAutor,
@@ -350,7 +405,12 @@ function ChamadosPage() {
     setSubstituir(false);
   });
 
-  if ((urlChamado.valor || mostraModelo) && carregando) return <p className="rel-desc">Carregando...</p>;
+  if (((urlChamado.valor || mostraModelo) && carregando) || (urlCartao.valor && !quadroLido)) return <p className="rel-desc">Carregando...</p>;
+
+  const cartaoAberto = urlCartao.valor ? quadro.find((c) => String(c.cardId) === urlCartao.valor) : undefined;
+  if (cartaoAberto) {
+    return <DetalheCartao key={cartaoAberto.cardId} cartao={cartaoAberto} reports={cartaoAberto.numero ? reportsDoQuadro.get(cartaoAberto.numero) : undefined} agora={agora} onVoltar={urlCartao.voltar} />;
+  }
 
   if (aberto) {
     return (
@@ -472,7 +532,7 @@ function ChamadosPage() {
             onAtualizar={() => {
               void carregar(true);
               lerRegistrosBm(true).then(setRegistros).catch(() => undefined);
-              lerQuadroBm(true).then((q) => setQuadro(q.cartoes)).catch(() => undefined);
+              carregaQuadro(true);
             }}
           />
           <Link href={urlModelo.hrefDe('1')} className="rel-btn rel-btn-outline">
@@ -531,7 +591,7 @@ function ChamadosPage() {
       )}
 
       <FiltrosChamados
-        filtros={{ busca, noConteudo, cliente: fCliente, modulo: fModulo, autor: fAutor, revision: fRevision, pr: fPr, evidencia: fEvid, plano: fPlano, regra: fRegra }}
+        filtros={{ busca, cliente: fCliente, modulo: fModulo, autor: fAutor, revision: fRevision, pr: fPr, evidencia: fEvid, plano: fPlano, regra: fRegra }}
         onMuda={mudaFiltro}
         onLimpar={limpar}
         aba={aba}
@@ -542,6 +602,19 @@ function ChamadosPage() {
         total={itens.length}
         semGit={semGit}
       />
+
+      {buscaEmTudo > filtrados.length && (
+        <div className="rel-notice flex flex-wrap items-center justify-between gap-2">
+          <span>Há mais {buscaEmTudo - filtrados.length} chamado(s) com esse texto em outras abas ou escondidos pelos filtros.</span>
+          <button type="button" onClick={verTudo} className="rel-btn rel-btn-sm rel-btn-outline">Ver todos os {buscaEmTudo}</button>
+        </div>
+      )}
+      {busca.trim() && aba !== 'regras' && cartoesDaBusca.length > 0 && (
+        <div className="rel-notice flex flex-wrap items-center justify-between gap-2">
+          <span>{cartoesDaBusca.length} cartão(ões) do BM sem PR também correspondem.</span>
+          <button type="button" onClick={() => setAba('regras')} className="rel-btn rel-btn-sm rel-btn-outline">Ver em Regras e orientações</button>
+        </div>
+      )}
 
       {msgBm && <p className="rel-notice rel-notice-alert">Businessmap: {msgBm}</p>}
       <section className="rel-table-wrap">
@@ -577,6 +650,9 @@ function ChamadosPage() {
                 <td className="max-w-[360px] px-3 py-2">
                   <div className="rel-strong">{c.assunto}</div>
                   <div className="rel-desc">{c.cliente || '—'}</div>
+                  {busca.trim() && indices.has(c.id) && ondeEncontrou(indices.get(c.id)!, busca).length > 0 && (
+                    <div className="rel-tag mt-1">Encontrado em: {ondeEncontrou(indices.get(c.id)!, busca).join(', ')}</div>
+                  )}
                 </td>
                 <td className="hidden px-3 py-2 text-zinc-300 md:table-cell">{ROTULO_TIPO[c.tipo ?? '']}</td>
                 <td className="px-3 py-2">
@@ -602,6 +678,22 @@ function ChamadosPage() {
           </tbody>
         </table>
       </section>
+
+      {aba === 'regras' && (
+        <CartoesSemPr
+          cartoes={cartoesDaBusca}
+          filtros={filtrosCartoes}
+          onFiltros={setFiltrosCartoes}
+          reports={reportsDoQuadro}
+          agora={agora}
+          carregando={!quadroLido}
+          sincronizado={sincronizadoQuadro}
+          onAbrir={urlCartao.abrir}
+          hrefDe={urlCartao.hrefDe}
+        />
+      )}
+
+      <BuscaExterna consulta={busca} semGit={semGit} idsComContexto={idsComContexto} hrefDoChamado={urlChamado.hrefDe} />
     </div>
   );
 }

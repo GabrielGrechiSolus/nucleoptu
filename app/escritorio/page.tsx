@@ -11,6 +11,7 @@ import { Award, BellRing, Building2, Coffee, ExternalLink, HelpCircle, LoaderCir
 import { FaCoffee, FaDesktop, FaUserAstronaut, FaUserCircle, FaUserGraduate, FaUserNinja, FaUserTie } from 'react-icons/fa';
 import Celebracoes from './Celebracoes';
 import LousaEquipe from './LousaEquipe';
+import { corresponde } from '../busca/motor';
 
 type Status = 'online' | 'ocupado' | 'ausente' | 'nao-perturbe' | 'ferias' | 'folga' | 'pausa';
 type Pessoa = { uid: string; name: string; email?: string; avatar?: string; homeOfficeDays?: number[]; mesaId?: string; assentoId?: string; status?: Status; lastSeenAt?: any; workingOn?: { titulo: string; tipo: string; url: string }; };
@@ -120,12 +121,12 @@ function EscritorioPage() {
     const q = filtro.trim().toLocaleLowerCase('pt-BR');
     return (f.tipo === 'PR' || f.tipo === 'Cartão BM' || f.tipo === 'Contexto')
       && (!tipoTrabalho || f.tipo === tipoTrabalho)
-      && (!q || `${f.id} ${f.tipo} ${f.titulo} ${f.url}`.toLocaleLowerCase('pt-BR').includes(q));
+      && corresponde([f.id, f.tipo, f.titulo, f.url], q);
   }).slice(0, 60);
   const fontesAjuda = fontes.filter(f => {
     const tipo = tipoVinculoAjuda === 'Chamado' ? 'Contexto' : tipoVinculoAjuda;
     const q = buscaVinculoAjuda.trim().toLocaleLowerCase('pt-BR');
-    return f.tipo === tipo && (!q || `${f.id} ${f.titulo} ${f.url}`.toLocaleLowerCase('pt-BR').includes(q));
+    return f.tipo === tipo && corresponde([f.id, f.titulo, f.url], q);
   }).slice(0, 100);
   const meuNome = user?.displayName || user?.email || 'Usuário';
 
@@ -155,7 +156,7 @@ function EscritorioPage() {
     }
     if (tipoVinculoAjuda === 'PR') return { tipo:'PR', id:valor, titulo:`PR ${valor}`, url:/^https?:\/\//i.test(valor) ? valor : '/fila' };
     const bm = fontes.find(f => f.tipo === 'Cartão BM' && f.id === valor.replace(/^#/, ''));
-    return bm || { tipo:'Cartão BM', id:valor, titulo:`Cartão BM ${valor}`, url:/^https?:\/\//i.test(valor) ? valor : `/chamados-bm?cartao=${encodeURIComponent(valor.replace(/^#/, ''))}` };
+    return bm || { tipo:'Cartão BM', id:valor, titulo:`Cartão BM ${valor}`, url:/^https?:\/\//i.test(valor) ? valor : `/chamados?aba=regras&cartao=${encodeURIComponent(valor.replace(/^#/, ''))}` };
   };
 
   const pedirAjuda = async () => {

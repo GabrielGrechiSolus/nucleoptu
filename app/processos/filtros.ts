@@ -1,3 +1,4 @@
+import { corresponde } from '../busca/motor';
 export interface FiltrosProcessos {
   busca: string;
   mostrar: 'todos' | 'com' | 'sem';
@@ -43,8 +44,7 @@ export function passaFiltros(l: LinhaFiltro, f: FiltrosProcessos): boolean {
   if (f.report === 'sem' && l.report) return false;
   if (f.bloqueado === 'sim' && !l.bloqueado) return false;
   if (f.bloqueado === 'nao' && l.bloqueado) return false;
-  const q = f.busca.trim().toLowerCase();
-  return !q || l.texto.toLowerCase().includes(q);
+  return corresponde([l.texto], f.busca);
 }
 
 export const filtrosAtivos = (f: FiltrosProcessos) => (Object.keys(FILTROS_INICIAIS) as (keyof FiltrosProcessos)[]).filter((k) => f[k] !== FILTROS_INICIAIS[k]).length;

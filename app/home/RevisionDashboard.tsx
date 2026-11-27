@@ -6,6 +6,7 @@ import { lerChamados } from '../chamados/chamadosDados';
 import { lerRevisoes } from './revisoesDados';
 import type { Chamado } from '../chamados/parse';
 import { tokenDoLogin } from '../chamados/atualizaGit';
+import { corresponde } from '../busca/motor';
 
 type Revision = { numero: number; tags: { repo: string; tag: string; data: string }[] };
 type PrLinha = { id: string; numero: string; cliente: string; assunto: string; repo: string; pr: string; url: string };
@@ -58,8 +59,8 @@ export default function RevisionDashboard() {
 
   const listaAberta = aberta === null ? [] : (porRevision.get(aberta) ?? []).filter((p) => {
     const termo = busca.trim().toLocaleLowerCase('pt-BR');
-    const corresponde = !termo || `${p.numero} ${p.cliente} ${p.assunto} ${p.repo} ${p.pr}`.toLocaleLowerCase('pt-BR').includes(termo);
-    return corresponde && (filtroRepo === 'todos' || p.repo === filtroRepo);
+    const achou = corresponde([p.numero, p.cliente, p.assunto, p.repo, p.pr, `${p.repo}#${p.pr}`], termo);
+    return achou && (filtroRepo === 'todos' || p.repo === filtroRepo);
   });
   const repos = aberta === null ? [] : [...new Set((porRevision.get(aberta) ?? []).map((p) => p.repo))].sort();
   const revisoesVisiveis = mostrarMais ? revisoes : revisoes.slice(0, 1);

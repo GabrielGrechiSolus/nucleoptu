@@ -7,6 +7,7 @@ import { SortTh, sortRows, useSort } from '../components/SortableTable';
 import { BmColuna } from '../chamados/BmPainel';
 import { chamadosDaPessoa, soDigitos, type RegistroBm } from '../chamados/bmRegistro';
 import { lerRegistrosBm } from '../chamados/bmSync';
+import { indiceDoChamado, textoDoBm } from '../chamados/buscaChamado';
 import { lerChamados } from '../chamados/chamadosDados';
 import BotaoAtualizarDados from '../components/BotaoAtualizarDados';
 import type { Chamado } from '../chamados/parse';
@@ -108,7 +109,7 @@ function ProcessosPage() {
     () =>
       semPrBase.filter((c) =>
         passaFiltros(
-          { texto: [c.numero, c.titulo, c.tipo, c.coluna].join(' '), coluna: c.coluna, concluido: concluido(c), bloqueado: c.bloqueado, report: temReport(c.numero), situacao: '', cliente: '', temPr: false },
+          { texto: [c.numero, c.titulo, c.tipo, c.coluna, c.responsavel, ...textoDoBm(registros[soDigitos(c.numero)], [c], pessoa.semGit)].join(' '), coluna: c.coluna, concluido: concluido(c), bloqueado: c.bloqueado, report: temReport(c.numero), situacao: '', cliente: '', temPr: false },
           filtros,
         ),
       ),
@@ -131,7 +132,7 @@ function ProcessosPage() {
     const filtradas = meus.filter((c) => {
       const resumo = registros[soDigitos(c.numero)]?.resumo;
       return passaFiltros(
-        { texto: [c.numero, c.assunto, c.cliente, c.modulo].join(' '), coluna: resumo?.coluna ?? '', concluido: concluidoDoChamado(c), bloqueado: !!resumo?.bloqueado, report: temReport(soDigitos(c.numero)), situacao: c.situacao, cliente: c.cliente, temPr: true },
+        { texto: [indiceDoChamado(c, registros[soDigitos(c.numero)], quadro.filter((q) => q.numero === soDigitos(c.numero)), pessoa.semGit).tudo].join(' '), coluna: resumo?.coluna ?? '', concluido: concluidoDoChamado(c), bloqueado: !!resumo?.bloqueado, report: temReport(soDigitos(c.numero)), situacao: c.situacao, cliente: c.cliente, temPr: true },
         filtros,
       );
     });
@@ -157,7 +158,11 @@ function ProcessosPage() {
     };
   }, [meus, semPrBase, registros]);
 
-  const altera = <K extends keyof FiltrosProcessos>(k: K, v: FiltrosProcessos[K]) => setFiltros((a) => ({ ...a, [k]: v }));
+  const altera = <K extends keyof FiltrosProcessos>(k: K, v: FiltrosProcessos[K]) => setFiltros((a) => {
+    const novo = { ...a, [k]: v };
+    if (k !== 'busca' || !a.busca === !v) return novo;
+    return { ...novo, andamento: v ? 'todos' : FILTROS_INICIAIS.andamento };
+  });
 
   const aberto = useMemo(() => (urlChamado.valor ? itens.find((c) => soDigitos(c.numero) === urlChamado.valor) ?? null : null), [itens, urlChamado.valor]);
   const abertoSemPr = useMemo(() => (urlCartao.valor ? quadro.find((c) => String(c.cardId) === urlCartao.valor) ?? null : null), [quadro, urlCartao.valor]);
@@ -165,7 +170,7 @@ function ProcessosPage() {
 
   const cardsKanban = useMemo(() => quadro.filter((c) => {
     if (ehReport(c) || !eu?.id || c.ownerId !== eu.id) return false;
-    return passaFiltros({ texto: [c.numero, c.titulo, c.tipo, c.coluna].join(' '), coluna: c.coluna, concluido: concluido(c), bloqueado: c.bloqueado, report: temReport(c.numero), situacao: '', cliente: '', temPr: comPr.has(c.numero) }, filtros);
+    return passaFiltros({ texto: [c.numero, c.titulo, c.tipo, c.coluna, c.responsavel, ...textoDoBm(registros[soDigitos(c.numero)], [c], pessoa.semGit)].join(' '), coluna: c.coluna, concluido: concluido(c), bloqueado: c.bloqueado, report: temReport(c.numero), situacao: '', cliente: '', temPr: comPr.has(c.numero) }, filtros);
   }), [quadro, eu, filtros, temReport, comPr]);
   const moverProximaEtapa = async (card: CartaoQuadro, secaoDestino: number) => {
     if (movendo || secaoDestino !== card.secao + 1 || card.bloqueado) return;

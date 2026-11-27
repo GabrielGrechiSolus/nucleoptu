@@ -8,6 +8,7 @@ import { Dialog } from "@headlessui/react";
 import { Users, Star, Plus, ThumbsUp, ThumbsDown, ExternalLink, X, Edit2, Trash2, Search, Filter } from "lucide-react";
 import { toast } from "react-toastify";
 import { SortTh, sortRows, useSort } from "../components/SortableTable";
+import { corresponde } from '../busca/motor';
 
 type LinkType = "todos" | "lideranca" | "sustentacao" | "desenvolvimento" | "analise";
 
@@ -141,7 +142,7 @@ export default function UsefulLinksPage() {
     // Filter by search
     if (search) {
       filtered = filtered.filter((l) =>
-        l.title.toLowerCase().includes(search.toLowerCase())
+        corresponde([l.title, l.url], search)
       );
     }
 

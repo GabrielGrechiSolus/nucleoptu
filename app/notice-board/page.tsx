@@ -59,6 +59,7 @@ import {
 
 import { Dialog } from "@headlessui/react";
 import { motion, AnimatePresence } from "framer-motion";
+import { corresponde } from '../busca/motor';
 
 interface Notice {
   id: string;
@@ -423,10 +424,7 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
 
   const filtered = notices.filter((n) => {
     if (typeFilter === "BM" || typeFilter === "PR") return false;
-    const s = search.toLowerCase();
-    const matchesSearch =
-      n.title.toLowerCase().includes(s) ||
-      n.description?.toLowerCase().includes(s);
+    const matchesSearch = corresponde([n.title, n.description, n.link, n.creatorEmail], search);
 
     const matchesDate = filterDate
       ? new Date(n.createdAt).toISOString().split("T")[0] === filterDate
@@ -462,7 +460,7 @@ const targetConfig: Record<NonNullable<Notice["target"]>, { icon: React.ReactNod
   const notificacoesFiltradas = notificacoes.itens.filter((item) => {
     if (typeFilter === "aviso" || (typeFilter !== "all" && item.tipo !== typeFilter)) return false;
     const termo = search.trim().toLocaleLowerCase("pt-BR");
-    const correspondeBusca = !termo || `${item.titulo} ${item.detalhe}`.toLocaleLowerCase("pt-BR").includes(termo);
+    const correspondeBusca = corresponde([item.titulo, item.detalhe], termo);
     const correspondeData = !filterDate || (Number.isFinite(Date.parse(item.em)) && new Date(item.em).toISOString().slice(0, 10) === filterDate);
     const correspondeStatus = statusFilter === "all" || (statusFilter === "read" ? item.lida : !item.lida);
     return correspondeBusca && correspondeData && correspondeStatus;

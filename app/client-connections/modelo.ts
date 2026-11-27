@@ -1,4 +1,5 @@
 import { ORIENTACAO_SENSIVEL, achaDadoSensivel } from './sensivel';
+import { corresponde } from '../busca/motor';
 
 export type TipoConexao = 'anydesk' | 'teamviewer' | 'terminal' | 'vpn';
 export type PerfilContato = '' | 'tecnica' | 'regra' | 'gerente';
@@ -222,7 +223,7 @@ export function filtraClientes(lista: ClienteConexao[], f: FiltrosClientes): Cli
     if (f.perfil && !c.contatos.some((p) => p.perfil === f.perfil)) return false;
     if (!q) return true;
     const palavras = [c.nome, c.codigo, c.cidadeUf, c.descricao, ...c.conexoes.flatMap((x) => [x.nome, x.idRemoto, x.host]), ...c.contatos.flatMap((p) => [p.nome, p.teams, p.cargo])];
-    return palavras.join(' ').toLowerCase().includes(q);
+    return corresponde(palavras, q);
   });
 }
 

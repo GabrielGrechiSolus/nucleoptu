@@ -37,6 +37,7 @@ Abra `http://localhost:3000`. O passo a passo completo, incluindo o Firebase, es
 | Documento | Conteúdo |
 |---|---|
 | [Administração de usuários](docs/ADMIN_USUARIOS.md) | cadastro, administradores e confirmação de e-mail |
+| [Busca](docs/BUSCA.md) | como pesquisar, o que é pesquisado e a busca ao vivo |
 | [Businessmap](docs/BUSINESSMAP.md) | chaves, sincronização, processos e chamados sem PR |
 | [Web Relatus](docs/RELATUS.md) | token automático, campos, anexos e acesso |
 | [Git no perfil](docs/GIT_PERFIL.md) | vínculo do GitHub e geração de contextos |

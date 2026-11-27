@@ -12,6 +12,7 @@ import { SortTh, sortRows, useSort } from '../components/SortableTable';
 import { BotoesAcao, COLECAO_VINCULOS, Historico, estiloStatus } from '../chamados/Vinculos';
 import { ROTULO_STATUS, ROTULO_STATUS_CURTO, STATUS_ABERTOS, STATUS_FILA, StatusAplicacao, Vinculo, ehDono, ehSolicitante, pendenciasPara } from '../chamados/aplicacao';
 import CampoBusca from '../components/CampoBusca';
+import { corresponde } from '../busca/motor';
 
 type Aba = 'aplicar' | 'continuar' | 'meus' | 'todos';
 
@@ -57,9 +58,9 @@ function FilaPage() {
       if (aba === 'continuar' && !(v.aplicacao === 'aplicado' && ehSolicitante(v, eu))) return false;
       if (aba === 'meus' && !ehSolicitante(v, eu)) return false;
       if (fStatus && v.aplicacao !== fStatus) return false;
-      if (aba !== 'aplicar' && aba !== 'continuar' && ocultaFechados && !fStatus && !STATUS_ABERTOS.includes(v.aplicacao)) return false;
+      if (!q && aba !== 'aplicar' && aba !== 'continuar' && ocultaFechados && !fStatus && !STATUS_ABERTOS.includes(v.aplicacao)) return false;
       if (!q) return true;
-      return [v.chamadoNumero, v.cliente, v.assunto, v.contextoNumero, v.contextoAssunto, v.criadoPorNome, ...v.prs, ...v.donoNomes, ...v.donoLogins].join(' ').toLowerCase().includes(q);
+      return corresponde([v.chamadoNumero, v.cliente, v.assunto, v.observacao, v.contextoNumero, v.contextoAssunto, v.criadoPorNome, v.criadoPorEmail, ...v.prs, ...v.donoNomes, ...v.donoLogins, ...(v.historico ?? []).map((h) => h.nota)], q);
     });
     return sortRows(lista, sort, {
       pedido: (v) => v.criadoEm,

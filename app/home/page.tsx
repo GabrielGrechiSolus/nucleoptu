@@ -56,6 +56,7 @@ import {
   ShieldCheck,
   ArrowLeftRight
 } from 'lucide-react';
+import { corresponde } from '../busca/motor';
 
 interface Unimed {
   codigo: string;
@@ -388,8 +389,7 @@ const HomePage = () => {
 
     if (searchTerm) {
       data = data.filter(item =>
-        item.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.nome.toLowerCase().includes(searchTerm.toLowerCase())
+        corresponde([item.codigo, item.nome], searchTerm)
       );
     }
 

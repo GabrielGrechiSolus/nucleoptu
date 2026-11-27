@@ -8,6 +8,7 @@ import withAuth from '../components/withAuth';
 import { carregarFontesChat, carregarUsuariosNucleo, salvarStatusLocal } from '../components/PersonalizacaoPresenca';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Award, Link2, LoaderCircle, MessageCircle, Paperclip, Send, Smile, Users, Sparkles, X, Trash2 } from 'lucide-react';
+import { corresponde } from '../busca/motor';
 
 type Status = 'online' | 'ocupado' | 'ausente' | 'nao-perturbe' | 'ferias' | 'folga' | 'pausa';
 type Pessoa = { uid: string; name: string; email?: string; avatar?: string; homeOfficeDays?: number[]; status?: Status; lastSeenAt?: any };
@@ -99,7 +100,7 @@ function ChatPage() {
     return fontes
       .filter(f => !refs.some(r => r.tipo === f.tipo && r.id === f.id))
       .filter(f => !tipoFonte || f.tipo === tipoFonte)
-      .filter(f => !termo || `${f.tipo} ${f.id} ${f.titulo} ${f.url}`.toLocaleLowerCase('pt-BR').includes(termo))
+      .filter(f => corresponde([f.tipo, f.id, f.titulo, f.url], termo))
       .slice(0, 60);
   }, [fontes, refs, busca, tipoFonte]);
   const meuNome = user?.displayName || user?.email || 'Usuário';

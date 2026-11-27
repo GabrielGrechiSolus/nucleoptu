@@ -49,13 +49,14 @@ Os contextos entram de duas formas:
 1. **Pelo Git, automaticamente** (ver Rotinas automáticas).
 2. **Importar contextos:** lê pastas de chamados com arquivos `.md` (modelo em [MODELO_REGRA.md](MODELO_REGRA.md)), pelo seletor de pasta do navegador ou pelo caminho `CONTEXTOS_DIR` em servidor local. Há prévia antes de gravar, e a opção de substituir remove o que não estiver na importação.
 
+**Abas:** Todos, **Em correção** e **Corrigidos** (somente com PR) e **Regras e orientações**, que reúne **tudo o que ainda não tem PR**: contextos sem PR e os cartões do quadro do BM sem contexto, ordenados por relevância (report, bloqueio, prazo, prioridade, tempo parado e falta de responsável), com filtros próprios e aba Web Relatus no detalhe para usuários liberados. **Quando o chamado ganha um PR** (contexto gerado ou atualizado), sai dessa aba e vai para Em correção ou Corrigidos. O endereço antigo `/chamados-bm` redireciona para ela.
+
+A busca é profunda e há busca ao vivo no GitHub e no BM. Ver [BUSCA.md](BUSCA.md).
+
 No detalhe há as abas **Resumo**, **Regra de negócio**, **Businessmap**, **Web Relatus** (usuários liberados) e **Documentos**. A aba Resumo também permite **Vincular chamado** e pedir aplicação.
 
 ### Fila de aplicação (`/fila`)
 Pedidos para aplicar uma correção no cliente antes da revision. Status: Aberto, Aplicando, Aplicado, Concluído e Cancelado, com histórico. Ver [FILA_APLICACAO.md](FILA_APLICACAO.md).
-
-### Chamados sem PR (`/chamados-bm`)
-Cartões do quadro do BM sem PR, ordenados por relevância (report, bloqueio, prazo, prioridade, tempo parado e falta de responsável). No detalhe do cartão, usuários liberados têm a aba **Web Relatus**, consultada só quando aberta. Ver [BUSINESSMAP.md](BUSINESSMAP.md).
 
 ### Processos do BM (`/processos`)
 Ajuda a preencher texto de conclusão e links, marcar critérios de saída, comentar e mover cartões, em lista ou kanban. **Toda gravação no BM pede confirmação**, com simulação do que será enviado, e usa a chave pessoal de quem está logado.

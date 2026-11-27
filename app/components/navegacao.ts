@@ -1,5 +1,5 @@
 import type React from 'react';
-import { Bell, CalendarDays, FolderSearch, Home, Inbox, Kanban, LifeBuoy, Link as LinkIcon, ListChecks, MessageCircle, Network, ShieldCheck, Ticket, User, UserCog, Users, Building2 } from 'lucide-react';
+import { Bell, CalendarDays, FolderSearch, Home, LifeBuoy, Link as LinkIcon, ListChecks, MessageCircle, Network, ShieldCheck, Ticket, User, UserCog, Users, Building2 } from 'lucide-react';
 
 export interface ItemMenu {
   tipo: 'item';
@@ -39,10 +39,7 @@ export function montaMenu({ admin, processos, cronograma }: OpcoesMenu): NoMenu[
     grupo('chamados', 'Chamados', Ticket, true, [
       item('/chamados', 'Contexto de chamados', FolderSearch, 'text-teal-400'),
       item('/fila', 'Fila de aplicação', ListChecks, 'text-sky-400'),
-      grupo('bm', 'Businessmap (BM)', Kanban, true, [
-        item('/chamados-bm', 'Chamados sem PR', Inbox, 'text-amber-400'),
-        ...(processos ? [item('/processos', 'Processos do BM', ListChecks, 'text-emerald-400')] : []),
-      ]),
+      ...(processos ? [item('/processos', 'Processos do BM', ListChecks, 'text-emerald-400')] : []),
     ]),
     grupo('apoio', 'Apoio ao atendimento', LifeBuoy, true, [
       item('/client-connections', 'Conexões de clientes', Network, 'text-pink-400'),

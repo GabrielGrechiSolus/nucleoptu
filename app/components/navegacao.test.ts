@@ -5,7 +5,7 @@ describe('menu lateral por assunto', () => {
 
   it('agrupa por assunto e não tem mais o Atlas', () => {
     const rotulos = menu.map((n) => n.label);
-    expect(rotulos).toEqual(['Início', 'Mural', 'Chamados', 'Apoio ao atendimento', 'Conta e administração']);
+    expect(rotulos).toEqual(['Início', 'Mural', 'Chat da equipe', 'Escritório virtual', 'Chamados', 'Apoio ao atendimento', 'Conta e administração']);
     expect(itensDoMenu(menu).some((i) => i.href.includes('atlas'))).toBe(false);
   });
 
@@ -23,7 +23,7 @@ describe('menu lateral por assunto', () => {
     expect(rotaAtiva('/notice-board/abc', '/notice-board')).toBe(true);
     expect(rotaAtiva('/chamados-bm', '/chamados')).toBe(false);
     const chamados = menu.find((n) => n.label === 'Chamados')!;
-    expect(contemRota(chamados, '/chamados-bm')).toBe(true);
+    expect(contemRota(chamados, '/fila')).toBe(true);
     expect(contemRota(chamados, '/links')).toBe(false);
   });
 
@@ -32,7 +32,7 @@ describe('menu lateral por assunto', () => {
     expect(r).toHaveLength(1);
     expect(itensDoMenu(r).map((i) => i.href)).toEqual(['/fila']);
     expect(itensDoMenu(filtraMenu(menu, 'conexoes')).map((i) => i.href)).toEqual(['/client-connections']);
-    expect(itensDoMenu(filtraMenu(menu, 'businessmap')).map((i) => i.href)).toEqual(['/chamados-bm']);
+    expect(itensDoMenu(montaMenu({ admin: true, processos: true })).map((i) => i.href)).not.toContain('/chamados-bm');
     expect(filtraMenu(menu, 'zzz')).toEqual([]);
     expect(filtraMenu(menu, '  ')).toBe(menu);
   });

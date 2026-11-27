@@ -9,7 +9,6 @@ export type AbaChamados = 'todos' | 'em-correcao' | 'corrigidos' | 'regras';
 
 export interface FiltrosTela {
   busca: string;
-  noConteudo: boolean;
   cliente: string;
   modulo: string;
   autor: string;
@@ -20,7 +19,7 @@ export interface FiltrosTela {
   regra: Tri;
 }
 
-export const FILTROS_VAZIOS: FiltrosTela = { busca: '', noConteudo: false, cliente: '', modulo: '', autor: '', revision: '', pr: 'todos', evidencia: 'todos', plano: 'todos', regra: 'todos' };
+export const FILTROS_VAZIOS: FiltrosTela = { busca: '', cliente: '', modulo: '', autor: '', revision: '', pr: 'todos', evidencia: 'todos', plano: 'todos', regra: 'todos' };
 
 const ABAS: { id: AbaChamados; rotulo: string }[] = [
   { id: 'todos', rotulo: 'Todos' },
@@ -80,7 +79,7 @@ export default function FiltrosChamados({ filtros, onMuda, onLimpar, aba, onAba,
 
       <div className="flex flex-wrap gap-2">
         <div className="min-w-[240px] flex-1">
-          <CampoBusca valor={filtros.busca} onChange={(v) => onMuda('busca', v)} placeholder="Buscar por chamado, cliente, assunto, módulo, revision ou PR" rotulo="Pesquisar chamados" />
+          <CampoBusca valor={filtros.busca} onChange={(v) => onMuda('busca', v)} placeholder="Buscar em chamado, documentos, PR, branch e BM" rotulo="Pesquisar chamados" />
         </div>
         <button type="button" onClick={() => setAberto((v) => !v)} aria-expanded={aberto} aria-label="Filtros" className={`rel-btn rel-btn-alto ${aberto ? 'rel-btn-primary' : 'rel-btn-outline'}`}>
           <SlidersHorizontal size={15} />Filtros{ativos.length > 0 && <span className="rel-contador">{ativos.length}</span>}
@@ -132,10 +131,9 @@ export default function FiltrosChamados({ filtros, onMuda, onLimpar, aba, onAba,
       )}
 
       <div className="rel-filtros-rodape">
-        <label className="rel-desc flex items-center gap-2">
-          <input type="checkbox" checked={filtros.noConteudo} onChange={(e) => onMuda('noConteudo', e.target.checked)} />
-          Pesquisar também dentro dos documentos (mais lento)
-        </label>
+        <span className="rel-desc">
+          {aba === 'regras' ? 'Tudo o que ainda não tem PR. Ao ganhar um PR, passa para Em correção ou Corrigidos.' : 'A busca inclui documentos, PRs, branches e os dados do BM.'}
+        </span>
         <div className="flex items-center gap-3">
           <span className="rel-desc">{`${exibidos} de ${total} chamados`}</span>
           {temOQueLimpar && <button type="button" onClick={onLimpar} className="rel-btn rel-btn-sm rel-btn-ghost">Limpar filtros</button>}

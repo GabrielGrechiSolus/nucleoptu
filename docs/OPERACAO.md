@@ -30,10 +30,9 @@ Falhas conhecidas na data desta documentação, anteriores a ela:
 
 | Arquivo | Situação |
 |---|---|
-| `app/components/navegacao.test.ts` | um teste espera o menu antigo |
-| `app/notice-board/page.test.tsx` | o conjunto não executa |
+| `app/notice-board/page.test.tsx` | o conjunto não executa (`fetch is not defined` no ambiente de teste) |
 
-Elas não fazem parte do build. Qualquer outra falha deve ser tratada antes do push.
+Ela não faz parte do build. Qualquer outra falha deve ser tratada antes do push.
 
 O workflow `.github/workflows/ci.yml` roda apenas em `main`. Como a branch usada é `mural-avisos`, **os testes não rodam automaticamente** no GitHub. Rode localmente.
 
